@@ -26,7 +26,7 @@ try { new Function(ui); check("UI 脚本语法", true); }
 catch (e) { check("UI 脚本语法", false, e.message); }
 
 const chipOps = [...html.matchAll(/data-op="([A-Za-z]+)"/g)].map((m) => m[1]);
-check("运算按钮数量", chipOps.length === 12, chipOps.join(","));
+check("运算按钮数量", chipOps.length === 15, chipOps.join(","));
 
 for (const op of chipOps) {
   check("已实现：" + op, ui.indexOf('op === "' + op + '"') >= 0 || ui.indexOf('"' + op + '":') >= 0);

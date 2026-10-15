@@ -9,6 +9,7 @@ ios/Info.plist
 Payload/
 test/_web/
 test/shots/
+test/_preview-*.html
 
 # system
 Thumbs.db

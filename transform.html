@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="glass">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080c18">
+<title>线性变换 T(x) = Ax · 几何演示</title>
+<style>
+:root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
+:root[data-skin="glass"]{
+  --bg:#080c18;
+  --bg-image:radial-gradient(880px 520px at 10% -10%, rgba(94,234,212,.20), transparent 62%), radial-gradient(820px 520px at 102% 2%, rgba(129,140,248,.26), transparent 64%), radial-gradient(700px 460px at 50% 112%, rgba(236,72,153,.14), transparent 62%);
+  --fg:#e9efff; --fg-dim:rgba(233,239,255,.52);
+  --card:rgba(255,255,255,.055); --card-border:rgba(255,255,255,.13);
+  --blur:blur(18px); --shadow:0 12px 34px rgba(0,0,0,.34);
+  --input-bg:rgba(255,255,255,.06); --input-border:rgba(255,255,255,.12);
+  --chip:rgba(255,255,255,.06); --chip-border:rgba(255,255,255,.12);
+  --chip-on-bg:linear-gradient(135deg,#5eead4,#818cf8); --chip-on-fg:#08101f; --chip-on-shadow:0 6px 18px rgba(129,140,248,.35);
+  --accent-line:rgba(129,140,248,.85); --focus-ring:rgba(129,140,248,.22);
+  --btn-bg:linear-gradient(135deg,#5eead4,#818cf8); --btn-fg:#07101d; --btn-shadow:0 10px 26px rgba(129,140,248,.32);
+  --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+}
+:root[data-skin="light"]{
+  --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
+  --card:#ffffff; --card-border:rgba(0,0,0,.06); --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  --track:#e6e6ec; --input-bg:#f5f5f8; --input-border:rgba(0,0,0,.07);
+  --chip:#ececf1; --chip-border:transparent; --chip-on-bg:#0a84ff; --chip-on-fg:#ffffff; --chip-on-shadow:0 6px 16px rgba(10,132,255,.30);
+  --accent-line:#0a84ff; --focus-ring:rgba(10,132,255,.16);
+  --btn-bg:linear-gradient(135deg,#0a84ff,#0060df); --btn-fg:#ffffff; --btn-shadow:0 10px 24px rgba(10,132,255,.28);
+  --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30); --danger:#e5484d;
+}
+:root[data-skin="brutal"]{
+  --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
+  --card:#fffdf8; --card-border:#141414; --card-bw:2px; --input-bw:2px; --radius:14px; --skin-bw:2px;
+  --shadow:6px 6px 0 #141414; --track:#fffdf8; --input-bg:#ffffff; --input-border:#141414;
+  --chip:#ffffff; --chip-border:#141414; --chip-on-bg:#ffd23f; --chip-on-fg:#141414; --chip-on-shadow:3px 3px 0 #141414;
+  --accent-line:#141414; --focus-ring:rgba(255,210,63,.55);
+  --btn-bg:#ff5c4d; --btn-fg:#141414; --btn-shadow:4px 4px 0 #141414;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(16px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow)}
+h1{font-size:17px;margin:0}
+.sub{margin:2px 0 0;font-size:11.5px;color:var(--fg-dim);letter-spacing:.04em}
+.skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
+.skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
+.skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1;text-align:center;padding:11px 10px;border-radius:12px;font-size:13.5px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a:hover{color:var(--fg)}
+.tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
+.tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
+.card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
+.chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:0 0 auto}
+.rtitle{font-size:13px;font-weight:600}
+.note{font-size:11.5px;color:var(--fg-dim)}
+.tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tools button{border:1px solid var(--input-border);background:var(--chip);color:var(--fg);font:inherit;font-size:12px;padding:5px 9px;border-radius:8px;cursor:pointer}
+.tools button:active{transform:translateY(1px)}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:7px}
+.grid input{width:100%;min-width:0;padding:10px 4px;text-align:center;font:inherit;font-size:15.5px;font-variant-numeric:tabular-nums;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:10px;outline:none;transition:.16s}
+.grid input::placeholder{color:var(--fg-dim);opacity:.55}
+.grid input:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
+.geo{display:block;width:100%;height:330px;border-radius:12px;background:var(--input-bg);border:var(--input-bw) solid var(--input-border);touch-action:none;cursor:grab}
+.geo.dragging{cursor:grabbing}
+.geoinfo{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;line-height:1.85}
+.geoinfo b{color:var(--fg)}
+.geoinfo .hl{color:var(--fg);font-weight:600}
+.rgrid{display:grid;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));gap:6px}
+.rgrid.vec{max-width:130px}
+.rcell{background:var(--input-bg);border:1px solid var(--input-border);border-radius:9px;padding:9px 3px;text-align:center;font-size:15px;font-variant-numeric:tabular-nums;word-break:break-all}
+.eqrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:12px;margin-bottom:10px}
+.eqlab{font-size:14px;color:var(--fg-dim);white-space:nowrap}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.06;font-size:.9em;margin:0 1px}
+.frac .fd{border-top:1.4px solid currentColor;padding:0 .2em}
+.frac .fn{padding:0 .2em}
+.msgerr{font-size:13px;color:var(--danger);margin:8px 0;line-height:1.55}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:4px 0 0;line-height:1.7}
+.foot a{color:var(--accent-line)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--fg-dim);margin-top:10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+@media (max-width:420px){h1{font-size:16px}.sub{display:none}.card{padding:11px}.geo{height:290px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">T</span>
+      <div><h1>线性变换 T(x) = Ax</h1><p class="sub">矩阵把空间扭成什么样</p></div>
+    </div>
+    <div class="skins" id="skins">
+      <button data-skin-set="glass" class="on">玻璃</button>
+      <button data-skin-set="light">极简</button>
+      <button data-skin-set="brutal">粗野</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="页面切换">
+    <a href="index.html">← 矩阵计算器</a>
+    <span class="on">线性变换 T(x)<span class="tag">当前</span></span>
+  </nav>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">A</span>
+      <div class="chips" style="margin:0">
+        <button class="chip on" id="dim2">2×2</button>
+        <button class="chip" id="dim3">3×3</button>
+      </div>
+      <div class="tools">
+        <button data-fill="eye">I</button>
+        <button data-fill="zero">0</button>
+        <button data-fill="rand">随机</button>
+      </div>
+    </div>
+    <div class="grid" id="gridA" style="--cols:3"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">x</span>
+      <span class="note">输入一个向量，看它被 T 变到哪去</span>
+      <div class="tools"><button id="xReset">设为单位向量</button></div>
+    </div>
+    <div class="grid" id="gridX" style="--cols:1"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="rtitle">T(x) 算出来是多少</span>
+      <div class="tools">
+        <button id="dec">小数</button>
+        <button id="copy">复制</button>
+      </div>
+    </div>
+    <div id="out"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="rtitle">几何上发生了什么</span>
+      <div class="tools">
+        <button id="geoNet">网格：开</button>
+        <button id="geoSpin">自动旋转</button>
+        <button id="geoReset">重置视角</button>
+      </div>
+    </div>
+    <canvas id="geo" class="geo"></canvas>
+    <div class="legend">
+      <span><i style="background:#ffd43b"></i>原向量 x</span>
+      <span><i style="background:#f06595"></i>像 T(x)</span>
+      <span><i style="background:#ff6b6b"></i>x 轴</span>
+      <span><i style="background:#51cf66"></i>y 轴</span>
+      <span><i style="background:#4dabf7"></i>z 轴</span>
+    </div>
+    <p class="geoinfo" id="geoinfo"></p>
+  </section>
+
+  <nav class="tabs" aria-label="页面切换">
+    <a href="index.html">← 矩阵计算器</a>
+    <span class="on">线性变换 T(x)<span class="tag">当前</span></span>
+  </nav>
+
+  <p class="foot">拖动旋转 · 滚轮缩放 · 矩阵格里回车跳格</p>
+</div>
+
+<script>
+/* ==== ENGINE START ==== */
+const LinAlg = (function(){
+  "use strict";
+  var ZERO = null, ONE = null, TWO = null;
+
+  function bigAbs(x){ return x < 0n ? -x : x; }
+  function bigGcd(a, b){ a = bigAbs(a); b = bigAbs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
+  function isqrt(n){
+    if (n < 0n) throw new Error("负数不能开平方");
+    if (n < 2n) return n;
+    var x = n, y = (x + 1n) / 2n;
+    while (y < x) { x = y; y = (x + n / x) / 2n; }
+    return x;
+  }
+  function perfectSqrt(n){ if (n < 0n) return null; var r = isqrt(n); return r * r === n ? r : null; }
+
+  function parseDecimal(s){
+    s = String(s).trim();
+    var m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(s);
+    if (!m || (m[2] === "" && (m[3] === undefined || m[3] === ""))) throw new Error("无法解析数字：" + s);
+    var sign = m[1] === "-" ? -1n : 1n;
+    var ip = m[2] || "0";
+    var fp = m[3] || "";
+    var ex = m[4] ? parseInt(m[4], 10) : 0;
+    var num = BigInt(ip + fp) * sign;
+    var den = 10n ** BigInt(fp.length);
+    if (ex > 0) num *= 10n ** BigInt(ex);
+    else if (ex < 0) den *= 10n ** BigInt(-ex);
+    return new Frac(num, den);
+  }
+
+  function F(x){
+    if (x instanceof Frac) return x;
+    if (typeof x === "bigint") return new Frac(x);
+    if (typeof x === "number"){
+      if (!isFinite(x)) throw new Error("无效数字");
+      return parseDecimal(String(x));
+    }
+    if (typeof x === "string"){
+      var s = x.trim().replace(/\s+/g, "").replace(/−/g, "-").replace(/／/g, "/");
+      if (s === "" || s === "+" || s === "-") return ZERO;
+      if (s.indexOf("/") >= 0){
+        var parts = s.split("/");
+        if (parts.length !== 2 || parts[0] === "" || parts[1] === "") throw new Error("分数格式不对：" + x);
+        var a = F(parts[0]), b = F(parts[1]);
+        if (b.n === 0n) throw new Error("分母不能为 0");
+        return new Frac(a.n * b.d, a.d * b.n);
+      }
+      return parseDecimal(s);
+    }
+    throw new Error("无效数字");
+  }
+
+  function Frac(n, d){
+    n = BigInt(n);
+    d = (d === undefined) ? 1n : BigInt(d);
+    if (d === 0n) throw new Error("分母不能为 0");
+    if (d < 0n) { n = -n; d = -d; }
+    var g = bigGcd(n, d);
+    if (g > 1n) { n /= g; d /= g; }
+    this.n = n; this.d = d;
+  }
+  Frac.prototype.add = function(o){ o = F(o); return new Frac(this.n * o.d + o.n * this.d, this.d * o.d); };
+  Frac.prototype.sub = function(o){ o = F(o); return new Frac(this.n * o.d - o.n * this.d, this.d * o.d); };
+  Frac.prototype.mul = function(o){ o = F(o); return new Frac(this.n * o.n, this.d * o.d); };
+  Frac.prototype.div = function(o){
+    o = F(o);
+    if (o.n === 0n) throw new Error("不能除以 0");
+    return new Frac(this.n * o.d, this.d * o.n);
+  };
+  Frac.prototype.neg = function(){ return new Frac(-this.n, this.d); };
+  Frac.prototype.inv = function(){ if (this.n === 0n) throw new Error("0 没有倒数"); return new Frac(this.d, this.n); };
+  Frac.prototype.isZero = function(){ return this.n === 0n; };
+  Frac.prototype.sign = function(){ return this.n < 0n ? -1 : (this.n > 0n ? 1 : 0); };
+  Frac.prototype.eq = function(o){ o = F(o); return this.n === o.n && this.d === o.d; };
+  Frac.prototype.toNumber = function(){ return Number(this.n) / Number(this.d); };
+  Frac.prototype.toString = function(){ return this.d === 1n ? String(this.n) : (this.n + "/" + this.d); };
+
+  ZERO = new Frac(0n); ONE = new Frac(1n); TWO = new Frac(2n);
+
+  function shape(M){
+    if (!Array.isArray(M) || M.length === 0) throw new Error("矩阵不能为空");
+    var c = M[0].length;
+    for (var i = 0; i < M.length; i++){
+      if (!Array.isArray(M[i]) || M[i].length !== c) throw new Error("矩阵每一行的列数要相同");
+    }
+    return [M.length, c];
+  }
+  function clone(M){ return M.map(function(r){ return r.slice(); }); }
+  function sameShape(a, b){ return a[0] === b[0] && a[1] === b[1]; }
+  function sizeStr(s){ return s[0] + "×" + s[1]; }
+
+  function matAdd(A, B){
+    var sa = shape(A), sb = shape(B);
+    if (!sameShape(sa, sb)) throw new Error("尺寸不同：" + sizeStr(sa) + " 与 " + sizeStr(sb));
+    return A.map(function(r, i){ return r.map(function(v, j){ return v.add(B[i][j]); }); });
+  }
+  function matSub(A, B){
+    var sa = shape(A), sb = shape(B);
+    if (!sameShape(sa, sb)) throw new Error("尺寸不同：" + sizeStr(sa) + " 与 " + sizeStr(sb));
+    return A.map(function(r, i){ return r.map(function(v, j){ return v.sub(B[i][j]); }); });
+  }
+  function matMul(A, B){
+    var sa = shape(A), sb = shape(B);
+    if (sa[1] !== sb[0]) throw new Error("A 的列数（" + sa[1] + "）要等于 B 的行数（" + sb[0] + "）");
+    var R = [];
+    for (var i = 0; i < sa[0]; i++){
+      var row = [];
+      for (var j = 0; j < sb[1]; j++){
+        var s = ZERO;
+        for (var k = 0; k < sa[1]; k++) s = s.add(A[i][k].mul(B[k][j]));
+        row.push(s);
+      }
+      R.push(row);
+    }
+    return R;
+  }
+  function scaleMat(A, k){ k = F(k); return A.map(function(r){ return r.map(function(v){ return v.mul(k); }); }); }
+  function transpose(A){
+    var s = shape(A), R = [];
+    for (var j = 0; j < s[1]; j++){
+      var row = [];
+      for (var i = 0; i < s[0]; i++) row.push(A[i][j]);
+      R.push(row);
+    }
+    return R;
+  }
+  function trace(A){
+    var s = shape(A);
+    if (s[0] !== s[1]) throw new Error("迹要求方阵");
+    var t = ZERO;
+    for (var i = 0; i < s[0]; i++) t = t.add(A[i][i]);
+    return t;
+  }
+  function det(M){
+    var s = shape(M), n = s[0];
+    if (n !== s[1]) throw new Error("行列式要求方阵");
+    if (n === 1) return M[0][0];
+    var A = clone(M), sign = 1n, prev = ONE;
+    for (var k = 0; k < n - 1; k++){
+      if (A[k][k].isZero()){
+        var p = -1;
+        for (var i = k + 1; i < n; i++) if (!A[i][k].isZero()) { p = i; break; }
+        if (p < 0) return ZERO;
+        var t = A[k]; A[k] = A[p]; A[p] = t;
+        sign = -sign;
+      }
+      for (var r = k + 1; r < n; r++){
+        for (var c = k + 1; c < n; c++){
+          A[r][c] = A[r][c].mul(A[k][k]).sub(A[r][k].mul(A[k][c])).div(prev);
+        }
+      }
+      prev = A[k][k];
+    }
+    var d = A[n - 1][n - 1];
+    return sign < 0n ? d.neg() : d;
+  }
+  function rref(M){
+    var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
+    var r = 0, pivots = [];
+    for (var c = 0; c < cols && r < rows; c++){
+      var p = -1;
+      for (var i = r; i < rows; i++) if (!A[i][c].isZero()) { p = i; break; }
+      if (p < 0) continue;
+      var t = A[r]; A[r] = A[p]; A[p] = t;
+      var pv = A[r][c];
+      for (var j = 0; j < cols; j++) A[r][j] = A[r][j].div(pv);
+      for (var i2 = 0; i2 < rows; i2++){
+        if (i2 === r) continue;
+        var f = A[i2][c];
+        if (f.isZero()) continue;
+        for (var j2 = 0; j2 < cols; j2++) A[i2][j2] = A[i2][j2].sub(f.mul(A[r][j2]));
+      }
+      pivots.push(c);
+      r++;
+    }
+    return { R: A, rank: r, pivots: pivots };
+  }
+  function ref(M){
+    var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
+    var r = 0, pivots = [];
+    for (var c = 0; c < cols && r < rows; c++){
+      var p = -1;
+      for (var i = r; i < rows; i++) if (!A[i][c].isZero()) { p = i; break; }
+      if (p < 0) continue;
+      var t = A[r]; A[r] = A[p]; A[p] = t;
+      for (var i2 = r + 1; i2 < rows; i2++){
+        if (A[i2][c].isZero()) continue;
+        var f = A[i2][c].div(A[r][c]);
+        for (var j = c; j < cols; j++) A[i2][j] = A[i2][j].sub(f.mul(A[r][j]));
+      }
+      pivots.push(c);
+      r++;
+    }
+    return { R: A, rank: r, pivots: pivots };
+  }
+  function nullspaceBasis(M){
+    var s = shape(M), cols = s[1];
+    var res = rref(M), R = res.R, pivots = res.pivots;
+    var isPivot = [], j, i;
+    for (j = 0; j < cols; j++) isPivot.push(false);
+    for (i = 0; i < pivots.length; i++) isPivot[pivots[i]] = true;
+    var basis = [];
+    for (var fc = 0; fc < cols; fc++){
+      if (isPivot[fc]) continue;
+      var v = [];
+      for (j = 0; j < cols; j++) v.push(ZERO);
+      v[fc] = ONE;
+      for (var k = 0; k < pivots.length; k++) v[pivots[k]] = R[k][fc].neg();
+      basis.push(v);
+    }
+    return { basis: basis, dim: basis.length };
+  }
+  function colspaceBasis(M){
+    var res = rref(M), pivots = res.pivots, basis = [];
+    for (var k = 0; k < pivots.length; k++){
+      var c = pivots[k], v = [];
+      for (var i = 0; i < M.length; i++) v.push(M[i][c]);
+      basis.push(v);
+    }
+    return { basis: basis, dim: basis.length };
+  }
+  function rank(M){ return rref(M).rank; }
+  function inverse(M){
+    var s = shape(M), n = s[0];
+    if (n !== s[1]) throw new Error("求逆要求方阵");
+    var A = clone(M), I = [];
+    for (var i = 0; i < n; i++){
+      var row = [];
+      for (var j = 0; j < n; j++) row.push(i === j ? ONE : ZERO);
+      I.push(row);
+    }
+    for (var c = 0; c < n; c++){
+      var p = -1;
+      for (var i2 = c; i2 < n; i2++) if (!A[i2][c].isZero()) { p = i2; break; }
+      if (p < 0) throw new Error("矩阵不可逆（行列式为 0）");
+      if (p !== c){
+        var t = A[c]; A[c] = A[p]; A[p] = t;
+        var t2 = I[c]; I[c] = I[p]; I[p] = t2;
+      }
+      var pv = A[c][c];
+      for (var j = 0; j < n; j++){ A[c][j] = A[c][j].div(pv); I[c][j] = I[c][j].div(pv); }
+      for (var i3 = 0; i3 < n; i3++){
+        if (i3 === c) continue;
+        var f = A[i3][c];
+        if (f.isZero()) continue;
+        for (var j3 = 0; j3 < n; j3++){
+          A[i3][j3] = A[i3][j3].sub(f.mul(A[c][j3]));
+          I[i3][j3] = I[i3][j3].sub(f.mul(I[c][j3]));
+        }
+      }
+    }
+    return I;
+  }
+  function solve(A, b){
+    var s = shape(A);
+    shape(b);
+    if (b[0].length !== 1) throw new Error("b 要是一列（列数 1）");
+    if (b.length !== s[0]) throw new Error("b 的行数要等于 A 的行数（" + s[0] + "）");
+    var cols = s[1];
+    var aug = A.map(function(r, i){ return r.concat([b[i][0]]); });
+    var res = rref(aug), R = res.R, piv = res.pivots, rk = res.rank;
+    for (var i = 0; i < R.length; i++){
+      var zero = true;
+      for (var j = 0; j < cols; j++) if (!R[i][j].isZero()) { zero = false; break; }
+      if (zero && !R[i][cols].isZero()) return { type: "none" };
+    }
+    var x = [];
+    for (var j2 = 0; j2 < cols; j2++) x.push(ZERO);
+    piv.forEach(function(c, idx){ x[c] = R[idx][cols]; });
+    if (rk < cols) return { type: "infinite", free: cols - rk, x: x };
+    return { type: "unique", x: x };
+  }
+  function generalSolution(A, b){
+    var r = solve(A, b);
+    if (r.type === "none") return { type: "none" };
+    if (r.type === "unique") return { type: "unique", particular: r.x, basis: [], free: 0 };
+    var ns = nullspaceBasis(A);
+    return { type: "infinite", particular: r.x, basis: ns.basis, free: r.free };
+  }
+
+  function numMat(A){ return A.map(function(r){ return r.map(function(v){ return v.toNumber(); }); }); }
+  function idNum(n){ var M = []; for (var i = 0; i < n; i++){ var r = []; for (var j = 0; j < n; j++) r.push(i === j ? 1 : 0); M.push(r); } return M; }
+  function mulNum(A, B){
+    var n = A.length, m = B[0].length, k = B.length, R = [];
+    for (var i = 0; i < n; i++){
+      var r = [];
+      for (var j = 0; j < m; j++){ var s = 0; for (var t = 0; t < k; t++) s += A[i][t] * B[t][j]; r.push(s); }
+      R.push(r);
+    }
+    return R;
+  }
+  function charPoly(A){
+    var n = A.length, M = numMat(A), Mk = idNum(n), coef = [];
+    for (var k = 1; k <= n; k++){
+      Mk = mulNum(M, Mk);
+      var tr = 0;
+      for (var i = 0; i < n; i++) tr += Mk[i][i];
+      var ck = -tr / k;
+      coef.push(ck);
+      for (var i2 = 0; i2 < n; i2++) Mk[i2][i2] += ck;
+    }
+    return coef;
+  }
+  function durandKerner(coef){
+    var n = coef.length;
+    if (n === 0) return [];
+    var p = [1].concat(coef);
+    function evalP(z){
+      var vr = p[0], vi = 0;
+      for (var i = 1; i < p.length; i++){
+        var nr = vr * z.re - vi * z.im + p[i];
+        var ni = vr * z.im + vi * z.re;
+        vr = nr; vi = ni;
+      }
+      return { re: vr, im: vi };
+    }
+    var cur = { re: 1, im: 0 }, seed = { re: 0.4, im: 0.9 }, roots = [];
+    for (var k = 0; k < n; k++){
+      roots.push({ re: cur.re, im: cur.im });
+      var nr = cur.re * seed.re - cur.im * seed.im;
+      var ni = cur.re * seed.im + cur.im * seed.re;
+      cur = { re: nr, im: ni };
+    }
+    for (var iter = 0; iter < 400; iter++){
+      var maxd = 0;
+      for (var i = 0; i < n; i++){
+        var num = evalP(roots[i]);
+        var dr = 1, di = 0;
+        for (var j = 0; j < n; j++){
+          if (j === i) continue;
+          var ar = roots[i].re - roots[j].re, ai = roots[i].im - roots[j].im;
+          var q = dr * ar - di * ai, q2 = dr * ai + di * ar;
+          dr = q; di = q2;
+        }
+        var den = dr * dr + di * di;
+        if (den === 0) continue;
+        var ur = (num.re * dr + num.im * di) / den;
+        var ui = (num.im * dr - num.re * di) / den;
+        roots[i] = { re: roots[i].re - ur, im: roots[i].im - ui };
+        var mag = Math.sqrt(ur * ur + ui * ui);
+        if (mag > maxd) maxd = mag;
+      }
+      if (maxd < 1e-15) break;
+    }
+    roots.forEach(function(r){
+      if (Math.abs(r.re) < 1e-12) r.re = 0;
+      if (Math.abs(r.im) < 1e-12) r.im = 0;
+    });
+    roots.sort(function(a, b){ return a.re !== b.re ? a.re - b.re : a.im - b.im; });
+    return roots;
+  }
+  function eigen(A){
+    var s = shape(A), n = s[0];
+    if (n !== s[1]) throw new Error("特征值要求方阵");
+    if (n === 1) return [{ re: A[0][0].toNumber(), im: 0, exact: A[0][0] }];
+    if (n === 2){
+      var a = A[0][0], b = A[0][1], c = A[1][0], d = A[1][1];
+      var half = a.add(d).div(TWO);
+      var disc = half.mul(half).sub(a.mul(d).sub(b.mul(c)));
+      if (disc.sign() >= 0){
+        var rn = perfectSqrt(disc.n), rd = perfectSqrt(disc.d);
+        if (rn !== null && rd !== null){
+          var sq = new Frac(rn, rd);
+          return [
+            { re: half.add(sq).toNumber(), im: 0, exact: half.add(sq) },
+            { re: half.sub(sq).toNumber(), im: 0, exact: half.sub(sq) }
+          ];
+        }
+      }
+      var h = half.toNumber(), dd = disc.toNumber();
+      if (dd >= 0){ var r0 = Math.sqrt(dd); return [{ re: h - r0, im: 0 }, { re: h + r0, im: 0 }]; }
+      var r1 = Math.sqrt(-dd);
+      return [{ re: h, im: -r1 }, { re: h, im: r1 }];
+    }
+    if (n > 4) throw new Error("特征值目前支持 1–4 阶");
+    return durandKerner(charPoly(A));
+  }
+
+  return {
+    Frac: Frac, F: F, ZERO: ZERO, ONE: ONE, TWO: TWO,
+    shape: shape, matAdd: matAdd, matSub: matSub, matMul: matMul, scaleMat: scaleMat,
+    transpose: transpose, trace: trace, det: det, rref: rref, ref: ref, rank: rank,
+    inverse: inverse, solve: solve, eigen: eigen,
+    nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
+    generalSolution: generalSolution
+  };
+})();
+/* ==== ENGINE END ==== */
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var L = LinAlg, F = L.F;
+
+  var S = { dim: 3, dec: false, net: true };
+  var GEO = { yaw: -0.62, pitch: 0.42, zoom: 1, spin: false };
+  var AXES = [
+    { v: [1, 0, 0], color: "#ff6b6b", label: "x" },
+    { v: [0, 1, 0], color: "#51cf66", label: "y" },
+    { v: [0, 0, 1], color: "#4dabf7", label: "z" }
+  ];
+  var C_X = "#ffd43b", C_TX = "#f06595", C_NET = "#4dabf7";
+
+  function el(id){ return document.getElementById(id); }
+
+  /* ---------- 输入网格 ---------- */
+  function makeGrid(box, rows, cols, values){
+    box.innerHTML = "";
+    box.style.setProperty("--cols", cols);
+    var inputs = [], r, c;
+    for (r = 0; r < rows; r++){
+      for (c = 0; c < cols; c++){
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.inputMode = "text";
+        inp.setAttribute("autocomplete", "off");
+        inp.placeholder = "0";
+        inp.value = (values && values[r] && values[r][c] !== undefined) ? values[r][c] : "";
+        inp.addEventListener("keydown", function(e){
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          var idx = inputs.indexOf(this);
+          var next = inputs[(idx + 1) % inputs.length];
+          if (next){ next.focus(); if (next.select) next.select(); }
+        });
+        inp.addEventListener("input", refresh);
+        box.appendChild(inp);
+        inputs.push(inp);
+      }
+    }
+    return inputs;
+  }
+
+  function readValues(box, rows, cols){
+    var inputs = box.querySelectorAll("input"), out = [], i = 0, r, c;
+    for (r = 0; r < rows; r++){
+      var row = [];
+      for (c = 0; c < cols; c++){ row.push(inputs[i] ? inputs[i].value : ""); i++; }
+      out.push(row);
+    }
+    return out;
+  }
+
+  function readFracs(box, rows, cols){
+    var vals = readValues(box, rows, cols), M = [], r, c;
+    for (r = 0; r < rows; r++){
+      var row = [];
+      for (c = 0; c < cols; c++) row.push(F(vals[r][c]));
+      M.push(row);
+    }
+    return M;
+  }
+
+  /* ---------- 数字渲染 ---------- */
+  function fmtNum(x){
+    if (!isFinite(x)) return String(x);
+    if (Math.abs(x) < 1e-12) x = 0;
+    var s = (Math.abs(x) >= 1e-6 || x === 0) ? x.toFixed(6) : x.toExponential(4);
+    if (s.indexOf(".") >= 0) s = s.replace(/0+$/, "").replace(/\.$/, "");
+    if (s === "-0") s = "0";
+    return s;
+  }
+  function fracHTML(f){
+    if (f.d === 1n) return String(f.n);
+    var neg = f.n < 0n, n = neg ? -f.n : f.n;
+    return (neg ? "−" : "") + '<span class="frac"><span class="fn">' + n + '</span><span class="fd">' + f.d + "</span></span>";
+  }
+  function cellHTML(f){ return S.dec ? fmtNum(f.toNumber()) : fracHTML(f); }
+  function vecHTML(v){
+    var h = '<div class="rgrid vec" style="--cols:1">';
+    v.forEach(function(x){ h += '<div class="rcell">' + cellHTML(x) + "</div>"; });
+    return h + "</div>";
+  }
+  function matHTML(M){
+    var cols = M[0] ? M[0].length : 1;
+    var h = '<div class="rgrid" style="--cols:' + cols + ';max-width:240px">';
+    M.forEach(function(row){ row.forEach(function(x){ h += '<div class="rcell">' + cellHTML(x) + "</div>"; }); });
+    return h + "</div>";
+  }
+
+  /* ---------- 主刷新：算 T(x)、写文字、画图 ---------- */
+  var lastText = "";
+  function refresh(){
+    var n = S.dim;
+    var A, x, Tx;
+    try {
+      A = readFracs(el("gridA"), n, n);
+      x = readFracs(el("gridX"), n, 1);
+      Tx = L.matMul(A, x);
+    } catch (e){
+      el("out").innerHTML = '<p class="msgerr">' + (e && e.message ? e.message : String(e)) + "</p>";
+      return;
+    }
+    var rows = "";
+    rows += '<div class="eqrow"><span class="eqlab">A =</span>' + matHTML(A) + "</div>";
+    rows += '<div class="eqrow"><span class="eqlab">x =</span>' + vecHTML(x.map(function(r){ return r[0]; })) + "</div>";
+    rows += '<div class="eqrow"><span class="eqlab">T(x) = A x =</span>' + vecHTML(Tx.map(function(r){ return r[0]; })) + "</div>";
+    rows += '<p class="geoinfo" id="geoText"></p>';
+    el("out").innerHTML = rows;
+
+    lastText = "A = [" + A.map(function(r){ return r.map(function(v){ return v.toString(); }).join(", "); }).join("; ") + "]\n" +
+      "x = (" + x.map(function(r){ return r[0].toString(); }).join(", ") + ")\n" +
+      "T(x) = (" + Tx.map(function(r){ return r[0].toString(); }).join(", ") + ")";
+
+    describe(A, x, Tx);
+    draw();
+    el("geoText").innerHTML = geoWords.join("<br>");
+  }
+
+  var geoWords = [];
+  function describe(A, x, Tx){
+    var n = S.dim, out = [];
+    var det, rk, eig;
+    try { det = L.det(A); rk = L.rank(A); } catch (e){ geoWords = ["矩阵不是方阵，无法作为线性变换。"]; return; }
+    var dn = det.toNumber();
+    var detTxt = S.dec ? fmtNum(dn) : fracHTML(det);
+
+    // 数值矩阵（2 阶嵌进 xy 平面）
+    var M = [[0,0,0],[0,0,0],[0,0,1]], r, c;
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) M[r][c] = A[r][c].toNumber();
+
+    out.push("<b>T(x) = A x</b>　这是一个从 R" + n + " 到 R" + n + " 的线性变换：原点不动，直线还是直线，网格保持等距。");
+    out.push("<b>det A</b> = " + detTxt + "　<b>|det A|</b> = " + (S.dec ? fmtNum(Math.abs(dn)) : fracHTML(dn < 0 ? det.neg() : det)) + "　<b>rank A</b> = " + rk);
+
+    if (rk === 0) out.push("这是<b>零变换</b>：整个空间被压到原点。");
+    else if (rk < n) out.push("空间被压扁成 " + rk + " 维：体积归零、不可逆，" + (n - rk) + " 个方向被压成零向量。");
+    else out.push("空间<b>没有塌缩</b>：每个点的像唯一，可逆；体积按 " + (S.dec ? fmtNum(Math.abs(dn)) : "|det A|") + " 倍变化。");
+    if (rk === n) out.push(dn > 0 ? "定向保持不变（右手系还是右手系）。" : "定向被<b>翻转</b>了（镜像，左右手互换）。");
+
+    // 识别常见变换
+    var isI = true, isZero = true, isDiag = true, isSym = true, k = [];
+    for (r = 0; r < n; r++){
+      k.push(M[r][r]);
+      for (c = 0; c < n; c++){
+        if (Math.abs(M[r][c] - (r === c ? 1 : 0)) > 1e-9) isI = false;
+        if (Math.abs(M[r][c]) > 1e-9) isZero = false;
+        if (r !== c && Math.abs(M[r][c]) > 1e-9){ isDiag = false; isSym = false; }
+        if (c > r && Math.abs(M[r][c] - M[c][r]) > 1e-9) isSym = false;
+      }
+    }
+    if (isI) out.push("这就是<b>恒等变换</b>：什么都不动。");
+    else if (isZero) out.push("这是<b>零矩阵</b>。");
+    else if (isDiag && n === 3) out.push("这是<b>沿坐标轴分别缩放</b>：x 方向 " + fmtNum(k[0]) + " 倍、y 方向 " + fmtNum(k[1]) + " 倍、z 方向 " + fmtNum(k[2]) + " 倍。");
+    else if (isDiag && n === 2) out.push("这是<b>沿坐标轴分别缩放</b>：x 方向 " + fmtNum(k[0]) + " 倍、y 方向 " + fmtNum(k[1]) + " 倍。");
+    if (isDiag && k.length > 1 && Math.abs(k[1] - k[0]) > 1e-9) out.push("两个方向缩放倍数不同 → 它会<b>把圆拉成椭圆</b>（各方向拉伸不一样）。");
+
+    // 正交性：AᵀA = I ?
+    var Mt = [], M2 = [], i, j, m;
+    for (r = 0; r < n; r++){ var trow = []; for (c = 0; c < n; c++) trow.push(M[c][r]); Mt.push(trow); }
+    for (r = 0; r < n; r++){ var prow = []; for (c = 0; c < n; c++){ var s = 0; for (m = 0; m < n; m++) s += Mt[r][m] * M[m][c]; prow.push(s); } M2.push(prow); }
+    var orth = true;
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (Math.abs(M2[r][c] - (r === c ? 1 : 0)) > 1e-9) orth = false;
+    if (orth){
+      if (isI) out.push("列向量两两垂直且长度为 1 —— 这是<b>正交变换</b>（恒等）。");
+      else if (dn > 0) out.push("列向量两两垂直、长度为 1，且 det > 0 —— 这是<b>旋转</b>：长度和夹角都不变，只有方向在转。");
+      else out.push("列向量两两垂直、长度为 1，且 det < 0 —— 这是<b>镜像反射</b>：长度不变，但左右手互换。");
+    } else {
+      out.push("列向量不是两两垂直 → 它<b>不只是旋转</b>，还带拉伸或剪切（角度会被改变）。");
+    }
+
+    // 特征值：只被拉伸的方向
+    try {
+      eig = L.eigen(A);
+      var real = eig.filter(function(e){ return Math.abs(e.im) < 1e-9; });
+      if (real.length && !isI){
+        var parts = real.map(function(e){ return fmtNum(e.re); });
+        out.push("实的特征值 λ = " + parts.join("、") + " → 沿这些<b>特征方向</b>，向量只被拉长/压短 λ 倍，方向不变。");
+      } else if (!real.length){
+        out.push("没有实特征值 → 每个方向都被转过去了（像旋转那样）。");
+      }
+    } catch (e) {}
+
+    // 核：被压成零的方向
+    try {
+      var ns = L.nullspaceBasis(A);
+      if (ns.dim > 0){
+        var vs = ns.basis.map(function(v){ return "(" + v.map(function(q){ return (S.dec ? fmtNum(q.toNumber()) : q.toString()); }).join(", ") + ")"; });
+        out.push("被压成<b>零向量</b>的方向：" + vs.join("、") + "（这些点整个被“压没”了）。");
+      }
+    } catch (e) {}
+
+    // 这条具体的 x
+    out.push("你输入的这个 x 被送到 <b>T(x) = (" + Tx.map(function(row){ return S.dec ? fmtNum(row[0].toNumber()) : row[0].toString(); }).join(", ") + ")</b>。");
+    geoWords = out;
+  }
+
+  /* ---------- 3D 画布 ---------- */
+  function canvasCtx(){
+    var cv = el("geo");
+    if (!cv) return null;
+    var w = cv.clientWidth || 600, h = cv.clientHeight || 330;
+    var dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)){
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    }
+    return { ctx: cv.getContext("2d"), w: w, h: h, dpr: dpr };
+  }
+  function project(p, w, h){
+    var cy = Math.cos(GEO.yaw), sy = Math.sin(GEO.yaw);
+    var x1 = p[0] * cy - p[1] * sy;
+    var y1 = p[0] * sy + p[1] * cy;
+    var cp = Math.cos(GEO.pitch), sp = Math.sin(GEO.pitch);
+    var depth = y1 * cp - p[2] * sp;
+    var up = y1 * sp + p[2] * cp;
+    var scale = (Math.min(w, h) / 6.2) * GEO.zoom;
+    return { x: w / 2 + x1 * scale, y: h / 2 - up * scale + h * 0.12, d: depth };
+  }
+  function applyM(M, p){
+    return [M[0][0]*p[0] + M[0][1]*p[1] + M[0][2]*p[2],
+            M[1][0]*p[0] + M[1][1]*p[1] + M[1][2]*p[2],
+            M[2][0]*p[0] + M[2][1]*p[1] + M[2][2]*p[2]];
+  }
+  function boxOf(abc){
+    var a = abc[0], b = abc[1], c = abc[2];
+    function add(u, v){ return [u[0]+v[0], u[1]+v[1], u[2]+v[2]]; }
+    var o = [0,0,0], ab = add(a,b), ac = add(a,c), bc = add(b,c), abc3 = add(ab,c);
+    return {
+      faces: [[o,a,ab,b],[c,ac,abc3,bc],[o,a,ac,c],[b,ab,abc3,bc],[o,b,bc,c],[a,ab,abc3,ac]],
+      edges: [[o,a],[o,b],[o,c],[a,ab],[a,ac],[b,ab],[b,bc],[c,ac],[c,bc],[ab,abc3],[ac,abc3],[bc,abc3]]
+    };
+  }
+
+  function draw(){
+    var g = canvasCtx(); if (!g) return;
+    var ctx = g.ctx, w = g.w, h = g.h, i;
+    var cs = getComputedStyle(document.documentElement);
+    var dim = (cs.getPropertyValue("--fg-dim") || "").trim() || "#8892a6";
+    var accent = (cs.getPropertyValue("--accent-line") || "").trim() || "#4dabf7";
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    function P(p){ return project(p, w, h); }
+    function seg(p1, p2, color, width, dash, alpha){
+      var A2 = P(p1), B = P(p2);
+      ctx.save();
+      if (alpha !== undefined) ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color; ctx.lineWidth = width || 1;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath(); ctx.moveTo(A2.x, A2.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      ctx.restore();
+    }
+    function arrow(p1, p2, color, width){
+      var A2 = P(p1), B = P(p2);
+      var ang = Math.atan2(B.y - A2.y, B.x - A2.x), len = 11;
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width || 2.6;
+      ctx.beginPath(); ctx.moveTo(A2.x, A2.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(B.x, B.y);
+      ctx.lineTo(B.x - len * Math.cos(ang - 0.42), B.y - len * Math.sin(ang - 0.42));
+      ctx.lineTo(B.x - len * Math.cos(ang + 0.42), B.y - len * Math.sin(ang + 0.42));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    function poly(pts, color, alpha){
+      ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+      ctx.beginPath();
+      pts.forEach(function(p, k){ var q = P(p); if (k === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y); });
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+
+    var n = S.dim, M = [[0,0,0],[0,0,0],[0,0,1]], r, c;
+    var Af = null;
+    try { Af = readFracs(el("gridA"), n, n); } catch (e) {}
+    if (Af) for (r = 0; r < n; r++) for (c = 0; c < n; c++) M[r][c] = Af[r][c].toNumber();
+
+    // 网格：原来的虚线 + 变换后的实线
+    if (S.net){
+      for (i = -2; i <= 2; i++){
+        seg([i,-2,0],[i,2,0], dim, 1, [2,5], 0.5);
+        seg([-2,i,0],[2,i,0], dim, 1, [2,5], 0.5);
+      }
+      for (i = -2; i <= 2; i++){
+        seg(applyM(M,[i,-2,0]), applyM(M,[i,2,0]), C_NET, 1.4, null, 0.5);
+        seg(applyM(M,[-2,i,0]), applyM(M,[2,i,0]), C_NET, 1.4, null, 0.5);
+      }
+    }
+
+    // 坐标轴
+    for (i = 0; i < AXES.length; i++){
+      var ax = AXES[i], v = ax.v, tip = [v[0]*2.5, v[1]*2.5, v[2]*2.5];
+      arrow([0,0,0], tip, ax.color, 1.8);
+      var q = P(tip);
+      ctx.save(); ctx.fillStyle = ax.color;
+      ctx.font = "600 13px system-ui,-apple-system,sans-serif";
+      ctx.fillText(ax.label, q.x + 7, q.y + 5); ctx.restore();
+    }
+
+    // 单位立方体 → 它的像（平行六面体）
+    var boxU = boxOf([[1,0,0],[0,1,0],[0,0,1]]);
+    for (i = 0; i < boxU.edges.length; i++) seg(boxU.edges[i][0], boxU.edges[i][1], dim, 1, [3,3], 0.75);
+    var cols = [applyM(M,[1,0,0]), applyM(M,[0,1,0]), applyM(M,[0,0,1])];
+    var boxT = boxOf(cols);
+    var sorted = boxT.faces.map(function(f){
+      var d = 0, m;
+      for (m = 0; m < f.length; m++) d += P(f[m]).d;
+      return { f: f, d: d / f.length };
+    }).sort(function(p, q){ return q.d - p.d; });
+    sorted.forEach(function(it){ poly(it.f, accent, 0.13); });
+    for (i = 0; i < boxT.edges.length; i++) seg(boxT.edges[i][0], boxT.edges[i][1], accent, 1.8);
+
+    // 这条 x 与它的像
+    var xv = null, tv = null;
+    try {
+      var xf = readFracs(el("gridX"), n, 1);
+      xv = [xf[0][0].toNumber(), xf[1][0].toNumber(), (n === 3 ? xf[2][0].toNumber() : 0)];
+      tv = applyM(M, xv);
+    } catch (e) {}
+    if (xv){
+      arrow([0,0,0], xv, C_X, 3);
+      arrow([0,0,0], tv, C_TX, 3);
+    }
+  }
+
+  /* ---------- 交互 ---------- */
+  var cv = el("geo");
+  if (cv){
+    var drag = false, lx = 0, ly = 0;
+    cv.addEventListener("pointerdown", function(e){ drag = true; lx = e.clientX; ly = e.clientY; cv.classList.add("dragging"); try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
+    cv.addEventListener("pointermove", function(e){
+      if (!drag) return;
+      GEO.yaw += (e.clientX - lx) * 0.0085;
+      GEO.pitch += (e.clientY - ly) * 0.0085;
+      if (GEO.pitch > 1.45) GEO.pitch = 1.45;
+      if (GEO.pitch < -1.45) GEO.pitch = -1.45;
+      lx = e.clientX; ly = e.clientY;
+      draw();
+    });
+    function stop(){ drag = false; cv.classList.remove("dragging"); }
+    cv.addEventListener("pointerup", stop);
+    cv.addEventListener("pointercancel", stop);
+    cv.addEventListener("wheel", function(e){
+      e.preventDefault();
+      GEO.zoom = Math.max(0.5, Math.min(2.4, GEO.zoom * (e.deltaY > 0 ? 0.94 : 1.06)));
+      draw();
+    }, { passive: false });
+
+    el("geoReset").addEventListener("click", function(){ GEO.yaw = -0.62; GEO.pitch = 0.42; GEO.zoom = 1; draw(); });
+    el("geoSpin").addEventListener("click", function(){
+      GEO.spin = !GEO.spin;
+      el("geoSpin").textContent = GEO.spin ? "停止旋转" : "自动旋转";
+      if (GEO.spin) loop();
+    });
+    function loop(){
+      if (!GEO.spin) return;
+      GEO.yaw += 0.011;
+      draw();
+      requestAnimationFrame(loop);
+    }
+    el("geoNet").addEventListener("click", function(){
+      S.net = !S.net;
+      el("geoNet").textContent = "网格：" + (S.net ? "开" : "关");
+      draw();
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".chip[id^='dim']"), function(b){
+    b.addEventListener("click", function(){
+      S.dim = b.id === "dim2" ? 2 : 3;
+      el("dim2").classList.toggle("on", S.dim === 2);
+      el("dim3").classList.toggle("on", S.dim === 3);
+      rebuild();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-fill]"), function(b){
+    b.addEventListener("click", function(){
+      var kind = b.getAttribute("data-fill"), n = S.dim, vals = [], r, c;
+      for (r = 0; r < n; r++){
+        var row = [];
+        for (c = 0; c < n; c++){
+          if (kind === "zero") row.push("0");
+          else if (kind === "eye") row.push(r === c ? "1" : "0");
+          else row.push(String(Math.floor(Math.random() * 9) - 4));
+        }
+        vals.push(row);
+      }
+      makeGrid(el("gridA"), n, n, vals);
+      refresh();
+    });
+  });
+
+  el("xReset").addEventListener("click", function(){
+    var n = S.dim, vals = [], r;
+    for (r = 0; r < n; r++) vals.push([r === 0 ? "1" : "0"]);
+    makeGrid(el("gridX"), n, 1, vals);
+    refresh();
+  });
+
+  el("dec").addEventListener("click", function(){
+    S.dec = !S.dec;
+    el("dec").textContent = S.dec ? "分数" : "小数";
+    refresh();
+  });
+  el("copy").addEventListener("click", function(){
+    var t = lastText + "\n" + geoWords.map(function(s){ return s.replace(/<[^>]+>/g, ""); }).join("\n");
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(function(){ flash("已复制"); }, function(){ flash("复制失败"); });
+    } else { flash("不支持复制"); }
+  });
+  function flash(t){
+    var b = el("copy");
+    b.textContent = t;
+    setTimeout(function(){ b.textContent = "复制"; }, 1200);
+  }
+
+  function applySkin(s){
+    document.documentElement.setAttribute("data-skin", s);
+    Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
+    });
+    try { localStorage.setItem("la-skin", s); } catch (e) {}
+    draw();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+    b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  window.addEventListener("resize", draw);
+
+  function rebuild(){
+    var n = S.dim, r, c, keep = [];
+    for (r = 0; r < n; r++){
+      var row = [];
+      for (c = 0; c < n; c++) row.push(r === c ? "1" : "0");
+      keep.push(row);
+    }
+    makeGrid(el("gridA"), n, n, keep);
+    var xv = [];
+    for (r = 0; r < n; r++) xv.push([r === 0 ? "1" : "0"]);
+    makeGrid(el("gridX"), n, 1, xv);
+    refresh();
+  }
+
+  rebuild();
+  var SKINS = ["glass", "light", "brutal"], saved = "glass";
+  try {
+    var q = new URLSearchParams(location.search).get("skin");
+    saved = q || localStorage.getItem("la-skin") || "glass";
+  } catch (e) {}
+  if (SKINS.indexOf(saved) < 0) saved = "glass";
+  applySkin(saved);
+})();
+</script>
+</body>
+</html>

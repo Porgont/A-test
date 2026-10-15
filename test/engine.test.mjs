@@ -15,7 +15,7 @@ if (!tail.trim()) {
   process.exit(2);
 }
 const L = new Function(tail + "\nreturn LinAlg;")();
-const { F, matAdd, matSub, matMul, scaleMat, transpose, trace, det, rref, rank, inverse, solve, eigen } = L;
+const { F, matAdd, matSub, matMul, scaleMat, transpose, trace, det, rref, ref, rank, inverse, solve, eigen, nullspaceBasis, colspaceBasis, generalSolution } = L;
 
 let pass = 0;
 let fail = 0;
@@ -110,6 +110,52 @@ approx("旋转矩阵虚部 +1", eigen(M([[0, -1], [1, 0]])).map((r) => r.im).sor
   approx("上三角 3 阶 λ3", r[2], 3);
 }
 throws("非方阵特征值", () => eigen(M([[1, 2, 3], [4, 5, 6]])));
+
+console.log("== REF 行阶梯形（主元下方清零、不归一） ==");
+ok("REF 2×2", ms(ref(M([[1, 2], [3, 4]])).R), "1,2;0,-2");
+ok("REF 秩亏", ms(ref(M([[2, 4], [1, 2]])).R), "2,4;0,0");
+ok("REF 3×3", ms(ref(M([[1, 2, 3], [4, 5, 6], [7, 8, 9]])).R), "1,2,3;0,-3,-6;0,0,0");
+ok("REF 主元不归一（对比 RREF）", ref(M([[2, 1], [1, 3]])).R[0][0].toString(), "2");
+ok("REF 的秩", ref(M([[1, 2, 3], [4, 5, 6], [7, 8, 9]])).rank, "2");
+ok("RREF 同一矩阵：主元归一", ms(rref(M([[2, 1], [1, 3]])).R), "1,0;0,1");
+ok("REF 下方为 0", ref(M([[2, 1], [1, 3]])).R[1][0].toString(), "0");
+
+console.log("== 零空间 ker 与列空间 col ==");
+ok("ker 满秩为空", nullspaceBasis(M([[1, 0], [0, 1]])).dim, "0");
+ok("ker 2×2 秩 1", vs(nullspaceBasis(M([[1, 2], [2, 4]])).basis[0]), "-2;1");
+ok("ker 2×3 基向量", vs(nullspaceBasis(M([[1, 2, 3], [4, 5, 6]])).basis[0]), "1;-2;1");
+ok("ker 维数 = 自由变量数", nullspaceBasis(M([[1, 2, 3], [4, 5, 6]])).dim, "1");
+ok("col 维数 = 秩", colspaceBasis(M([[1, 2, 3], [4, 5, 6]])).dim, "2");
+ok("col 取主元列 1", vs(colspaceBasis(M([[1, 2, 3], [4, 5, 6]])).basis[0]), "1;4");
+ok("col 取主元列 2", vs(colspaceBasis(M([[1, 2, 3], [4, 5, 6]])).basis[1]), "2;5");
+ok("col 秩亏时只取一列", vs(colspaceBasis(M([[1, 2], [2, 4]])).basis[0]), "1;2");
+
+console.log("== 通解（向量形式：特解 + 齐次基） ==");
+{
+  const g = generalSolution(M([[2, 1], [1, 3]]), M([[3], [5]]));
+  ok("唯一解 · 类型", g.type, "unique");
+  ok("唯一解 · 特解", vs(g.particular), "4/5;7/5");
+  ok("唯一解 · 基为空", g.basis.length, "0");
+}
+{
+  const g = generalSolution(M([[1, 2], [2, 4]]), M([[3], [6]]));
+  ok("无穷多解 · 类型", g.type, "infinite");
+  ok("无穷多解 · 特解", vs(g.particular), "3;0");
+  ok("无穷多解 · 齐次基", vs(g.basis[0]), "-2;1");
+  ok("无穷多解 · 自由变量数", g.free, "1");
+}
+{
+  const g = generalSolution(M([[1, 2, 3], [2, 4, 6]]), M([[1], [2]]));
+  ok("2×3 · 自由变量数", g.free, "2");
+  ok("2×3 · 基向量个数", g.basis.length, "2");
+  ok("2×3 · 基向量 1", vs(g.basis[0]), "-2;1;0");
+  ok("2×3 · 基向量 2", vs(g.basis[1]), "-3;0;1");
+  ok("2×3 · 特解", vs(g.particular), "1;0;0");
+}
+{
+  const g = generalSolution(M([[1, 1], [1, 1]]), M([[1], [2]]));
+  ok("无解 · 类型", g.type, "none");
+}
 
 console.log("");
 console.log(pass + " passed, " + fail + " failed");
