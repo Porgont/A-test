@@ -91,6 +91,9 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
+.quickbar{position:sticky;top:6px;z-index:6;display:flex;gap:8px;padding:8px;background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:16px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
+.quickbar .chip{flex:1;text-align:center;background:var(--input-bg)}
+.quickbar .chip.on{background:var(--chip-on-bg)}
 .card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);transition:opacity .2s ease}
 .card.idle{opacity:.42}
 .chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
@@ -182,6 +185,11 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <a href="transform.html">线性变换 T(x) →</a>
   </nav>
 
+  <div class="quickbar">
+    <button class="chip big" data-op="ref">REF A<i>行阶梯形</i></button>
+    <button class="chip big" data-op="rref">RREF A<i>行最简形</i></button>
+  </div>
+
   <section class="card" id="cardA">
     <div class="chead">
       <span class="mtag">A</span>
@@ -218,11 +226,6 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
   </section>
 
   <section class="card">
-    <div class="glabel">行阶梯形（最常用）</div>
-    <div class="chips" id="g0">
-      <button class="chip big" data-op="ref">REF A<i>行阶梯形</i></button>
-      <button class="chip big" data-op="rref">RREF A<i>行最简形</i></button>
-    </div>
     <div class="glabel">基本运算</div>
     <div class="chips" id="g1">
       <button class="chip on" data-op="add">A + B<i>加法</i></button>
@@ -1271,6 +1274,13 @@ const LinAlg = (function(){
   });
   Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
     b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".quickbar .chip"), function(b){
+    b.addEventListener("click", function(){
+      run();
+      var lab = el("rlabel");
+      if (lab && lab.scrollIntoView) lab.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   });
   el("run").addEventListener("click", run);
   el("copy").addEventListener("click", copyOut);

@@ -29,9 +29,12 @@ const chipOps = [...html.matchAll(/data-op="([A-Za-z]+)"/g)].map((m) => m[1]);
 check("运算按钮数量", chipOps.length === 15, chipOps.join(","));
 check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 15,
   "带中文名的有 " + (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length + " 个");
-check("REF/RREF 排在最前面",
-  html.indexOf('id="g0"') >= 0 && html.indexOf('data-op="ref"') < html.indexOf('data-op="add"') && html.indexOf('data-op="rref"') < html.indexOf('data-op="add"'));
+check("REF/RREF 在页面最上面的吸顶栏里",
+  html.indexOf('class="quickbar"') >= 0 &&
+  html.indexOf('data-op="ref"') < html.indexOf('id="cardA"') &&
+  html.indexOf('data-op="rref"') < html.indexOf('id="cardA"'));
 check("REF/RREF 用大号按钮", (html.match(/class="chip big"/g) || []).length === 2);
+check("快捷栏点击会直接计算", ui.indexOf('.quickbar .chip') >= 0 && ui.indexOf("scrollIntoView") >= 0);
 check("有解集形式输出", ui.indexOf("解集") >= 0 && ui.indexOf("setHTML") >= 0 && ui.indexOf("coordLines") >= 0);
 
 for (const op of chipOps) {
