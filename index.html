@@ -230,7 +230,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <div class="chips" id="g0">
       <button class="chip big" data-op="ref">REF A<i>行阶梯形</i></button>
       <button class="chip big" data-op="rref">RREF A<i>行最简形</i></button>
-      <button class="chip big" data-op="steps">变换步骤<i>初等行变换</i></button>
+      <button class="chip big" data-op="steps">RREF 步骤<i>化到行最简形的每一步</i></button>
     </div>
     <div class="glabel">基本运算</div>
     <div class="chips" id="g1">
@@ -739,7 +739,7 @@ const LinAlg = (function(){
     trace: { label: "tr A",  needB: false, hint: "要求方阵" },
     ref:   { label: "REF A", needB: false, hint: "行阶梯形：主元下方清零，主元不归一、主元上方不清" },
     rref:  { label: "RREF A", needB: false, hint: "行最简形：主元归一为 1，主元上下都清零" },
-    steps: { label: "初等行变换步骤", needB: false, hint: "一步一步做行变换化到行最简形，每步附上对应的初等矩阵 E" },
+    steps: { label: "RREF 化简步骤", needB: false, hint: "一步一步做初等行变换，一路化到行最简形（RREF）；每步附上该步的初等矩阵 E" },
     solve: { label: "Ax = b 的解", needB: true, hint: "把 B 做成只有 1 列，当作 b 向量" },
     eig:   { label: "A 的特征值", needB: false, hint: "要求方阵；2 阶给精确解，3–4 阶为数值解" },
     ker:   { label: "ker A 的基", needB: false, hint: "零空间：被 A 压成零向量的那些方向" },
@@ -990,12 +990,12 @@ const LinAlg = (function(){
       else if (op === "ref") res = { label: "REF A（行阶梯形）", blocks: [{ type: "matrix", data: L.ref(A).R }] };
       else if (op === "steps"){
         var rs = L.rowSteps(A);
-        var blocks = [{ type: "text", text: "一共 " + rs.steps.length + " 步，一路化到<b>行最简形</b>。每步下方给出该步对应的<b>初等矩阵 E</b>——左乘它，就等于做这一步。" }];
+        var blocks = [{ type: "text", text: "一共 " + rs.steps.length + " 步，一路化到<b>行最简形（RREF）</b>：主元先归一为 1，再把主元上下都清零。每步下方给出该步对应的<b>初等矩阵 E</b>——左乘它，就等于做这一步。" }];
         rs.steps.forEach(function(st, idx){ blocks.push({ type: "step", data: st, index: idx }); });
         blocks.push({ type: "text", text: "把每一步的初等矩阵按顺序乘起来，得到总的 <b>E = Eₖ⋯E₂E₁</b>：" });
         blocks.push({ type: "matrix", data: rs.E });
         blocks.push({ type: "text", text: "可以验证 <b>E · A = 上面那个行最简形</b>；如果 A 是方阵且可逆，这个 E 正好就是 <b>A⁻¹</b>。" });
-        res = { label: "初等行变换步骤", blocks: blocks };
+        res = { label: "RREF 化简步骤（化到行最简形）", blocks: blocks };
       }
       else if (op === "rref") res = { label: "RREF A（行最简形）", blocks: [{ type: "matrix", data: L.rref(A).R }] };
       else if (op === "solve"){
