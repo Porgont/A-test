@@ -49,6 +49,8 @@ if (process.argv.includes("--preview")) {
   setTimeout(function(){
     var b = document.querySelector('[data-op="limPosInf"]');
     if (b) b.click();
+    var c = document.getElementById("calcBtn");
+    if (c) c.click();
   }, 30);
 })();
 </script>

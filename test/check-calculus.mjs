@@ -44,6 +44,16 @@ check("指向矩阵计算器", (page.match(/href="index\.html"/g) || []).length 
 check("指向线性变换页", (page.match(/href="transform\.html"/g) || []).length === 2);
 
 check("有函数输入框", page.indexOf('id="fx"') >= 0);
+check("输入框下面有符号面板", page.indexOf('id="syms"') >= 0 && ui.indexOf("SYMS.forEach") >= 0 && ui.indexOf("insertSym") >= 0);
+check("符号面板含常用符号",
+  ui.indexOf('t: "x"') >= 0 && ui.indexOf('v: "sin("') >= 0 && ui.indexOf('v: "sqrt("') >= 0 &&
+  ui.indexOf('v: "pi"') >= 0 && ui.indexOf('v: "abs("') >= 0);
+check("符号按钮插到光标处", ui.indexOf("selectionStart") >= 0 && ui.indexOf("setSelectionRange") >= 0);
+check("有计算按钮", page.indexOf('id="calcBtn"') >= 0 && ui.indexOf("runCalc") >= 0);
+check("运算按钮只选中、不直接计算",
+  ui.indexOf("selectOp(b.getAttribute") >= 0 && ui.indexOf('el("calcBtn").addEventListener("click", runCalc)') >= 0);
+check("选中后显示该运算的说明", page.indexOf('id="ophint"') >= 0 && ui.indexOf("OPINFO") >= 0);
+check("回车等于按计算", ui.indexOf('e.key === "Enter"') >= 0 && ui.indexOf("runCalc(); } });") >= 0);
 check("极限三个按钮", page.indexOf('data-op="limBoth"') >= 0 && page.indexOf('data-op="limLeft"') >= 0 && page.indexOf('data-op="limRight"') >= 0);
 check("有正负无穷极限按钮", page.indexOf('data-op="limPosInf"') >= 0 && page.indexOf('data-op="limNegInf"') >= 0 &&
   ui.indexOf('el("limA").value = "inf"') >= 0 && ui.indexOf('el("limA").value = "-inf"') >= 0);
