@@ -19,7 +19,25 @@ t("求导 x^3/3 在 x=2 得 4", () => { const v = C.evalAt(C.deriv(C.parse("x^3/
 t("求导 ln(x)", () => { const s = S(C.deriv(C.parse("ln(x)"))); return s.includes("/") || s.includes("1") ? "OK " + s : "得到 " + s; });
 t("lim (x^2-1)/(x-1) x→1 = 2", () => { const r = C.limit(C.parse("(x^2-1)/(x-1)"), 1, { side: "both" }); return r.exists && r.exact === "2" ? "OK exact=" + r.exact + " 方法=" + r.method + " 步数=" + r.steps.length : "得到 " + JSON.stringify({ e: r.exists, v: r.value, x: r.exact, k: r.kind }); });
 t("lim sin(x)/x x→0 = 1", () => { const r = C.limit(C.parse("sin(x)/x"), 0, { side: "both" }); return r.exists && r.exact === "1" ? "OK exact=1 方法=" + r.method : "得到 " + JSON.stringify({ e: r.exists, v: r.value, x: r.exact, k: r.kind }); });
-t("lim 1/x x→0 左右不一致", () => { const r = C.limit(C.parse("1/x"), 0, { side: "both" }); return !r.exists && r.kind === "infinite" ? "OK 左=" + (r.left && r.left.value) + " 右=" + (r.right && r.right.value) : "得到 " + JSON.stringify({ e: r.exists, k: r.kind, l: r.left, rr: r.right }); });
+t("lim 1/x x→0 左右不一致（左 −∞ 右 +∞）", () => {
+  const r = C.limit(C.parse("1/x"), 0, { side: "both" });
+  // 分歧型：整体不存在 kind=none，无穷性由左右各自的 kind/value 表达
+  return !r.exists && r.kind === "none" &&
+    r.left.kind === "infinite" && r.right.kind === "infinite" &&
+    r.left.value === -Infinity && r.right.value === Infinity
+    ? "OK 整体不存在，左=−∞ 右=+∞" : "得到 " + JSON.stringify({ e: r.exists, k: r.kind, l: r.left, rr: r.right });
+});
+t("lim 1/(x-1)^2 x→1 两侧都是 +∞", () => {
+  const r = C.limit(C.parse("1/(x-1)^2"), 1, { side: "both" });
+  return r.kind === "infinite" && r.left.value === Infinity && r.right.value === Infinity
+    ? "OK 两侧 +∞" : "得到 " + JSON.stringify({ k: r.kind, l: r.left, rr: r.right });
+});
+t("lim 1/x x→0 单向调用也给带符号的无穷", () => {
+  const rl = C.limit(C.parse("1/x"), 0, { side: "left" });
+  const rr2 = C.limit(C.parse("1/x"), 0, { side: "right" });
+  return rl.left.value === -Infinity && rr2.right.value === Infinity
+    ? "OK 左 −∞ / 右 +∞" : "得到 " + JSON.stringify({ l: rl.left, r: rr2.right });
+});
 t("lim |x|/x x→0 不存在（-1/1）", () => { const r = C.limit(C.parse("abs(x)/x"), 0, { side: "both" }); return !r.exists && Math.abs((r.left || {}).value + 1) < 1e-6 && Math.abs((r.right || {}).value - 1) < 1e-6 ? "OK 左=-1 右=1" : "得到 " + JSON.stringify({ e: r.exists, l: r.left, rr: r.right }); });
 t("lim sin(1/x) x→0 振荡不存在", () => { const r = C.limit(C.parse("sin(1/x)"), 0, { side: "both" }); return !r.exists ? "OK kind=" + r.kind : "得到 " + JSON.stringify({ e: r.exists, v: r.value }); });
 t("lim 1/x x→∞ = 0", () => { const r = C.limit(C.parse("1/x"), "inf", { side: "both" }); return r.exists && (r.exact === "0" || Math.abs(r.value) < 1e-9) ? "OK " + (r.exact || r.value) : "得到 " + JSON.stringify({ e: r.exists, v: r.value, x: r.exact }); });
