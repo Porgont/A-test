@@ -32,7 +32,16 @@ check("入口指向积分页", page.indexOf('href="integral.html"') >= 0);
 check("卡片标题齐全",
   page.indexOf(">矩阵计算器<") >= 0 && page.indexOf(">线性变换 T(x) = Ax<") >= 0 &&
   page.indexOf(">极限<") >= 0 && page.indexOf(">微分<") >= 0 && page.indexOf(">积分<") >= 0);
-check("首页不设页签（它就是选择页）", page.indexOf('class="tabs"') < 0);
+check("首页不设页签（它就是选择页）", page.indexOf('class="tabs"') >= 0 && page.indexOf('<span class="on">首页') >= 0);
+check("首页导航六项齐全",
+  page.indexOf('href="algebra.html">矩阵') >= 0 && page.indexOf('href="transform.html">变换') >= 0 &&
+  page.indexOf('href="limits.html">极限') >= 0 && page.indexOf('href="deriv.html">微分') >= 0 &&
+  page.indexOf('href="integral.html">积分') >= 0);
+const ver = JSON.parse(readFileSync(join(root, "src", "version.json"), "utf8"));
+check("显示版本号与更新时间",
+  page.indexOf("V" + ver.version) >= 0 && page.indexOf(ver.updated) >= 0 && page.indexOf("__VERSION__") < 0);
+check("版本号格式正确", /^\d+\.\d+$/.test(ver.version) && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(ver.updated),
+  ver.version + " / " + ver.updated);
 check("说明了数据不上传", page.indexOf("不上传任何数据") >= 0);
 
 console.log("");
