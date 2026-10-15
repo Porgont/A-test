@@ -1602,17 +1602,17 @@ function matchQuotientLog(n, v) {
     }
   }
   if (numNode === null || denNode === null) return null;
-  // 关键：分母可以是非线性的（如 1+x^2），只要它的导数是线性的
-  const dNum = simplify(deriv(numNode, v));
-  const dDen = simplify(deriv(denNode, v));
-  const lq = linearOf(dDen, v), lp = linearOf(dNum, v);
-  if (!lq || !lp || lp.b.isZero) return null;
-  const ratio = lp.a.div(lq.a);
-  if (ratio.isZero) return null;
-  if (!lp.b.sub(ratio.mul(lq.b)).isZero) return null;
+  // 判据：分子 p 必须是分母导数 q' 的常数倍（p = k·q'），此时 ∫p/q = k·ln|q|。
+  // 例：x/(1+x^2) 中 p = x、q' = 2x → k = 1/2 → (1/2)ln(1+x^2)。
+  const p = linRec(simplify(numNode), v);
+  const qp = linRec(simplify(deriv(denNode, v)), v);
+  if (!p || !qp || qp.a.isZero) return null;
+  if (!p.b.mul(qp.a).sub(qp.b.mul(p.a)).isZero) return null; // p 与 q' 成正比
+  const k = p.a.div(qp.a);
+  if (k.isZero) return null;
   const u = simplify(denNode);
   const lnNode = { t: "fn", name: "ln", arg: { t: "fn", name: "abs", arg: u } };
-  return ratio.isOne ? lnNode : makeProd([num(ratio), lnNode]);
+  return k.isOne ? lnNode : makeProd([num(k), lnNode]);
 }
 
 /** 线性内层识别：ax+b（a≠0）。 */
@@ -1635,9 +1635,10 @@ function linRec(n, v) {
     if (!A.a.isZero && !B.a.isZero) return null;
     return { a: A.a.mul(B.b).add(B.a.mul(A.b)), b: A.b.mul(B.b) };
   }
-  if (n.t === "pow" && n.b.t === "num" && n.b.v.isZero) return { a: R0, b: R1 };
-  // x^k（k≥1 整数）不是线性函数：返回零多项式，让调用方判定为「非线性」
-  if (n.t === "pow" && isNum(n.b) && n.b.v.isInt && n.b.v.sign > 0) return { a: R0, b: R0 };
+  // x^k：k = 0 视为常数；k ≥ 1 不是线性函数，返回零多项式让调用方判为「非线性」
+  if (n.t === "pow" && isNum(n.b) && n.b.v.isInt && n.b.v.sign >= 0) {
+    return n.b.v.isZero ? { a: R0, b: R1 } : { a: R0, b: R0 };
+  }
   return null;
 }
 

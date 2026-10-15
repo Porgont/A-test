@@ -278,44 +278,6 @@ has("29. integrate(x*e^x).text 含 e^x（分部积分）", integrate(P("x*e^x"))
   has("补充：integrate(x*sin(x)) 含 sin", integrate(P("x*sin(x)")).text, "sin(x)");
   // 原函数代入求导应还原被积函数（数值验证）
   const cases = ["x^3", "1/x", "cos(x)", "x^2*exp(x)", "sqrt(x)", "x/(1+x^2)"];
-  const jj = (v) => JSON.stringify(v, (k, x) => (typeof x === "bigint" ? x.toString() + "n" : x));
-  const RT = new Rat(0n), RO = new Rat(1n);
-  function linRec(n, v) {
-    if (n.t === "num") return { a: RT, b: n.v };
-    if (n.t === "var") return n.name === v ? { a: RO, b: RT } : null;
-    if (n.t === "neg") { const r = linRec(n.a, v); return r ? { a: r.a.neg(), b: r.b.neg() } : null; }
-    if (n.t === "add") { const A = linRec(n.a, v), B = linRec(n.b, v); return (A && B) ? { a: A.a.add(B.a), b: A.b.add(B.b) } : null; }
-    if (n.t === "mul") {
-      const A = linRec(n.a, v), B = linRec(n.b, v);
-      if (!A || !B) return null;
-      if (!A.a.isZero && !B.a.isZero) return null;
-      return { a: A.a.mul(B.b).add(B.a.mul(A.b)), b: A.b.mul(B.b) };
-    }
-    if (n.t === "pow" && n.b.t === "num" && n.b.v.isZero) return { a: RT, b: RO };
-    return null;
-  }
-  const showLin = (s) => {
-    const r = linRec(simplify(P(s)), "x");
-    return r ? ("a=" + r.a + " b=" + r.b) : "null";
-  };
-  console.log("DIAG linRec 1+x^2   = " + showLin("1+x^2"));
-  console.log("DIAG linRec x^2     = " + showLin("x^2"));
-  console.log("DIAG linRec x^2+1   = " + showLin("x^2+1"));
-  console.log("DIAG linRec 1+x     = " + showLin("1+x"));
-  console.log("DIAG linRec 2x+1    = " + showLin("2x+1"));
-  console.log("DIAG simp 1+x^2     = " + jj(simplify(P("1+x^2"))));
-  console.log("DIAG simp x^2       = " + jj(simplify(P("x^2"))));
-  console.log("DIAG linRec x       = " + showLin("x"));
-  console.log("DIAG matchPow 1+x^2 = " + (integrate(P("1/(1+x^2)")).ok ? "atan-ok" : "no"));
-  console.log("DIAG int 1/(x^2+1)  = " + integrate(P("1/(x^2+1)")).text);
-  console.log("DIAG int x/(x^2+1)  = " + integrate(P("x/(x^2+1)")).text);
-  console.log("DIAG int 2x/(x^2+1) = " + integrate(P("2x/(x^2+1)")).text);
-  console.log("DIAG int x*sin(x)   = " + integrate(P("x*sin(x)")).text);
-  console.log("DIAG int sin(x)     = " + integrate(P("sin(x)")).text);
-  console.log("DIAG int 2*sin(x)   = " + integrate(P("2*sin(x)")).text);
-  console.log("DIAG int -cos(x)    = " + integrate(P("-cos(x)")).text);
-  console.log("DIAG int 1*sin(x)   = " + integrate(P("1*sin(x)")).text);
-  console.log("DIAG int x*sin(x) raw simp = " + jj(simplify(P("x*sin(x)"))));
   let allBack = true;
   const detail = [];
   for (const c of cases) {
