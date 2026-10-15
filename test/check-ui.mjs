@@ -40,6 +40,9 @@ for (const s of ["glass", "light", "brutal"]) {
   check("皮肤可选：" + s, skins.indexOf(s) >= 0);
 }
 check("皮肤参数校验", ui.indexOf("SKINS.indexOf(saved)") >= 0);
+check("默认皮肤是极简", html.indexOf('data-skin="light"') >= 0 && ui.indexOf('|| "light"') >= 0);
+check("大标题与署名", html.indexOf("蒲瓜的线性代数计算器") >= 0 && html.indexOf("由 Deepseek 制作") >= 0);
+check("切换皮肤会同步主题色", ui.indexOf("theme-color") >= 0);
 check("视口 meta", html.indexOf('name="viewport"') >= 0);
 
 console.log("");

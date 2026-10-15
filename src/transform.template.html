@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="zh-CN" data-skin="glass">
+<html lang="zh-CN" data-skin="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#080c18">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
 <title>线性变换 T(x) = Ax · 几何演示</title>
 <style>
 :root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
@@ -49,6 +50,10 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow)}
 h1{font-size:17px;margin:0}
 .sub{margin:2px 0 0;font-size:11.5px;color:var(--fg-dim);letter-spacing:.04em}
+.hero{text-align:center;padding:4px 2px 0}
+.heroTitle{margin:0;font-size:23px;font-weight:800;letter-spacing:.005em;line-height:1.32}
+.heroSub{margin:7px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
+.brandName{font-size:12.5px;color:var(--fg-dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
@@ -96,14 +101,19 @@ h1{font-size:17px;margin:0}
 <body>
 <div class="wrap">
 
+  <div class="hero">
+    <h1 class="heroTitle">蒲瓜的线性代数计算器</h1>
+    <p class="heroSub">由 Deepseek 制作</p>
+  </div>
+
   <header class="topbar">
     <div class="brand">
       <span class="logo">T</span>
-      <div><h1>线性变换 T(x) = Ax</h1><p class="sub">矩阵把空间扭成什么样</p></div>
+      <span class="brandName">线性变换 T(x) = Ax</span>
     </div>
     <div class="skins" id="skins">
-      <button data-skin-set="glass" class="on">玻璃</button>
-      <button data-skin-set="light">极简</button>
+      <button data-skin-set="glass">玻璃</button>
+      <button data-skin-set="light" class="on">极简</button>
       <button data-skin-set="brutal">粗野</button>
     </div>
   </header>
@@ -600,12 +610,22 @@ __ENGINE__
     setTimeout(function(){ b.textContent = "复制"; }, 1200);
   }
 
+  var THEME = {
+    glass: { color: "#080c18", bar: "black-translucent" },
+    light: { color: "#f2f2f7", bar: "default" },
+    brutal: { color: "#fdf1dd", bar: "default" }
+  };
   function applySkin(s){
     document.documentElement.setAttribute("data-skin", s);
     Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
       b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
     });
-    try { localStorage.setItem("la-skin", s); } catch (e) {}
+    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    var T = THEME[s] || THEME.light;
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute("content", T.color);
+    var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (sb) sb.setAttribute("content", T.bar);
     draw();
   }
   Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
@@ -628,12 +648,12 @@ __ENGINE__
   }
 
   rebuild();
-  var SKINS = ["glass", "light", "brutal"], saved = "glass";
+  var SKINS = ["glass", "light", "brutal"], saved = "light";
   try {
     var q = new URLSearchParams(location.search).get("skin");
-    saved = q || localStorage.getItem("la-skin") || "glass";
+    saved = q || localStorage.getItem("la-skin-v2") || "light";
   } catch (e) {}
-  if (SKINS.indexOf(saved) < 0) saved = "glass";
+  if (SKINS.indexOf(saved) < 0) saved = "light";
   applySkin(saved);
 })();
 </script>
