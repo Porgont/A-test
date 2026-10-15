@@ -143,10 +143,15 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 
     <div class="glabel">极限 · x → a</div>
     <div class="chips">
-      <label class="kbox">a = <input id="limA" value="0" autocomplete="off"></label>
+      <label class="kbox">a = <input id="limA" value="0" autocomplete="off" title="填数字，或写 inf / -inf"></label>
       <button class="chip big" data-op="limBoth">极限</button>
       <button class="chip big" data-op="limLeft">左极限</button>
       <button class="chip big" data-op="limRight">右极限</button>
+    </div>
+    <div class="chips" style="margin-top:8px">
+      <span class="kbox" style="margin-right:1px">x 趋于无穷：</span>
+      <button class="chip big" data-op="limPosInf">x → +∞</button>
+      <button class="chip big" data-op="limNegInf">x → −∞</button>
     </div>
 
     <div class="glabel">导数</div>
@@ -316,6 +321,8 @@ __CALC_ENGINE__
     PLOT.overlay = { type: "limit", a: typeof a === "number" ? a : (a === "inf" ? 20 : -20), L: r.exists ? r.value : null, exact: r.exact };
     PLOT.label = "lim<sub>x→" + aText + "</sub> f(x)" + (r.exists ? " = " + (r.exact || fmt(r.value)) : " 不存在");
     if (typeof a === "number") plotWindowAround(a);
+    else if (a === "inf"){ PLOT.xmin = -2; PLOT.xmax = 20; autoY(); }
+    else { PLOT.xmin = -20; PLOT.xmax = 2; autoY(); }
     plotDraw();
   }
 
@@ -548,6 +555,8 @@ __CALC_ENGINE__
       if (op === "limBoth") runLimit("both");
       else if (op === "limLeft") runLimit("left");
       else if (op === "limRight") runLimit("right");
+      else if (op === "limPosInf"){ el("limA").value = "inf"; runLimit("both"); }
+      else if (op === "limNegInf"){ el("limA").value = "-inf"; runLimit("both"); }
       else if (op === "d1") runDeriv(1);
       else if (op === "d2") runDeriv(2);
       else if (op === "taylor") runTaylor();

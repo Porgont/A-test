@@ -45,6 +45,9 @@ check("指向线性变换页", (page.match(/href="transform\.html"/g) || []).len
 
 check("有函数输入框", page.indexOf('id="fx"') >= 0);
 check("极限三个按钮", page.indexOf('data-op="limBoth"') >= 0 && page.indexOf('data-op="limLeft"') >= 0 && page.indexOf('data-op="limRight"') >= 0);
+check("有正负无穷极限按钮", page.indexOf('data-op="limPosInf"') >= 0 && page.indexOf('data-op="limNegInf"') >= 0 &&
+  ui.indexOf('el("limA").value = "inf"') >= 0 && ui.indexOf('el("limA").value = "-inf"') >= 0);
+check("无穷时图像窗口跟着调", ui.indexOf('PLOT.xmin = -2; PLOT.xmax = 20') >= 0 && ui.indexOf('PLOT.xmin = -20; PLOT.xmax = 2') >= 0);
 check("求导两个按钮", page.indexOf('data-op="d1"') >= 0 && page.indexOf('data-op="d2"') >= 0);
 check("泰勒展开按钮", page.indexOf('data-op="taylor"') >= 0);
 check("积分两个按钮", page.indexOf('data-op="integ"') >= 0 && page.indexOf('data-op="defint"') >= 0);

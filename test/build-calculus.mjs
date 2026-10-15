@@ -45,15 +45,14 @@ if (process.argv.includes("--preview")) {
   const demo = `<script>
 (function(){
   var fx = document.getElementById("fx");
-  fx.value = "sin(x)/x";
-  document.getElementById("limA").value = "0";
+  fx.value = "(3*x^2+2*x)/(x^2-5)";
   setTimeout(function(){
-    var b = document.querySelector('[data-op="limBoth"]');
+    var b = document.querySelector('[data-op="limPosInf"]');
     if (b) b.click();
   }, 30);
 })();
 </script>
 `;
   writeFileSync(join(here, "_preview-calculus.html"), out.replace("</body>", demo + "</body>"));
-  console.log("wrote test/_preview-calculus.html  (演示：lim sin(x)/x, x→0)");
+  console.log("wrote test/_preview-calculus.html  (演示：lim (3x²+2x)/(x²−5), x→+∞)");
 }
