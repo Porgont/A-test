@@ -1583,11 +1583,11 @@ function matchPow(n, v) {
 }
 
 /**
- * 除法换元：∫ p(x)/q(x) dx，当 q 是线性函数（对 x）且 p 是它的常数倍时，
- * 结果为 k·ln|q|。覆盖 x/(1+x^2)、(2x+1)/(x^2+x+1) 这类常见题。
+ * 除法换元：∫ p(x)/q(x) dx。判据是「q 的导数」与「p 的导数」成正比，
+ * 此时原函数为 k·ln|q|。覆盖 x/(1+x^2)、(2x+1)/(x^2+x+1) 这类常见题
+ * （分母允许是二次式，只要它的导数是线性的）。
  */
 function matchQuotientLog(n, v) {
-  if (process.env.CALC_TRACE) console.error("QL enter n.t=" + n.t + " key=" + key(n));
   if (n.t !== "mul") return null;
   const fs = flattenProd(n);
   let numNode = null, denNode = null;
@@ -1601,38 +1601,27 @@ function matchQuotientLog(n, v) {
       numNode = numNode === null ? f : { t: "mul", a: numNode, b: f };
     }
   }
-  if (numNode === null || denNode === null) {
-    if (process.env.CALC_TRACE) console.error("QL bail: num=" + (numNode && key(numNode)) + " den=" + (denNode && key(denNode)));
-    return null;
-  }
-  const lq = linearOf(denNode, v), lp = linearOf(numNode, v);
-  if (process.env.CALC_TRACE) {
-    console.error("QL nodes den=" + key(denNode) + " num=" + key(numNode) +
-      " lq=" + (lq ? lq.a + "/" + lq.b : "null") + " lp=" + (lp ? lp.a + "/" + lp.b : "null"));
-  }
+  if (numNode === null || denNode === null) return null;
+  // 关键：分母可以是非线性的（如 1+x^2），只要它的导数是线性的
+  const dNum = simplify(deriv(numNode, v));
+  const dDen = simplify(deriv(denNode, v));
+  const lq = linearOf(dDen, v), lp = linearOf(dNum, v);
   if (!lq || !lp || lp.b.isZero) return null;
   const ratio = lp.a.div(lq.a);
   if (ratio.isZero) return null;
   if (!lp.b.sub(ratio.mul(lq.b)).isZero) return null;
-  const u = simplify({ t: "add", a: makeProd([num(lq.a), variable(v)]), b: num(lq.b) });
+  const u = simplify(denNode);
   const lnNode = { t: "fn", name: "ln", arg: { t: "fn", name: "abs", arg: u } };
   return ratio.isOne ? lnNode : makeProd([num(ratio), lnNode]);
 }
 
 /** 线性内层识别：ax+b（a≠0）。 */
 function linearOf(node, v) {
-  const sn = simplify(node);
-  const r = linRec(sn, v);
-  if (process.env.CALC_TRACE) {
-    console.error("LIN in=" + key(node) + " simp=" + key(sn) + " -> " + (r ? r.a + "/" + r.b : "null"));
-  }
+  const r = linRec(simplify(node), v);
   if (!r || r.a.isZero) return null;
   return r;
 }
 function linRec(n, v) {
-  const dbg = process.env.CALC_TRACE;
-  if (dbg) console.error("LR t=" + n.t + " key=" + key(n) +
-    (n.t === "pow" ? " exp=" + key(n.b) + " isNumB=" + isNum(n.b) + " isInt=" + (isNum(n.b) ? n.b.v.isInt : "-") + " sign=" + (isNum(n.b) ? n.b.v.sign : "-") : ""));
   if (n.t === "num") return { a: R0, b: n.v };
   if (n.t === "var") return n.name === v ? { a: R1, b: R0 } : null;
   if (n.t === "neg") { const r = linRec(n.a, v); return r ? { a: r.a.neg(), b: r.b.neg() } : null; }
