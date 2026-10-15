@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>微积分 · 蒲瓜的计算器</title>
+<style>
+:root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
+:root[data-skin="glass"]{
+  --bg:#080c18;
+  --bg-image:radial-gradient(880px 520px at 10% -10%, rgba(94,234,212,.20), transparent 62%), radial-gradient(820px 520px at 102% 2%, rgba(129,140,248,.26), transparent 64%), radial-gradient(700px 460px at 50% 112%, rgba(236,72,153,.14), transparent 62%);
+  --fg:#e9efff; --fg-dim:rgba(233,239,255,.52);
+  --card:rgba(255,255,255,.055); --card-border:rgba(255,255,255,.13);
+  --blur:blur(18px); --shadow:0 12px 34px rgba(0,0,0,.34);
+  --input-bg:rgba(255,255,255,.06); --input-border:rgba(255,255,255,.12);
+  --chip:rgba(255,255,255,.06); --chip-border:rgba(255,255,255,.12);
+  --chip-on-bg:linear-gradient(135deg,#5eead4,#818cf8); --chip-on-fg:#08101f; --chip-on-shadow:0 6px 18px rgba(129,140,248,.35);
+  --accent-line:rgba(129,140,248,.85); --focus-ring:rgba(129,140,248,.22);
+  --btn-bg:linear-gradient(135deg,#5eead4,#818cf8); --btn-fg:#07101d; --btn-shadow:0 10px 26px rgba(129,140,248,.32);
+  --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+}
+:root[data-skin="light"]{
+  --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
+  --card:#ffffff; --card-border:rgba(0,0,0,.06); --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  --track:#e6e6ec; --input-bg:#f5f5f8; --input-border:rgba(0,0,0,.07);
+  --chip:#ececf1; --chip-border:transparent; --chip-on-bg:#0a84ff; --chip-on-fg:#ffffff; --chip-on-shadow:0 6px 16px rgba(10,132,255,.30);
+  --accent-line:#0a84ff; --focus-ring:rgba(10,132,255,.16);
+  --btn-bg:linear-gradient(135deg,#0a84ff,#0060df); --btn-fg:#ffffff; --btn-shadow:0 10px 24px rgba(10,132,255,.28);
+  --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30); --danger:#e5484d;
+}
+:root[data-skin="brutal"]{
+  --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
+  --card:#fffdf8; --card-border:#141414; --card-bw:2px; --input-bw:2px; --radius:14px; --skin-bw:2px;
+  --shadow:6px 6px 0 #141414; --track:#fffdf8; --input-bg:#ffffff; --input-border:#141414;
+  --chip:#ffffff; --chip-border:#141414; --chip-on-bg:#ffd23f; --chip-on-fg:#141414; --chip-on-shadow:3px 3px 0 #141414;
+  --accent-line:#141414; --focus-ring:rgba(255,210,63,.55);
+  --btn-bg:#ff5c4d; --btn-fg:#141414; --btn-shadow:4px 4px 0 #141414;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(16px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow)}
+.brandName{font-size:12.5px;color:var(--fg-dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
+.skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
+.skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1;text-align:center;padding:11px 10px;border-radius:12px;font-size:13.5px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a:hover{color:var(--fg)}
+.tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
+.tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
+.hero{text-align:center;padding:4px 2px 0}
+.heroTitle{margin:0;font-size:23px;font-weight:800;letter-spacing:.005em;line-height:1.32}
+.heroSub{margin:7px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
+.card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
+.chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:0 0 auto;font-style:italic}
+.rtitle{font-size:13px;font-weight:600}
+.note{font-size:11.5px;color:var(--fg-dim)}
+.tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tools button{border:1px solid var(--input-border);background:var(--chip);color:var(--fg);font:inherit;font-size:12px;padding:5px 9px;border-radius:8px;cursor:pointer}
+.tools button:active{transform:translateY(1px)}
+.fxin{width:100%;padding:13px 12px;font:inherit;font-size:17px;font-variant-numeric:tabular-nums;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:12px;outline:none;transition:.16s}
+.fxin:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.glabel{font-size:11px;color:var(--fg-dim);letter-spacing:.12em;margin:12px 0 7px}
+.glabel:first-child{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
+.chip i{font-style:normal;font-size:11px;opacity:.68;margin-left:5px;font-weight:400}
+.chip.big{font-size:14.5px;padding:12px 16px;font-weight:650;border-color:var(--accent-line);font-variant-numeric:tabular-nums}
+.chip.big.on{background:var(--chip-on-bg)}
+.kbox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-dim)}
+.kbox input{width:74px;padding:8px 9px;font:inherit;font-size:13.5px;text-align:center;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:9px;outline:none;font-variant-numeric:tabular-nums}
+.kbox input:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.geo{display:block;width:100%;height:290px;border-radius:12px;background:var(--input-bg);border:var(--input-bw) solid var(--input-border);touch-action:none}
+.geoinfo{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;line-height:1.85}
+.msgerr{font-size:13px;color:var(--danger);margin:8px 0;line-height:1.55}
+.res{font-size:14px;line-height:1.75;margin:0 0 10px}
+.res b{color:var(--fg)}
+.bigval{font-size:19px;font-weight:700;letter-spacing:.01em}
+.tagline{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px;margin-right:8px;vertical-align:1px}
+.tagline.ok{background:var(--chip-on-bg);color:var(--chip-on-fg)}
+.tagline.no{background:var(--danger);color:#fff}
+.steps{margin:10px 0 0;padding:0;list-style:none;counter-reset:st}
+.steps li{position:relative;padding:0 0 0 30px;margin:0 0 9px;font-size:13px;color:var(--fg-dim);line-height:1.65}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--chip);border:1px solid var(--input-border);color:var(--fg);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.steps li b{color:var(--fg)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;word-break:break-word}
+.calcbox{background:var(--input-bg);border:1px solid var(--input-border);border-radius:12px;padding:11px;margin-bottom:10px}
+.calclab{font-size:11px;color:var(--fg-dim);letter-spacing:.1em;margin-bottom:6px}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:4px 0 0;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1 class="heroTitle">蒲瓜的计算器</h1>
+    <p class="heroSub">由 Deepseek 制作</p>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">∫</span>
+      <span class="brandName">极限 · 导数 · 积分</span>
+    </div>
+    <div class="skins" id="skins">
+      <button data-skin-set="glass">玻璃</button>
+      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="brutal">粗野</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="页面切换">
+    <a href="index.html">矩阵计算器</a>
+    <a href="transform.html">线性变换</a>
+    <span class="on">微积分<span class="tag">当前</span></span>
+  </nav>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">f</span>
+      <span class="note">输入函数，支持 sin cos tan ln exp sqrt abs 和 pi、e，可以写 2x 这种隐式乘法</span>
+      <div class="tools"><button id="fxClear">清空</button></div>
+    </div>
+    <input id="fx" class="fxin" value="sin(x)/x" autocomplete="off" spellcheck="false" inputmode="text">
+    <div class="chips" style="margin-top:10px" id="examples"></div>
+    <p class="geoinfo" id="fxinfo"></p>
+  </section>
+
+  <section class="card">
+    <div class="chead"><span class="rtitle">微积分运算</span><div class="tools"><button id="copy">复制结果</button></div></div>
+
+    <div class="glabel">极限 · x → a</div>
+    <div class="chips">
+      <label class="kbox">a = <input id="limA" value="0" autocomplete="off"></label>
+      <button class="chip big" data-op="limBoth">极限</button>
+      <button class="chip big" data-op="limLeft">左极限</button>
+      <button class="chip big" data-op="limRight">右极限</button>
+    </div>
+
+    <div class="glabel">导数</div>
+    <div class="chips">
+      <button class="chip big" data-op="d1">一阶导 f′</button>
+      <button class="chip big" data-op="d2">二阶导 f″</button>
+      <label class="kbox">泰勒阶数 <input id="order" value="5" autocomplete="off"></label>
+      <button class="chip big" data-op="taylor">泰勒展开</button>
+    </div>
+
+    <div class="glabel">积分</div>
+    <div class="chips">
+      <button class="chip big" data-op="integ">不定积分 ∫f dx</button>
+      <label class="kbox">从 <input id="intA" value="0" autocomplete="off"></label>
+      <label class="kbox">到 <input id="intB" value="1" autocomplete="off"></label>
+      <button class="chip big" data-op="defint">定积分</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="chead"><span class="rtitle">结果与化简过程</span></div>
+    <div id="out"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="rtitle">函数图像</span>
+      <div class="tools">
+        <button id="plotFit">自动取景</button>
+        <button id="plotA">以 a 为中心</button>
+      </div>
+    </div>
+    <canvas id="plot" class="geo"></canvas>
+    <p class="geoinfo" id="plotinfo"></p>
+  </section>
+
+  <nav class="tabs" aria-label="页面切换">
+    <a href="index.html">矩阵计算器</a>
+    <a href="transform.html">线性变换</a>
+    <span class="on">微积分<span class="tag">当前</span></span>
+  </nav>
+
+  <p class="foot">全部计算在本机浏览器里完成，不上传任何数据。<br>极限用直接代入 → 洛必达 → 数值逼近的顺序判定，并如实给出判定过程。</p>
+</div>
+
+<script>
+/* ==== CALC ENGINE START ==== */
+__CALC_ENGINE__
+/* ==== CALC ENGINE END ==== */
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var C = Calc;
+
+  var S = { dec: false };
+  var PLOT = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, overlay: null, label: "" };
+  var lastReport = "";
+
+  function el(id){ return document.getElementById(id); }
+  function num(v){ var n = parseFloat(String(v).replace(/，/g, ",")); return isFinite(n) ? n : NaN; }
+
+  /* ---------- 数字/文本格式化 ---------- */
+  function fmt(x, digits){
+    if (x === Infinity) return "+∞";
+    if (x === -Infinity) return "−∞";
+    if (typeof x !== "number" || isNaN(x)) return "不存在";
+    if (Math.abs(x) < 1e-12) x = 0;
+    var d = digits === undefined ? 8 : digits;
+    var s = Math.abs(x) >= 1e-4 && Math.abs(x) < 1e7 ? x.toFixed(Math.min(d, 10)) : x.toExponential(6);
+    if (s.indexOf(".") >= 0) s = s.replace(/0+$/, "").replace(/\.$/, "");
+    if (s === "-0") s = "0";
+    return s.replace("-", "−");
+  }
+  function pretty(str){
+    return String(str)
+      .replace(/\*/g, " · ")
+      .replace(/\^(\d+)/g, function(m, d){ return sup(d); })
+      .replace(/sqrt\(/g, "√(")
+      .replace(/pi/g, "π")
+      .replace(/-/g, "−");
+  }
+  function sup(d){
+    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+    return String(d).split("").map(function(ch){ return map[ch] || ch; }).join("");
+  }
+
+  /* ---------- 解析当前函数 ---------- */
+  function current(){
+    var src = el("fx").value;
+    if (!src.trim()) return { err: "请先输入一个函数，例如 sin(x)/x" };
+    try {
+      var node = C.simplify(C.parse(src));
+      return { node: node, src: src };
+    } catch (e){
+      return { err: e && e.message ? e.message : String(e) };
+    }
+  }
+  function preview(){
+    var c = current();
+    if (c.err){ el("fxinfo").innerHTML = '<span style="color:var(--danger)">' + c.err + "</span>"; return null; }
+    el("fxinfo").innerHTML = "识别为：<b>" + pretty(C.str(c.node)) + "</b>";
+    return c.node;
+  }
+
+  /* ---------- 输出块 ---------- */
+  function show(html){ el("out").innerHTML = html; }
+  function stepsHTML(steps){
+    if (!steps || !steps.length) return "";
+    var h = '<ul class="steps">';
+    steps.forEach(function(s){ h += "<li>" + s.desc + "</li>"; });
+    return h + "</ul>";
+  }
+  function boxHTML(label, body){
+    return '<div class="calcbox"><div class="calclab">' + label + '</div><div class="mono">' + body + "</div></div>";
+  }
+  function kindText(k){
+    if (k === "infinite") return "趋于无穷（极限不存在）";
+    if (k === "none") return "不存在";
+    if (k === "undefined") return "未定义";
+    return "存在";
+  }
+
+  /* ---------- 极限 ---------- */
+  function runLimit(side){
+    var node = preview(); if (!node) return;
+    var aRaw = el("limA").value.trim();
+    var a = /^(inf|infinity|\+inf|\+∞|∞)$/i.test(aRaw) ? "inf"
+          : /^(-inf|-infinity|-∞)$/i.test(aRaw) ? "-inf"
+          : num(aRaw);
+    if (typeof a === "number" && isNaN(a)){ show('<p class="msgerr">a 要是数字，或者写 inf / -inf</p>'); return; }
+
+    var r;
+    try { r = C.limit(node, a, { side: side || "both" }); }
+    catch (e){ show('<p class="msgerr">' + (e.message || e) + "</p>"); return; }
+
+    var aText = a === "inf" ? "+∞" : a === "-inf" ? "−∞" : fmt(a, 8);
+    var h = "";
+    if (side === "left" || side === "right"){
+      var one = side === "left" ? r.left : r.right;
+      var lbl = side === "left" ? "左极限" : "右极限";
+      h += '<p class="res"><b>' + lbl + "　lim<sub>x→" + aText + (side === "left" ? "⁻" : "⁺") + "</sub> f(x)</b><br>";
+      if (one && one.kind === "infinite") h += '<span class="bigval">' + (one.value > 0 ? "+∞" : "−∞") + "</span>　（" + lbl + "发散到无穷，" + lbl + "不存在）";
+      else if (one && typeof one.value === "number") h += '<span class="bigval">' + (one.exact ? one.exact : fmt(one.value)) + "</span>" + (one.exact ? "　（精确值）" : "　（数值判定）");
+      else h += '<span class="bigval">不存在</span>';
+      h += "</p>";
+    } else {
+      var ok = r.exists;
+      h += '<p class="res"><span class="tagline ' + (ok ? "ok" : "no") + '">' + (ok ? "极限存在" : "极限" + (r.kind === "infinite" ? "为无穷（不存在）" : "不存在")) + "</span>";
+      h += "lim<sub>x→" + aText + "</sub> f(x) = ";
+      if (ok && r.exact) h += '<span class="bigval">' + r.exact + "</span>　（精确值）";
+      else if (ok && typeof r.value === "number") h += '<span class="bigval">' + fmt(r.value) + "</span>　（数值判定）";
+      else if (r.kind === "infinite") h += '<span class="bigval">' + ((r.left && r.left.value > 0) || (r.right && r.right.value > 0) ? "+∞" : "−∞") + "</span>";
+      else h += '<span class="bigval">不存在</span>';
+      h += "</p>";
+      var lTxt = r.left && r.left.kind === "infinite" ? (r.left.value > 0 ? "+∞" : "−∞") : (r.left && typeof r.left.value === "number" ? (r.left.exact || fmt(r.left.value)) : "不存在");
+      var rTxt = r.right && r.right.kind === "infinite" ? (r.right.value > 0 ? "+∞" : "−∞") : (r.right && typeof r.right.value === "number" ? (r.right.exact || fmt(r.right.value)) : "不存在");
+      h += '<p class="res">左极限 = <b>' + lTxt + "</b>　　右极限 = <b>" + rTxt + "</b>";
+      if (!ok && r.kind !== "infinite") h += "　→ 两侧不相等" + (r.left && r.right && typeof r.left.value === "number" && typeof r.right.value === "number" ? "" : "（或振荡）");
+      h += "</p>";
+    }
+    h += '<div class="calclab" style="margin-top:14px">化简与判定过程</div>' + stepsHTML(r.steps);
+    show(h);
+    lastReport = "lim x→" + aText + " f(x)：" + (r.exists ? (r.exact || fmt(r.value)) : "不存在");
+    PLOT.overlay = { type: "limit", a: typeof a === "number" ? a : (a === "inf" ? 20 : -20), L: r.exists ? r.value : null, exact: r.exact };
+    PLOT.label = "lim<sub>x→" + aText + "</sub> f(x)" + (r.exists ? " = " + (r.exact || fmt(r.value)) : " 不存在");
+    if (typeof a === "number") plotWindowAround(a);
+    plotDraw();
+  }
+
+  /* ---------- 导数 ---------- */
+  function runDeriv(order){
+    var node = preview(); if (!node) return;
+    var d1 = C.deriv(node), d2 = order === 2 ? C.deriv(d1) : null;
+    var h = boxHTML("f(x)", pretty(C.str(node)));
+    h += boxHTML("一阶导 f′(x)", pretty(C.str(d1)));
+    if (d2) h += boxHTML("二阶导 f″(x)", pretty(C.str(d2)));
+    var a = num(el("limA").value);
+    if (!isNaN(a)){
+      var s1 = safeEval(node, a), s2 = safeEval(d1, a);
+      h += '<p class="res">在 x = ' + fmt(a, 6) + " 处：f = <b>" + fmt(s1) + "</b>，切线斜率 f′ = <b>" + fmt(s2) + "</b></p>";
+      PLOT.overlay = { type: "tangent", a: a, k: s2, y0: s1 };
+      PLOT.label = "x = " + fmt(a, 4) + " 处的切线，斜率 " + fmt(s2);
+      plotWindowAround(a);
+    }
+    show(h);
+    lastReport = "f′(x) = " + C.str(d1) + (d2 ? "\nf″(x) = " + C.str(d2) : "");
+    plotDraw();
+  }
+  function safeEval(node, x){
+    try { var v = C.evalAt(node, x); return typeof v === "number" && isFinite(v) ? v : NaN; }
+    catch (e){ return NaN; }
+  }
+
+  /* ---------- 泰勒 ---------- */
+  function runTaylor(){
+    var node = preview(); if (!node) return;
+    var a = num(el("limA").value); if (isNaN(a)) a = 0;
+    var order = Math.max(1, Math.min(12, Math.round(num(el("order").value) || 5)));
+    var t;
+    try { t = C.taylor(node, a, order); }
+    catch (e){ show('<p class="msgerr">' + (e.message || e) + "</p>"); return; }
+    var h = '<p class="res">在 x = ' + fmt(a, 6) + " 处展开到 " + order + " 阶：</p>";
+    h += boxHTML("泰勒多项式", pretty(t.text));
+    if (t.terms && t.terms.length){
+      h += '<ul class="steps">';
+      t.terms.forEach(function(term){
+        h += "<li>" + (term.power === 0 ? "常数项" : "x" + sup(term.power) + " 项") + "系数 <b>" + term.coefText + "</b></li>";
+      });
+      h += "</ul>";
+    }
+    show(h);
+    lastReport = "泰勒展开：" + t.text;
+  }
+
+  /* ---------- 积分 ---------- */
+  function runInteg(){
+    var node = preview(); if (!node) return;
+    var r = C.integrate(node);
+    var h = boxHTML("f(x)", pretty(C.str(node)));
+    if (r.ok){
+      h += boxHTML("原函数 ∫f(x)dx", pretty(r.text));
+      h += '<p class="res">求导可以验证：把上面这个原函数求导应该回到 f(x)。</p>';
+    } else {
+      h += '<p class="res">这个函数<b>找不到初等原函数</b>（' + (r.reason || "不在支持表内") + "）。<br>定积分仍然可以用数值方法算，试试下面的「定积分」。</p>";
+    }
+    show(h);
+    lastReport = r.ok ? "∫f(x)dx = " + r.text : "∫f(x)dx：找不到初等原函数";
+  }
+  function runDefint(){
+    var node = preview(); if (!node) return;
+    var a = num(el("intA").value), b = num(el("intB").value);
+    if (isNaN(a) || isNaN(b)){ show('<p class="msgerr">定积分的上下限要是数字</p>'); return; }
+    var r = C.definiteIntegral(node, a, b);
+    var h = boxHTML("积分区间", "从 " + fmt(a, 6) + " 到 " + fmt(b, 6));
+    h += '<p class="res">∫<sub>' + fmt(a, 4) + "</sub><sup>" + fmt(b, 4) + "</sup> f(x) dx = <b class=\"bigval\">" + (r.exact ? r.exact : fmt(r.numeric)) + "</b>" + (r.exact ? "　（精确值）" : "　（数值积分）") + "</p>";
+    if (r.exact) h += '<p class="res">数值核对：' + r.approxText + "</p>";
+    show(h);
+    lastReport = "∫ from " + a + " to " + b + " = " + (r.exact || r.numeric);
+    PLOT.overlay = { type: "area", a: a, b: b, node: node };
+    PLOT.label = "阴影面积 = " + (r.exact || fmt(r.numeric));
+    var lo = Math.min(a, b), hi = Math.max(a, b);
+    var pad = Math.max((hi - lo) * 0.8, 1);
+    PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
+    autoY();
+    plotDraw();
+  }
+
+  /* ---------- 画图 ---------- */
+  function plotWindowAround(a){
+    PLOT.xmin = a - 6; PLOT.xmax = a + 6;
+    autoY();
+  }
+  function autoY(){
+    if (!PLOT.node) return;
+    var lo = Infinity, hi = -Infinity, i, x, v;
+    for (i = 0; i <= 400; i++){
+      x = PLOT.xmin + (PLOT.xmax - PLOT.xmin) * i / 400;
+      v = safeEval(PLOT.node, x);
+      if (isFinite(v)){ if (v < lo) lo = v; if (v > hi) hi = v; }
+    }
+    if (!isFinite(lo) || !isFinite(hi) || lo === hi){ PLOT.ymin = -3; PLOT.ymax = 3; return; }
+    var span = hi - lo, mid = (hi + lo) / 2;
+    if (span < 1e-6) span = 2;
+    span = Math.min(span, 60);
+    PLOT.ymin = mid - span * 0.7;
+    PLOT.ymax = mid + span * 0.7;
+  }
+  function plotDraw(){
+    var cv = el("plot"); if (!cv) return;
+    var w = cv.clientWidth || 600, hgt = cv.clientHeight || 290, dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(hgt * dpr)){ cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr); }
+    var g = cv.getContext("2d");
+    var cs = getComputedStyle(document.documentElement);
+    var dim = (cs.getPropertyValue("--fg-dim") || "").trim() || "#888";
+    var accent = (cs.getPropertyValue("--accent-line") || "").trim() || "#0a84ff";
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, hgt);
+
+    var pad = 6;
+    var X = function(x){ return pad + (x - PLOT.xmin) / (PLOT.xmax - PLOT.xmin) * (w - pad * 2); };
+    var Y = function(y){ return hgt - pad - (y - PLOT.ymin) / (PLOT.ymax - PLOT.ymin) * (hgt - pad * 2); };
+
+    // 网格
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.18; g.lineWidth = 1;
+    var stepX = niceStep((PLOT.xmax - PLOT.xmin) / 8), stepY = niceStep((PLOT.ymax - PLOT.ymin) / 5), t;
+    for (t = Math.ceil(PLOT.xmin / stepX) * stepX; t <= PLOT.xmax; t += stepX){
+      g.beginPath(); g.moveTo(X(t), pad); g.lineTo(X(t), hgt - pad); g.stroke();
+    }
+    for (t = Math.ceil(PLOT.ymin / stepY) * stepY; t <= PLOT.ymax; t += stepY){
+      g.beginPath(); g.moveTo(pad, Y(t)); g.lineTo(w - pad, Y(t)); g.stroke();
+    }
+    g.restore();
+
+    // 坐标轴
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.75; g.lineWidth = 1.4;
+    if (PLOT.ymin <= 0 && PLOT.ymax >= 0){ g.beginPath(); g.moveTo(pad, Y(0)); g.lineTo(w - pad, Y(0)); g.stroke(); }
+    if (PLOT.xmin <= 0 && PLOT.xmax >= 0){ g.beginPath(); g.moveTo(X(0), pad); g.lineTo(X(0), hgt - pad); g.stroke(); }
+    g.globalAlpha = 1; g.fillStyle = dim; g.font = "11px system-ui,sans-serif";
+    g.fillText("x", w - pad - 12, Y(0) - 6);
+    g.fillText("y", X(0) + 6, pad + 12);
+    g.restore();
+
+    // 定积分阴影
+    if (PLOT.overlay && PLOT.overlay.type === "area" && PLOT.node){
+      var a = Math.min(PLOT.overlay.a, PLOT.overlay.b), b = Math.max(PLOT.overlay.a, PLOT.overlay.b);
+      g.save(); g.globalAlpha = 0.22; g.fillStyle = accent;
+      g.beginPath(); g.moveTo(X(a), Y(0));
+      var i2, x2, v2, first = true;
+      for (i2 = 0; i2 <= 300; i2++){
+        x2 = a + (b - a) * i2 / 300; v2 = safeEval(PLOT.node, x2);
+        if (!isFinite(v2)) continue;
+        if (first){ g.lineTo(X(x2), Y(v2)); first = false; } else g.lineTo(X(x2), Y(v2));
+      }
+      g.lineTo(X(b), Y(0)); g.closePath(); g.fill(); g.restore();
+    }
+
+    // 曲线
+    if (PLOT.node){
+      g.save();
+      g.strokeStyle = accent; g.lineWidth = 2.4; g.lineJoin = "round";
+      g.beginPath();
+      var started = false, i3, x3, v3, px, py;
+      for (i3 = 0; i3 <= 900; i3++){
+        x3 = PLOT.xmin + (PLOT.xmax - PLOT.xmin) * i3 / 900;
+        v3 = safeEval(PLOT.node, x3);
+        if (!isFinite(v3) || v3 < PLOT.ymin - (PLOT.ymax - PLOT.ymin) || v3 > PLOT.ymax + (PLOT.ymax - PLOT.ymin)){ started = false; continue; }
+        px = X(x3); py = Y(v3);
+        if (!started){ g.moveTo(px, py); started = true; } else g.lineTo(px, py);
+      }
+      g.stroke(); g.restore();
+    }
+
+    // 切线
+    if (PLOT.overlay && PLOT.overlay.type === "tangent" && isFinite(PLOT.overlay.k)){
+      var o = PLOT.overlay;
+      g.save(); g.strokeStyle = "#f06595"; g.lineWidth = 2; g.setLineDash([6, 5]);
+      g.beginPath();
+      g.moveTo(X(PLOT.xmin), Y(o.y0 + o.k * (PLOT.xmin - o.a)));
+      g.lineTo(X(PLOT.xmax), Y(o.y0 + o.k * (PLOT.xmax - o.a)));
+      g.stroke();
+      g.setLineDash([]); g.fillStyle = "#f06595";
+      g.beginPath(); g.arc(X(o.a), Y(o.y0), 4.5, 0, 6.284); g.fill();
+      g.restore();
+    }
+
+    // 极限点
+    if (PLOT.overlay && PLOT.overlay.type === "limit" && typeof PLOT.overlay.L === "number" && isFinite(PLOT.overlay.L)){
+      var o2 = PLOT.overlay;
+      g.save();
+      g.strokeStyle = "#f06595"; g.lineWidth = 1.6; g.setLineDash([5, 4]);
+      g.beginPath(); g.moveTo(X(o2.a), Y(o2.L)); g.lineTo(X(o2.a), Y(PLOT.ymin <= 0 && PLOT.ymax >= 0 ? 0 : PLOT.ymin)); g.stroke();
+      g.beginPath(); g.moveTo(X(o2.a), Y(o2.L)); g.lineTo(X(PLOT.xmin <= 0 && PLOT.xmax >= 0 ? 0 : PLOT.xmin), Y(o2.L)); g.stroke();
+      g.setLineDash([]); g.fillStyle = "#f06595";
+      g.beginPath(); g.arc(X(o2.a), Y(o2.L), 5.5, 0, 6.284); g.fill();
+      g.restore();
+    }
+
+    el("plotinfo").innerHTML = PLOT.label || "看完极限/切线/面积，这里会标出来。";
+  }
+  function niceStep(raw){
+    var p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+  }
+
+  /* ---------- 交互 ---------- */
+  var EXAMPLES = ["sin(x)/x", "(x^2-1)/(x-1)", "(1-cos(x))/x^2", "1/x", "abs(x)/x", "x*sin(1/x)", "x^2", "x^2*e^x", "e^(-x^2)", "1/(1+x^2)", "ln(x)", "tan(x)"];
+  var ex = el("examples");
+  EXAMPLES.forEach(function(s){
+    var b = document.createElement("button");
+    b.className = "chip"; b.textContent = s;
+    b.addEventListener("click", function(){
+      el("fx").value = s;
+      var n = preview();
+      PLOT.node = n; PLOT.overlay = null; PLOT.label = "";
+      if (n){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); }
+    });
+    ex.appendChild(b);
+  });
+
+  el("fx").addEventListener("input", function(){
+    var n = preview();
+    PLOT.node = n;
+    if (n){ autoY(); plotDraw(); }
+  });
+  el("fx").addEventListener("keydown", function(e){ if (e.key === "Enter"){ e.preventDefault(); runLimit("both"); } });
+  el("fxClear").addEventListener("click", function(){
+    el("fx").value = ""; el("fxinfo").textContent = ""; show(""); PLOT.node = null; PLOT.overlay = null; PLOT.label = ""; plotDraw();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(b){
+    b.addEventListener("click", function(){
+      var op = b.getAttribute("data-op");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(x){ x.classList.toggle("on", x === b); });
+      if (op === "limBoth") runLimit("both");
+      else if (op === "limLeft") runLimit("left");
+      else if (op === "limRight") runLimit("right");
+      else if (op === "d1") runDeriv(1);
+      else if (op === "d2") runDeriv(2);
+      else if (op === "taylor") runTaylor();
+      else if (op === "integ") runInteg();
+      else if (op === "defint") runDefint();
+    });
+  });
+
+  el("plotFit").addEventListener("click", function(){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); });
+  el("plotA").addEventListener("click", function(){ var a = num(el("limA").value); if (isNaN(a)) a = 0; plotWindowAround(a); plotDraw(); });
+  el("copy").addEventListener("click", function(){
+    var txt = lastReport || (el("out").textContent || "").trim();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ flash("已复制"); }, function(){ flash("复制失败"); });
+    } else flash("不支持复制");
+  });
+  function flash(t){ var b = el("copy"); b.textContent = t; setTimeout(function(){ b.textContent = "复制结果"; }, 1200); }
+
+  var THEME = {
+    glass: { color: "#080c18", bar: "black-translucent" },
+    light: { color: "#f2f2f7", bar: "default" },
+    brutal: { color: "#fdf1dd", bar: "default" }
+  };
+  function applySkin(s){
+    document.documentElement.setAttribute("data-skin", s);
+    Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
+    });
+    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    var T = THEME[s] || THEME.light;
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute("content", T.color);
+    var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (sb) sb.setAttribute("content", T.bar);
+    plotDraw();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+    b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  window.addEventListener("resize", plotDraw);
+
+  var SKINS = ["glass", "light", "brutal"], saved = "light";
+  try {
+    var q = new URLSearchParams(location.search).get("skin");
+    saved = q || localStorage.getItem("la-skin-v2") || "light";
+  } catch (e) {}
+  if (SKINS.indexOf(saved) < 0) saved = "light";
+  applySkin(saved);
+
+  var first = preview();
+  PLOT.node = first;
+  autoY();
+  plotDraw();
+})();
+</script>
+</body>
+</html>
