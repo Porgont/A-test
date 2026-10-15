@@ -1,0 +1,15 @@
+# generated during the cloud build
+ios/Resources/
+ios/build/
+ios/LinAlgCalc.xcodeproj/
+ios/Info.plist
+
+# local artifacts
+*.ipa
+Payload/
+test/_web/
+test/shots/
+
+# system
+Thumbs.db
+desktop.ini

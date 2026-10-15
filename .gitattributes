@@ -1,0 +1,7 @@
+# store LF in the repository: the build runs on macOS
+* text=auto
+*.yml text eol=lf
+*.swift text eol=lf
+*.mjs text eol=lf
+*.html text eol=lf
+*.md text eol=lf

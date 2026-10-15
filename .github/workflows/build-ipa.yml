@@ -1,0 +1,78 @@
+name: Build unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcode-select -p
+          swift --version
+
+      - name: Prepare web resources
+        run: |
+          mkdir -p ios/Resources
+          cp index.html ios/Resources/index.html
+          ls -la ios/Resources
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build unsigned app
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project LinAlgCalc.xcodeproj \
+            -scheme LinAlgCalc \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        run: |
+          rm -rf Payload LinAlgCalc.ipa
+          mkdir -p Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/LinAlgCalc.app Payload/
+          zip -qry LinAlgCalc.ipa Payload
+          ls -lh LinAlgCalc.ipa
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" Payload/LinAlgCalc.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" Payload/LinAlgCalc.app/Info.plist
+          printf 'MAGIC='; file Payload/LinAlgCalc.app/LinAlgCalc
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LinAlgCalc-ipa
+          path: LinAlgCalc.ipa
+          if-no-files-found: error
+
+      - name: Attach IPA to a release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ipa-${{ github.run_number }}
+          name: "线代计算器 IPA build ${{ github.run_number }}"
+          body: "Unsigned IPA built from run #${{ github.run_number }}. Sign it with Sideloadly."
+          files: LinAlgCalc.ipa
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
