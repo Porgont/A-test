@@ -146,6 +146,13 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 .geo.dragging{cursor:grabbing}
 .geoinfo{font-size:12px;color:var(--fg-dim);margin:10px 0 0;line-height:1.8}
 .geoinfo b{color:var(--fg);font-weight:600}
+.stepbox{background:var(--input-bg);border:1px solid var(--input-border);border-radius:12px;padding:11px;margin-bottom:10px}
+.stepline{font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stepno{background:var(--chip-on-bg);color:var(--chip-on-fg);font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.stepmats{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.matwrap{display:flex;flex-direction:column;gap:5px}
+.matlab{font-size:11px;color:var(--fg-dim)}
+.matwrap .rgrid{max-width:240px}
 .vlist{display:flex;flex-direction:column;gap:9px}
 .vrow{display:flex;align-items:center;gap:10px}
 .vrow .idx{font-size:12px;color:var(--fg-dim);min-width:22px}
@@ -223,6 +230,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <div class="chips" id="g0">
       <button class="chip big" data-op="ref">REF A<i>行阶梯形</i></button>
       <button class="chip big" data-op="rref">RREF A<i>行最简形</i></button>
+      <button class="chip big" data-op="steps">变换步骤<i>初等行变换</i></button>
     </div>
     <div class="glabel">基本运算</div>
     <div class="chips" id="g1">
@@ -505,6 +513,46 @@ const LinAlg = (function(){
     }
     return { basis: basis, dim: basis.length };
   }
+  function eyeFrac(n){
+    var M = [], i, j;
+    for (i = 0; i < n; i++){ var r = []; for (j = 0; j < n; j++) r.push(i === j ? ONE : ZERO); M.push(r); }
+    return M;
+  }
+  function rowSteps(M){
+    var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
+    var E = eyeFrac(rows), steps = [], r = 0, i, j, c;
+    function snap(kind, info, Ei){
+      steps.push({ kind: kind, row: r, target: info.i, other: info.p, mult: info.mult, pivot: info.pivot, R: clone(A), Ei: Ei, E: clone(E) });
+    }
+    for (c = 0; c < cols && r < rows; c++){
+      var p = -1;
+      for (i = r; i < rows; i++) if (!A[i][c].isZero()) { p = i; break; }
+      if (p < 0) continue;
+      if (p !== r){
+        var t1 = A[r]; A[r] = A[p]; A[p] = t1;
+        var t2 = E[r]; E[r] = E[p]; E[p] = t2;
+        var Esw = eyeFrac(rows), t3 = Esw[r]; Esw[r] = Esw[p]; Esw[p] = t3;
+        snap("swap", { p: p }, Esw);
+      }
+      var pv = A[r][c];
+      if (!(pv.n === 1n && pv.d === 1n)){
+        for (j = 0; j < cols; j++) A[r][j] = A[r][j].div(pv);
+        for (j = 0; j < rows; j++) E[r][j] = E[r][j].div(pv);
+        var Esc = eyeFrac(rows); Esc[r][r] = ONE.div(pv);
+        snap("scale", { pivot: pv }, Esc);
+      }
+      for (i = 0; i < rows; i++){
+        if (i === r || A[i][c].isZero()) continue;
+        var f = A[i][c];
+        for (j = 0; j < cols; j++) A[i][j] = A[i][j].sub(f.mul(A[r][j]));
+        for (j = 0; j < rows; j++) E[i][j] = E[i][j].sub(f.mul(E[r][j]));
+        var Eel = eyeFrac(rows); Eel[i][r] = f.neg();
+        snap("elim", { i: i, mult: f }, Eel);
+      }
+      r++;
+    }
+    return { R: A, steps: steps, E: E, rank: r };
+  }
   function rank(M){ return rref(M).rank; }
   function inverse(M){
     var s = shape(M), n = s[0];
@@ -668,7 +716,7 @@ const LinAlg = (function(){
     transpose: transpose, trace: trace, det: det, rref: rref, ref: ref, rank: rank,
     inverse: inverse, solve: solve, eigen: eigen,
     nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
-    generalSolution: generalSolution
+    generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac
   };
 })();
 /* ==== ENGINE END ==== */
@@ -691,6 +739,7 @@ const LinAlg = (function(){
     trace: { label: "tr A",  needB: false, hint: "要求方阵" },
     ref:   { label: "REF A", needB: false, hint: "行阶梯形：主元下方清零，主元不归一、主元上方不清" },
     rref:  { label: "RREF A", needB: false, hint: "行最简形：主元归一为 1，主元上下都清零" },
+    steps: { label: "初等行变换步骤", needB: false, hint: "一步一步做行变换化到行最简形，每步附上对应的初等矩阵 E" },
     solve: { label: "Ax = b 的解", needB: true, hint: "把 B 做成只有 1 列，当作 b 向量" },
     eig:   { label: "A 的特征值", needB: false, hint: "要求方阵；2 阶给精确解，3–4 阶为数值解" },
     ker:   { label: "ker A 的基", needB: false, hint: "零空间：被 A 压成零向量的那些方向" },
@@ -838,6 +887,25 @@ const LinAlg = (function(){
     basis.forEach(function(v, j){ names.push(kName(j)); });
     return names.join(", ") + " ∈ R";
   }
+  function ctext(f){
+    var neg = f.n < 0n, pos = neg ? f.neg() : f;
+    var val = f.toNumber();
+    var txt = S.dec ? fmtNum(Math.abs(val)) : fracHTML(pos);
+    var isInt = S.dec ? Math.abs(Math.abs(val) - Math.round(Math.abs(val))) < 1e-12 : pos.d === 1n;
+    return (neg ? "−" : "") + (isInt ? txt : "(" + txt + ")");
+  }
+  function matBoxHTML(M, label){
+    var cols = M[0] ? M[0].length : 1;
+    var h = '<div class="matwrap"><div class="matlab">' + label + '</div><div class="rgrid" style="--cols:' + cols + '">';
+    M.forEach(function(row){ row.forEach(function(x){ h += '<div class="rcell">' + cellHTML(x) + "</div>"; }); });
+    return h + "</div></div>";
+  }
+  function stepDescHTML(s){
+    function rn2(i){ return "r" + (SUBS[i + 1] || (i + 1)); }
+    if (s.kind === "swap") return "交换 " + rn2(s.row) + " 与 " + rn2(s.other);
+    if (s.kind === "scale") return rn2(s.row) + " ← " + rn2(s.row) + " ÷ " + ctext(s.pivot);
+    return rn2(s.target) + " ← " + rn2(s.target) + " − " + ctext(s.mult) + "·" + rn2(s.row);
+  }
   function blockHTML(b){
     if (b.type === "matrix"){
       var c = b.data[0] ? b.data[0].length : 1;
@@ -915,6 +983,15 @@ const LinAlg = (function(){
       else if (op === "rank") res = { label: "rank A", blocks: [{ type: "scalar", data: F(L.rank(A)) }] };
       else if (op === "trace") res = { label: "tr A", blocks: [{ type: "scalar", data: L.trace(A) }] };
       else if (op === "ref") res = { label: "REF A（行阶梯形）", blocks: [{ type: "matrix", data: L.ref(A).R }] };
+      else if (op === "steps"){
+        var rs = L.rowSteps(A);
+        var blocks = [{ type: "text", text: "一共 " + rs.steps.length + " 步，一路化到<b>行最简形</b>。每步下方给出该步对应的<b>初等矩阵 E</b>——左乘它，就等于做这一步。" }];
+        rs.steps.forEach(function(st, idx){ blocks.push({ type: "step", data: st, index: idx }); });
+        blocks.push({ type: "text", text: "把每一步的初等矩阵按顺序乘起来，得到总的 <b>E = Eₖ⋯E₂E₁</b>：" });
+        blocks.push({ type: "matrix", data: rs.E });
+        blocks.push({ type: "text", text: "可以验证 <b>E · A = 上面那个行最简形</b>；如果 A 是方阵且可逆，这个 E 正好就是 <b>A⁻¹</b>。" });
+        res = { label: "初等行变换步骤", blocks: blocks };
+      }
       else if (op === "rref") res = { label: "RREF A（行最简形）", blocks: [{ type: "matrix", data: L.rref(A).R }] };
       else if (op === "solve"){
         var r = L.generalSolution(A, B);
@@ -965,6 +1042,8 @@ const LinAlg = (function(){
       if (b.type === "matrix") return b.data.map(function(r){ return "[ " + r.map(function(v){ return v.toString(); }).join(", ") + " ]"; }).join("\n");
       if (b.type === "vector") return b.data.map(function(v){ return v.toString(); }).join("\n");
       if (b.type === "vectors") return b.data.map(function(v, i){ return "v" + (i + 1) + " = (" + v.map(function(x){ return x.toString(); }).join(", ") + ")"; }).join("\n");
+      if (b.type === "step") return "第 " + (b.index + 1) + " 步：" + stepDescHTML(b.data).replace(/<[^>]+>/g, "") + "\n" +
+        b.data.R.map(function(r){ return "[ " + r.map(function(x){ return x.toString(); }).join(", ") + " ]"; }).join("\n");
       if (b.type === "gensol"){
         var gs = "x = (" + b.data.particular.map(function(x){ return x.toString(); }).join(", ") + ")";
         b.data.basis.forEach(function(v, i){

@@ -411,6 +411,46 @@ const LinAlg = (function(){
     }
     return { basis: basis, dim: basis.length };
   }
+  function eyeFrac(n){
+    var M = [], i, j;
+    for (i = 0; i < n; i++){ var r = []; for (j = 0; j < n; j++) r.push(i === j ? ONE : ZERO); M.push(r); }
+    return M;
+  }
+  function rowSteps(M){
+    var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
+    var E = eyeFrac(rows), steps = [], r = 0, i, j, c;
+    function snap(kind, info, Ei){
+      steps.push({ kind: kind, row: r, target: info.i, other: info.p, mult: info.mult, pivot: info.pivot, R: clone(A), Ei: Ei, E: clone(E) });
+    }
+    for (c = 0; c < cols && r < rows; c++){
+      var p = -1;
+      for (i = r; i < rows; i++) if (!A[i][c].isZero()) { p = i; break; }
+      if (p < 0) continue;
+      if (p !== r){
+        var t1 = A[r]; A[r] = A[p]; A[p] = t1;
+        var t2 = E[r]; E[r] = E[p]; E[p] = t2;
+        var Esw = eyeFrac(rows), t3 = Esw[r]; Esw[r] = Esw[p]; Esw[p] = t3;
+        snap("swap", { p: p }, Esw);
+      }
+      var pv = A[r][c];
+      if (!(pv.n === 1n && pv.d === 1n)){
+        for (j = 0; j < cols; j++) A[r][j] = A[r][j].div(pv);
+        for (j = 0; j < rows; j++) E[r][j] = E[r][j].div(pv);
+        var Esc = eyeFrac(rows); Esc[r][r] = ONE.div(pv);
+        snap("scale", { pivot: pv }, Esc);
+      }
+      for (i = 0; i < rows; i++){
+        if (i === r || A[i][c].isZero()) continue;
+        var f = A[i][c];
+        for (j = 0; j < cols; j++) A[i][j] = A[i][j].sub(f.mul(A[r][j]));
+        for (j = 0; j < rows; j++) E[i][j] = E[i][j].sub(f.mul(E[r][j]));
+        var Eel = eyeFrac(rows); Eel[i][r] = f.neg();
+        snap("elim", { i: i, mult: f }, Eel);
+      }
+      r++;
+    }
+    return { R: A, steps: steps, E: E, rank: r };
+  }
   function rank(M){ return rref(M).rank; }
   function inverse(M){
     var s = shape(M), n = s[0];
@@ -574,7 +614,7 @@ const LinAlg = (function(){
     transpose: transpose, trace: trace, det: det, rref: rref, ref: ref, rank: rank,
     inverse: inverse, solve: solve, eigen: eigen,
     nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
-    generalSolution: generalSolution
+    generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac
   };
 })();
 /* ==== ENGINE END ==== */

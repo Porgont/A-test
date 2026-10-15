@@ -15,7 +15,7 @@ if (!tail.trim()) {
   process.exit(2);
 }
 const L = new Function(tail + "\nreturn LinAlg;")();
-const { F, matAdd, matSub, matMul, scaleMat, transpose, trace, det, rref, ref, rank, inverse, solve, eigen, nullspaceBasis, colspaceBasis, generalSolution } = L;
+const { F, matAdd, matSub, matMul, scaleMat, transpose, trace, det, rref, ref, rank, inverse, solve, eigen, nullspaceBasis, colspaceBasis, generalSolution, rowSteps, eyeFrac } = L;
 
 let pass = 0;
 let fail = 0;
@@ -156,6 +156,35 @@ console.log("== 通解（向量形式：特解 + 齐次基） ==");
   const g = generalSolution(M([[1, 1], [1, 1]]), M([[1], [2]]));
   ok("无解 · 类型", g.type, "none");
 }
+
+console.log("== 初等行变换步骤与初等矩阵 ==");
+{
+  const A = M([[1, 2], [3, 4]]);
+  const rs = rowSteps(A);
+  ok("步骤化到行最简形", ms(rs.R), "1,0;0,1");
+  ok("累积 E 等于 A 的逆", ms(rs.E), ms(inverse(A)));
+  ok("E · A = 结果", ms(matMul(rs.E, A)), ms(rs.R));
+  ok("每步都附了初等矩阵", rs.steps.every((s) => s.Ei && s.Ei.length === 2) ? "yes" : "no", "yes");
+  ok("每步初等矩阵左乘后结果一致",
+    rs.steps.every((s, i) => {
+      const before = i === 0 ? A : rs.steps[i - 1].R;
+      return ms(matMul(s.Ei, before)) === ms(s.R);
+    }) ? "yes" : "no", "yes");
+}
+{
+  const A = M([[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+  const rs = rowSteps(A);
+  ok("奇异矩阵步骤结果 = RREF", ms(rs.R), ms(rref(A).R));
+  ok("奇异矩阵 E · A = 结果", ms(matMul(rs.E, A)), ms(rs.R));
+  ok("奇异矩阵也有步骤", rs.steps.length > 0 ? "yes" : "no", "yes");
+}
+{
+  const A = M([[0, 1], [1, 0]]);
+  const rs = rowSteps(A);
+  ok("需要换行时有 swap 步骤", rs.steps.some((s) => s.kind === "swap") ? "yes" : "no", "yes");
+  ok("换行后仍得到行最简形", ms(rs.R), "1,0;0,1");
+}
+ok("单位阵生成", ms(eyeFrac(3)), "1,0,0;0,1,0;0,0,1");
 
 console.log("");
 console.log(pass + " passed, " + fail + " failed");

@@ -26,15 +26,17 @@ try { new Function(ui); check("UI 脚本语法", true); }
 catch (e) { check("UI 脚本语法", false, e.message); }
 
 const chipOps = [...html.matchAll(/data-op="([A-Za-z]+)"/g)].map((m) => m[1]);
-check("运算按钮数量", chipOps.length === 15, chipOps.join(","));
-check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 15,
+check("运算按钮数量", chipOps.length === 16, chipOps.join(","));
+check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 16,
   "带中文名的有 " + (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length + " 个");
 check("REF/RREF 在运算卡片里、基本运算之上",
   html.indexOf('id="g0"') >= 0 &&
   html.indexOf('data-op="ref"') < html.indexOf('id="g1"') &&
   html.indexOf('data-op="rref"') < html.indexOf('id="g1"') &&
   html.indexOf('id="g0"') > html.indexOf('id="cardB"'));
-check("REF/RREF 用大号按钮", (html.match(/class="chip big"/g) || []).length === 2);
+check("REF/RREF 用大号按钮", (html.match(/class="chip big"/g) || []).length === 3);
+check("有初等行变换步骤功能", html.indexOf('data-op="steps"') >= 0 && ui.indexOf("rowSteps") >= 0 && ui.indexOf("初等矩阵") >= 0);
+check("分组标签齐全", html.indexOf("基本运算") >= 0 && html.indexOf("单个矩阵") >= 0 && html.indexOf("方程与特征") >= 0);
 check("有解集形式输出", ui.indexOf("解集") >= 0 && ui.indexOf("setHTML") >= 0 && ui.indexOf("coordLines") >= 0);
 check("有一键清空按钮", html.indexOf('data-fill="A:clear"') >= 0 && html.indexOf('data-fill="B:clear"') >= 0 && ui.indexOf('kind === "clear"') >= 0);
 

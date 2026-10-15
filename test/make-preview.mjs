@@ -70,6 +70,15 @@ const CASES = [
       var idx2 = Array.prototype.indexOf.call(cells, document.activeElement);
       document.getElementById('ophint').textContent = "回车测试: 第0格→第" + idx1 + "格 (应为1) ; 第8格→第" + idx2 + "格 (应为0, 绕回第一格)";`,
   },
+  {
+    name: "steps",
+    skin: "light",
+    label: "初等行变换步骤",
+    script: `
+      shrink("A", 1, 0);
+      fillA(["1","2","3","4","5","6"]);
+      pick("steps");`,
+  },
 ];
 
 const helper = `
