@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f2f7">
-<title>微积分 · 蒲瓜的计算器</title>
+<title>__PAGE_TITLE__ · 蒲瓜的计算器</title>
 <style>
 :root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
 :root[data-skin="glass"]{
@@ -21,6 +21,7 @@
   --accent-line:rgba(129,140,248,.85); --focus-ring:rgba(129,140,248,.22);
   --btn-bg:linear-gradient(135deg,#5eead4,#818cf8); --btn-fg:#07101d; --btn-shadow:0 10px 26px rgba(129,140,248,.32);
   --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+  --ok:#5eead4;
 }
 :root[data-skin="light"]{
   --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
@@ -30,6 +31,7 @@
   --accent-line:#0a84ff; --focus-ring:rgba(10,132,255,.16);
   --btn-bg:linear-gradient(135deg,#0a84ff,#0060df); --btn-fg:#ffffff; --btn-shadow:0 10px 24px rgba(10,132,255,.28);
   --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30); --danger:#e5484d;
+  --ok:#0a84ff;
 }
 :root[data-skin="brutal"]{
   --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
@@ -38,7 +40,7 @@
   --chip:#ffffff; --chip-border:#141414; --chip-on-bg:#ffd23f; --chip-on-fg:#141414; --chip-on-shadow:3px 3px 0 #141414;
   --accent-line:#141414; --focus-ring:rgba(255,210,63,.55);
   --btn-bg:#ff5c4d; --btn-fg:#141414; --btn-shadow:4px 4px 0 #141414;
-  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22; --ok:#141414;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -47,22 +49,22 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow)}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow);font-style:italic}
 .brandName{font-size:12.5px;color:var(--fg-dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
-.tabs{display:flex;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1;text-align:center;padding:11px 10px;border-radius:12px;font-size:13.5px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
-.tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
+.tabs .tag{font-size:10.5px;opacity:.75;margin-left:3px}
 .hero{text-align:center;padding:4px 2px 0}
 .heroTitle{margin:0;font-size:23px;font-weight:800;letter-spacing:.005em;line-height:1.32}
 .heroSub{margin:7px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
 .card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
 .chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
-.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:0 0 auto;font-style:italic}
+.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 auto;font-style:italic}
 .rtitle{font-size:13px;font-weight:600}
 .note{font-size:11.5px;color:var(--fg-dim)}
 .tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
@@ -75,9 +77,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
 .chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
 .chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
-.chip i{font-style:normal;font-size:11px;opacity:.68;margin-left:5px;font-weight:400}
 .chip.big{font-size:14.5px;padding:12px 16px;font-weight:650;border-color:var(--accent-line);font-variant-numeric:tabular-nums}
-.chip.big.on{background:var(--chip-on-bg)}
 .kbox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-dim)}
 .kbox input{width:74px;padding:8px 9px;font:inherit;font-size:13.5px;text-align:center;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:9px;outline:none;font-variant-numeric:tabular-nums}
 .kbox input:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
@@ -116,8 +116,8 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 
   <header class="topbar">
     <div class="brand">
-      <span class="logo">∫</span>
-      <span class="brandName">极限 · 导数 · 积分</span>
+      <span class="logo" id="logo">∫</span>
+      <span class="brandName" id="tagline"></span>
     </div>
     <div class="skins" id="skins">
       <button data-skin-set="glass">玻璃</button>
@@ -126,12 +126,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
     </div>
   </header>
 
-  <nav class="tabs" aria-label="页面切换">
-    <a href="index.html">首页</a>
-    <a href="algebra.html">矩阵</a>
-    <a href="transform.html">变换</a>
-    <span class="on">微积分<span class="tag">当前</span></span>
-  </nav>
+  <nav class="tabs" id="nav" aria-label="页面切换"></nav>
 
   <section class="card">
     <div class="chead">
@@ -146,37 +141,8 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   </section>
 
   <section class="card">
-    <div class="chead"><span class="rtitle">微积分运算</span><div class="tools"><button id="copy">复制结果</button></div></div>
-
-    <div class="glabel">极限 · x → a</div>
-    <div class="chips">
-      <label class="kbox">a = <input id="limA" value="0" autocomplete="off" title="填数字，或写 inf / -inf"></label>
-      <button class="chip big on" data-op="limBoth">极限</button>
-      <button class="chip big" data-op="limLeft">左极限</button>
-      <button class="chip big" data-op="limRight">右极限</button>
-    </div>
-    <div class="chips" style="margin-top:8px">
-      <span class="kbox" style="margin-right:1px">x 趋于无穷：</span>
-      <button class="chip big" data-op="limPosInf">x → +∞</button>
-      <button class="chip big" data-op="limNegInf">x → −∞</button>
-    </div>
-
-    <div class="glabel">导数</div>
-    <div class="chips">
-      <button class="chip big" data-op="d1">一阶导 f′</button>
-      <button class="chip big" data-op="d2">二阶导 f″</button>
-      <label class="kbox">泰勒阶数 <input id="order" value="5" autocomplete="off"></label>
-      <button class="chip big" data-op="taylor">泰勒展开</button>
-    </div>
-
-    <div class="glabel">积分</div>
-    <div class="chips">
-      <button class="chip big" data-op="integ">不定积分 ∫f dx</button>
-      <label class="kbox">从 <input id="intA" value="0" autocomplete="off"></label>
-      <label class="kbox">到 <input id="intB" value="1" autocomplete="off"></label>
-      <button class="chip big" data-op="defint">定积分</button>
-    </div>
-
+    <div class="chead"><span class="rtitle" id="opsTitle">运算</span><div class="tools"><button id="copy">复制结果</button></div></div>
+    <div id="opsArea"></div>
     <p class="geoinfo" id="ophint"></p>
     <button class="runbtn" id="calcBtn">计 算</button>
   </section>
@@ -198,14 +164,9 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
     <p class="geoinfo" id="plotinfo"></p>
   </section>
 
-  <nav class="tabs" aria-label="页面切换">
-    <a href="index.html">首页</a>
-    <a href="algebra.html">矩阵</a>
-    <a href="transform.html">变换</a>
-    <span class="on">微积分<span class="tag">当前</span></span>
-  </nav>
+  <nav class="tabs" id="nav2" aria-label="页面切换"></nav>
 
-  <p class="foot">全部计算在本机浏览器里完成，不上传任何数据。<br>极限用直接代入 → 洛必达 → 数值逼近的顺序判定，并如实给出判定过程。</p>
+  <p class="foot">全部计算都在本机浏览器里完成，不上传任何数据。<br>极限用直接代入 → 洛必达 → 数值逼近的顺序判定，并如实给出判定过程。</p>
 </div>
 
 <script>
@@ -218,13 +179,97 @@ __CALC_ENGINE__
 (function(){
   "use strict";
   var C = Calc;
+  var PAGE_ID = "__PAGE_ID__";
 
-  var S = { dec: false };
-  var PLOT = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, overlay: null, label: "" };
-  var lastReport = "";
+  /* ---------- 页面与导航配置（三页共用） ---------- */
+  var PAGES = {
+    limits: { title: "极限", logo: "lim", tagline: "极限 · 左右极限 · 化简过程", opsTitle: "极限运算",
+      needs: ["a"],
+      groups: [
+        { label: "求极限 · x → a", ops: ["limBoth", "limLeft", "limRight"] },
+        { label: "x 趋于无穷", ops: ["limPosInf", "limNegInf"] }
+      ] },
+    deriv: { title: "微分", logo: "d/dx", tagline: "导数 · 切线 · 泰勒展开", opsTitle: "求导与展开",
+      needs: ["a", "order"],
+      groups: [
+        { label: "导数", ops: ["d1", "d2"] },
+        { label: "泰勒展开", ops: ["taylor"] }
+      ] },
+    integral: { title: "积分", logo: "∫", tagline: "原函数 · 定积分 · 面积", opsTitle: "积分运算",
+      needs: ["fromto"],
+      groups: [
+        { label: "不定积分", ops: ["integ"] },
+        { label: "定积分", ops: ["defint"] }
+      ] }
+  };
+  var NAV = [
+    { id: "home", label: "首页", href: "index.html" },
+    { id: "algebra", label: "矩阵", href: "algebra.html" },
+    { id: "transform", label: "变换", href: "transform.html" },
+    { id: "limits", label: "极限", href: "limits.html" },
+    { id: "deriv", label: "微分", href: "deriv.html" },
+    { id: "integral", label: "积分", href: "integral.html" }
+  ];
+  var OPDEF = {
+    limBoth:   { label: "极限", hint: "求 lim f(x)（x → a）。两侧不一致时会分别写出左极限与右极限。" },
+    limLeft:   { label: "左极限", hint: "只求 x 从左侧趋近 a 时的极限。" },
+    limRight:  { label: "右极限", hint: "只求 x 从右侧趋近 a 时的极限。" },
+    limPosInf: { label: "x → +∞", hint: "求 x 趋于正无穷时的极限；判定过程会写清用了什么方法。" },
+    limNegInf: { label: "x → −∞", hint: "求 x 趋于负无穷时的极限。" },
+    d1:        { label: "一阶导 f′", hint: "求一阶导数 f′(x)，并给出 x = a 处的取值与切线斜率。" },
+    d2:        { label: "二阶导 f″", hint: "求二阶导数 f″(x)。" },
+    taylor:    { label: "泰勒展开", hint: "在 x = a 处按指定阶数做泰勒展开（阶数默认 5）。" },
+    integ:     { label: "不定积分 ∫f dx", hint: "求原函数（+ C）；找不到初等原函数会如实说明。" },
+    defint:    { label: "定积分", hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。" }
+  };
 
   function el(id){ return document.getElementById(id); }
   function num(v){ var n = parseFloat(String(v).replace(/，/g, ",")); return isFinite(n) ? n : NaN; }
+
+  /* ---------- 渲染导航与运算区 ---------- */
+  function navHTML(){
+    var h = "";
+    NAV.forEach(function(n){
+      h += (n.id === PAGE_ID)
+        ? '<span class="on">' + n.label + '<span class="tag">当前</span></span>'
+        : '<a href="' + n.href + '">' + n.label + "</a>";
+    });
+    return h;
+  }
+  function renderChrome(){
+    var p = PAGES[PAGE_ID];
+    document.title = p.title + " · 蒲瓜的计算器";
+    el("nav").innerHTML = navHTML();
+    el("nav2").innerHTML = navHTML();
+    el("logo").textContent = p.logo;
+    el("tagline").textContent = p.tagline;
+    el("opsTitle").textContent = p.opsTitle;
+
+    var h = "";
+    if (p.needs.indexOf("a") >= 0){
+      h += '<div class="chips"><label class="kbox">a = <input id="limA" value="0" autocomplete="off" title="填数字，或写 inf / -inf"></label>';
+      if (p.needs.indexOf("order") >= 0) h += '<label class="kbox">泰勒阶数 <input id="order" value="5" autocomplete="off"></label>';
+      h += "</div>";
+    } else if (p.needs.indexOf("order") >= 0){
+      h += '<div class="chips"><label class="kbox">泰勒阶数 <input id="order" value="5" autocomplete="off"></label></div>';
+    }
+    if (p.needs.indexOf("fromto") >= 0){
+      h += '<div class="chips"><label class="kbox">从 <input id="intA" value="0" autocomplete="off"></label>' +
+           '<label class="kbox">到 <input id="intB" value="1" autocomplete="off"></label></div>';
+    }
+    p.groups.forEach(function(g, gi){
+      if (g.label) h += '<div class="glabel">' + g.label + "</div>";
+      h += '<div class="chips">';
+      g.ops.forEach(function(op){
+        h += '<button class="chip big' + (gi === 0 && g.ops[0] === op ? " on" : "") + '" data-op="' + op + '">' + OPDEF[op].label + "</button>";
+      });
+      h += "</div>";
+    });
+    el("opsArea").innerHTML = h;
+  }
+
+  var S = { dec: false, op: PAGES[PAGE_ID].groups[0].ops[0] };
+  var lastReport = "";
 
   /* ---------- 数字/文本格式化 ---------- */
   function fmt(x, digits){
@@ -238,6 +283,10 @@ __CALC_ENGINE__
     if (s === "-0") s = "0";
     return s.replace("-", "−");
   }
+  function sup(d){
+    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+    return String(d).split("").map(function(ch){ return map[ch] || ch; }).join("");
+  }
   function pretty(str){
     return String(str)
       .replace(/\*/g, " · ")
@@ -245,10 +294,6 @@ __CALC_ENGINE__
       .replace(/sqrt\(/g, "√(")
       .replace(/pi/g, "π")
       .replace(/-/g, "−");
-  }
-  function sup(d){
-    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
-    return String(d).split("").map(function(ch){ return map[ch] || ch; }).join("");
   }
 
   /* ---------- 解析当前函数 ---------- */
@@ -280,22 +325,18 @@ __CALC_ENGINE__
   function boxHTML(label, body){
     return '<div class="calcbox"><div class="calclab">' + label + '</div><div class="mono">' + body + "</div></div>";
   }
-  function kindText(k){
-    if (k === "infinite") return "趋于无穷（极限不存在）";
-    if (k === "none") return "不存在";
-    if (k === "undefined") return "未定义";
-    return "存在";
-  }
 
   /* ---------- 极限 ---------- */
+  function readA(){
+    var aRaw = el("limA") ? el("limA").value.trim() : "0";
+    if (/^(inf|infinity|\+inf|\+∞|∞)$/i.test(aRaw)) return "inf";
+    if (/^(-inf|-infinity|-∞)$/i.test(aRaw)) return "-inf";
+    return num(aRaw);
+  }
   function runLimit(side){
     var node = preview(); if (!node) return;
-    var aRaw = el("limA").value.trim();
-    var a = /^(inf|infinity|\+inf|\+∞|∞)$/i.test(aRaw) ? "inf"
-          : /^(-inf|-infinity|-∞)$/i.test(aRaw) ? "-inf"
-          : num(aRaw);
+    var a = readA();
     if (typeof a === "number" && isNaN(a)){ show('<p class="msgerr">a 要是数字，或者写 inf / -inf</p>'); return; }
-
     var r;
     try { r = C.limit(node, a, { side: side || "both" }); }
     catch (e){ show('<p class="msgerr">' + (e.message || e) + "</p>"); return; }
@@ -322,13 +363,13 @@ __CALC_ENGINE__
       var lTxt = r.left && r.left.kind === "infinite" ? (r.left.value > 0 ? "+∞" : "−∞") : (r.left && typeof r.left.value === "number" ? (r.left.exact || fmt(r.left.value)) : "不存在");
       var rTxt = r.right && r.right.kind === "infinite" ? (r.right.value > 0 ? "+∞" : "−∞") : (r.right && typeof r.right.value === "number" ? (r.right.exact || fmt(r.right.value)) : "不存在");
       h += '<p class="res">左极限 = <b>' + lTxt + "</b>　　右极限 = <b>" + rTxt + "</b>";
-      if (!ok && r.kind !== "infinite") h += "　→ 两侧不相等" + (r.left && r.right && typeof r.left.value === "number" && typeof r.right.value === "number" ? "" : "（或振荡）");
+      if (!ok && r.kind !== "infinite") h += "　→ 两侧不相等（或振荡）";
       h += "</p>";
     }
     h += '<div class="calclab" style="margin-top:14px">化简与判定过程</div>' + stepsHTML(r.steps);
     show(h);
     lastReport = "lim x→" + aText + " f(x)：" + (r.exists ? (r.exact || fmt(r.value)) : "不存在");
-    PLOT.overlay = { type: "limit", a: typeof a === "number" ? a : (a === "inf" ? 20 : -20), L: r.exists ? r.value : null, exact: r.exact };
+    PLOT.overlay = { type: "limit", a: typeof a === "number" ? a : (a === "inf" ? 20 : -20), L: r.exists ? r.value : null };
     PLOT.label = "lim<sub>x→" + aText + "</sub> f(x)" + (r.exists ? " = " + (r.exact || fmt(r.value)) : " 不存在");
     if (typeof a === "number") plotWindowAround(a);
     else if (a === "inf"){ PLOT.xmin = -2; PLOT.xmax = 20; autoY(); }
@@ -337,16 +378,21 @@ __CALC_ENGINE__
   }
 
   /* ---------- 导数 ---------- */
+  function safeEval(node, x){
+    try { var v = C.evalAt(node, x); return typeof v === "number" && isFinite(v) ? v : NaN; }
+    catch (e){ return NaN; }
+  }
   function runDeriv(order){
     var node = preview(); if (!node) return;
     var d1 = C.deriv(node), d2 = order === 2 ? C.deriv(d1) : null;
     var h = boxHTML("f(x)", pretty(C.str(node)));
-    h += boxHTML("一阶导 f′(x)", pretty(C.str(d1)));
-    if (d2) h += boxHTML("二阶导 f″(x)", pretty(C.str(d2)));
-    var a = num(el("limA").value);
+    h += boxHTML(order === 2 ? "二阶导 f″(x)" : "一阶导 f′(x)", pretty(C.str(order === 2 ? d2 : d1)));
+    if (order === 2) h += boxHTML("（顺带）一阶导 f′(x)", pretty(C.str(d1)));
+    var a = el("limA") ? num(el("limA").value) : NaN;
     if (!isNaN(a)){
       var s1 = safeEval(node, a), s2 = safeEval(d1, a);
       h += '<p class="res">在 x = ' + fmt(a, 6) + " 处：f = <b>" + fmt(s1) + "</b>，切线斜率 f′ = <b>" + fmt(s2) + "</b></p>";
+      h += '<p class="res">切线方程：y = ' + fmt(s2) + "(x − " + fmt(a, 6) + ") + " + fmt(s1) + "</p>";
       PLOT.overlay = { type: "tangent", a: a, k: s2, y0: s1 };
       PLOT.label = "x = " + fmt(a, 4) + " 处的切线，斜率 " + fmt(s2);
       plotWindowAround(a);
@@ -355,23 +401,19 @@ __CALC_ENGINE__
     lastReport = "f′(x) = " + C.str(d1) + (d2 ? "\nf″(x) = " + C.str(d2) : "");
     plotDraw();
   }
-  function safeEval(node, x){
-    try { var v = C.evalAt(node, x); return typeof v === "number" && isFinite(v) ? v : NaN; }
-    catch (e){ return NaN; }
-  }
 
   /* ---------- 泰勒 ---------- */
   function runTaylor(){
     var node = preview(); if (!node) return;
-    var a = num(el("limA").value); if (isNaN(a)) a = 0;
-    var order = Math.max(1, Math.min(12, Math.round(num(el("order").value) || 5)));
+    var a = el("limA") ? num(el("limA").value) : 0; if (isNaN(a)) a = 0;
+    var order = Math.max(1, Math.min(12, Math.round(num(el("order") ? el("order").value : 5) || 5)));
     var t;
     try { t = C.taylor(node, a, order); }
     catch (e){ show('<p class="msgerr">' + (e.message || e) + "</p>"); return; }
     var h = '<p class="res">在 x = ' + fmt(a, 6) + " 处展开到 " + order + " 阶：</p>";
     h += boxHTML("泰勒多项式", pretty(t.text));
     if (t.terms && t.terms.length){
-      h += '<ul class="steps">';
+      h += '<div class="calclab" style="margin-top:12px">逐项系数</div><ul class="steps">';
       t.terms.forEach(function(term){
         h += "<li>" + (term.power === 0 ? "常数项" : "x" + sup(term.power) + " 项") + "系数 <b>" + term.coefText + "</b></li>";
       });
@@ -388,16 +430,16 @@ __CALC_ENGINE__
     var h = boxHTML("f(x)", pretty(C.str(node)));
     if (r.ok){
       h += boxHTML("原函数 ∫f(x)dx", pretty(r.text));
-      h += '<p class="res">求导可以验证：把上面这个原函数求导应该回到 f(x)。</p>';
+      h += '<p class="res">把上面这个原函数求导，应该回到 f(x)。</p>';
     } else {
-      h += '<p class="res">这个函数<b>找不到初等原函数</b>（' + (r.reason || "不在支持表内") + "）。<br>定积分仍然可以用数值方法算，试试下面的「定积分」。</p>";
+      h += '<p class="res">这个函数<b>找不到初等原函数</b>（' + (r.reason || "不在支持表内") + "）。<br>定积分仍然可以用数值方法算，去「积分」页的定积分试试。</p>";
     }
     show(h);
     lastReport = r.ok ? "∫f(x)dx = " + r.text : "∫f(x)dx：找不到初等原函数";
   }
   function runDefint(){
     var node = preview(); if (!node) return;
-    var a = num(el("intA").value), b = num(el("intB").value);
+    var a = num(el("intA") ? el("intA").value : 0), b = num(el("intB") ? el("intB").value : 1);
     if (isNaN(a) || isNaN(b)){ show('<p class="msgerr">定积分的上下限要是数字</p>'); return; }
     var r = C.definiteIntegral(node, a, b);
     var h = boxHTML("积分区间", "从 " + fmt(a, 6) + " 到 " + fmt(b, 6));
@@ -407,18 +449,15 @@ __CALC_ENGINE__
     lastReport = "∫ from " + a + " to " + b + " = " + (r.exact || r.numeric);
     PLOT.overlay = { type: "area", a: a, b: b, node: node };
     PLOT.label = "阴影面积 = " + (r.exact || fmt(r.numeric));
-    var lo = Math.min(a, b), hi = Math.max(a, b);
-    var pad = Math.max((hi - lo) * 0.8, 1);
+    var lo = Math.min(a, b), hi = Math.max(a, b), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();
     plotDraw();
   }
 
   /* ---------- 画图 ---------- */
-  function plotWindowAround(a){
-    PLOT.xmin = a - 6; PLOT.xmax = a + 6;
-    autoY();
-  }
+  var PLOT = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, overlay: null, label: "" };
+  function plotWindowAround(a){ PLOT.xmin = a - 6; PLOT.xmax = a + 6; autoY(); }
   function autoY(){
     if (!PLOT.node) return;
     var lo = Infinity, hi = -Infinity, i, x, v;
@@ -434,6 +473,10 @@ __CALC_ENGINE__
     PLOT.ymin = mid - span * 0.7;
     PLOT.ymax = mid + span * 0.7;
   }
+  function niceStep(raw){
+    var p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+  }
   function plotDraw(){
     var cv = el("plot"); if (!cv) return;
     var w = cv.clientWidth || 600, hgt = cv.clientHeight || 290, dpr = window.devicePixelRatio || 1;
@@ -444,24 +487,17 @@ __CALC_ENGINE__
     var accent = (cs.getPropertyValue("--accent-line") || "").trim() || "#0a84ff";
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, hgt);
-
     var pad = 6;
     var X = function(x){ return pad + (x - PLOT.xmin) / (PLOT.xmax - PLOT.xmin) * (w - pad * 2); };
     var Y = function(y){ return hgt - pad - (y - PLOT.ymin) / (PLOT.ymax - PLOT.ymin) * (hgt - pad * 2); };
 
-    // 网格
     g.save();
     g.strokeStyle = dim; g.globalAlpha = 0.18; g.lineWidth = 1;
     var stepX = niceStep((PLOT.xmax - PLOT.xmin) / 8), stepY = niceStep((PLOT.ymax - PLOT.ymin) / 5), t;
-    for (t = Math.ceil(PLOT.xmin / stepX) * stepX; t <= PLOT.xmax; t += stepX){
-      g.beginPath(); g.moveTo(X(t), pad); g.lineTo(X(t), hgt - pad); g.stroke();
-    }
-    for (t = Math.ceil(PLOT.ymin / stepY) * stepY; t <= PLOT.ymax; t += stepY){
-      g.beginPath(); g.moveTo(pad, Y(t)); g.lineTo(w - pad, Y(t)); g.stroke();
-    }
+    for (t = Math.ceil(PLOT.xmin / stepX) * stepX; t <= PLOT.xmax; t += stepX){ g.beginPath(); g.moveTo(X(t), pad); g.lineTo(X(t), hgt - pad); g.stroke(); }
+    for (t = Math.ceil(PLOT.ymin / stepY) * stepY; t <= PLOT.ymax; t += stepY){ g.beginPath(); g.moveTo(pad, Y(t)); g.lineTo(w - pad, Y(t)); g.stroke(); }
     g.restore();
 
-    // 坐标轴
     g.save();
     g.strokeStyle = dim; g.globalAlpha = 0.75; g.lineWidth = 1.4;
     if (PLOT.ymin <= 0 && PLOT.ymax >= 0){ g.beginPath(); g.moveTo(pad, Y(0)); g.lineTo(w - pad, Y(0)); g.stroke(); }
@@ -471,7 +507,6 @@ __CALC_ENGINE__
     g.fillText("y", X(0) + 6, pad + 12);
     g.restore();
 
-    // 定积分阴影
     if (PLOT.overlay && PLOT.overlay.type === "area" && PLOT.node){
       var a = Math.min(PLOT.overlay.a, PLOT.overlay.b), b = Math.max(PLOT.overlay.a, PLOT.overlay.b);
       g.save(); g.globalAlpha = 0.22; g.fillStyle = accent;
@@ -485,7 +520,6 @@ __CALC_ENGINE__
       g.lineTo(X(b), Y(0)); g.closePath(); g.fill(); g.restore();
     }
 
-    // 曲线
     if (PLOT.node){
       g.save();
       g.strokeStyle = accent; g.lineWidth = 2.4; g.lineJoin = "round";
@@ -501,7 +535,6 @@ __CALC_ENGINE__
       g.stroke(); g.restore();
     }
 
-    // 切线
     if (PLOT.overlay && PLOT.overlay.type === "tangent" && isFinite(PLOT.overlay.k)){
       var o = PLOT.overlay;
       g.save(); g.strokeStyle = "#f06595"; g.lineWidth = 2; g.setLineDash([6, 5]);
@@ -514,7 +547,6 @@ __CALC_ENGINE__
       g.restore();
     }
 
-    // 极限点
     if (PLOT.overlay && PLOT.overlay.type === "limit" && typeof PLOT.overlay.L === "number" && isFinite(PLOT.overlay.L)){
       var o2 = PLOT.overlay;
       g.save();
@@ -526,32 +558,16 @@ __CALC_ENGINE__
       g.restore();
     }
 
-    el("plotinfo").innerHTML = PLOT.label || "看完极限/切线/面积，这里会标出来。";
-  }
-  function niceStep(raw){
-    var p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), n = raw / p;
-    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+    el("plotinfo").innerHTML = PLOT.label || "算完之后，这里会标出极限点 / 切线 / 面积。";
   }
 
   /* ---------- 运算选择：先选，再按「计算」 ---------- */
-  var OPINFO = {
-    limBoth:   { hint: "求 lim f(x)（x → a）。两侧不一致时会分别写出左极限与右极限。" },
-    limLeft:   { hint: "只求 x 从左侧趋近 a 时的极限。" },
-    limRight:  { hint: "只求 x 从右侧趋近 a 时的极限。" },
-    limPosInf: { hint: "求 x 趋于正无穷时的极限（a 会自动填成 inf）。" },
-    limNegInf: { hint: "求 x 趋于负无穷时的极限（a 会自动填成 −inf）。" },
-    d1:        { hint: "求一阶导数 f′(x)，并在 x = a 处给出取值与切线斜率。" },
-    d2:        { hint: "求二阶导数 f″(x)。" },
-    taylor:    { hint: "在 x = a 处按指定阶数做泰勒展开（阶数默认 5）。" },
-    integ:     { hint: "求不定积分（原函数 + C）；找不到初等原函数会如实说明。" },
-    defint:    { hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。" }
-  };
   function selectOp(op){
     S.op = op;
     Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(x){
       x.classList.toggle("on", x.getAttribute("data-op") === op);
     });
-    var info = OPINFO[op];
+    var info = OPDEF[op];
     el("ophint").textContent = info ? info.hint : "";
   }
   function runCalc(){
@@ -559,14 +575,18 @@ __CALC_ENGINE__
     if (op === "limBoth") runLimit("both");
     else if (op === "limLeft") runLimit("left");
     else if (op === "limRight") runLimit("right");
-    else if (op === "limPosInf"){ el("limA").value = "inf"; runLimit("both"); }
-    else if (op === "limNegInf"){ el("limA").value = "-inf"; runLimit("both"); }
+    else if (op === "limPosInf"){ if (el("limA")) el("limA").value = "inf"; runLimit("both"); }
+    else if (op === "limNegInf"){ if (el("limA")) el("limA").value = "-inf"; runLimit("both"); }
     else if (op === "d1") runDeriv(1);
     else if (op === "d2") runDeriv(2);
     else if (op === "taylor") runTaylor();
     else if (op === "integ") runInteg();
     else if (op === "defint") runDefint();
   }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(b){
+    b.addEventListener("click", function(){ selectOp(b.getAttribute("data-op")); });
+  });
+  el("calcBtn").addEventListener("click", runCalc);
 
   /* ---------- 输入框下面的符号面板 ---------- */
   var SYMS = [
@@ -576,14 +596,13 @@ __CALC_ENGINE__
     { t: "sin", v: "sin(", fn: true }, { t: "cos", v: "cos(", fn: true }, { t: "tan", v: "tan(", fn: true },
     { t: "ln", v: "ln(", fn: true }, { t: "√", v: "sqrt(", fn: true }, { t: "|x|", v: "abs(", fn: true }
   ];
-  var symBox = el("syms");
   SYMS.forEach(function(s){
     var b = document.createElement("button");
     b.type = "button";
     b.textContent = s.t;
     if (s.fn) b.className = "fn";
     b.addEventListener("click", function(){ insertSym(s.v); });
-    symBox.appendChild(b);
+    el("syms").appendChild(b);
   });
   function insertSym(v){
     var inp = el("fx"), s = inp.selectionStart, e = inp.selectionEnd, val = inp.value;
@@ -599,7 +618,6 @@ __CALC_ENGINE__
 
   /* ---------- 例子 ---------- */
   var EXAMPLES = ["sin(x)/x", "(x^2-1)/(x-1)", "(1-cos(x))/x^2", "1/x", "abs(x)/x", "x*sin(1/x)", "x^2", "x^2*e^x", "e^(-x^2)", "1/(1+x^2)", "ln(x)", "tan(x)"];
-  var ex = el("examples");
   EXAMPLES.forEach(function(s){
     var b = document.createElement("button");
     b.className = "chip"; b.textContent = s;
@@ -609,7 +627,7 @@ __CALC_ENGINE__
       PLOT.node = n; PLOT.overlay = null; PLOT.label = "";
       if (n){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); }
     });
-    ex.appendChild(b);
+    el("examples").appendChild(b);
   });
 
   el("fx").addEventListener("input", function(){
@@ -618,21 +636,18 @@ __CALC_ENGINE__
     if (n){ autoY(); plotDraw(); }
   });
   el("fx").addEventListener("keydown", function(e){ if (e.key === "Enter"){ e.preventDefault(); runCalc(); } });
-  ["limA", "order", "intA", "intB"].forEach(function(id){
-    var box = el(id);
-    if (box) box.addEventListener("keydown", function(e){ if (e.key === "Enter"){ e.preventDefault(); runCalc(); } });
-  });
   el("fxClear").addEventListener("click", function(){
-    el("fx").value = ""; el("fxinfo").textContent = ""; show(""); PLOT.node = null; PLOT.overlay = null; PLOT.label = ""; plotDraw();
+    el("fx").value = ""; el("fxinfo").textContent = ""; show("");
+    PLOT.node = null; PLOT.overlay = null; PLOT.label = ""; plotDraw();
   });
-
-  Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(b){
-    b.addEventListener("click", function(){ selectOp(b.getAttribute("data-op")); });
+  document.addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    var id = e.target && e.target.id;
+    if (id === "limA" || id === "order" || id === "intA" || id === "intB"){ e.preventDefault(); runCalc(); }
   });
-  el("calcBtn").addEventListener("click", runCalc);
 
   el("plotFit").addEventListener("click", function(){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); });
-  el("plotA").addEventListener("click", function(){ var a = num(el("limA").value); if (isNaN(a)) a = 0; plotWindowAround(a); plotDraw(); });
+  el("plotA").addEventListener("click", function(){ var a = el("limA") ? num(el("limA").value) : NaN; if (isNaN(a)) a = 0; plotWindowAround(a); plotDraw(); });
   el("copy").addEventListener("click", function(){
     var txt = lastReport || (el("out").textContent || "").trim();
     if (navigator.clipboard && navigator.clipboard.writeText){
@@ -641,6 +656,7 @@ __CALC_ENGINE__
   });
   function flash(t){ var b = el("copy"); b.textContent = t; setTimeout(function(){ b.textContent = "复制结果"; }, 1200); }
 
+  /* ---------- 皮肤 ---------- */
   var THEME = {
     glass: { color: "#080c18", bar: "black-translucent" },
     light: { color: "#f2f2f7", bar: "default" },
@@ -664,6 +680,8 @@ __CALC_ENGINE__
   });
   window.addEventListener("resize", plotDraw);
 
+  /* ---------- 启动 ---------- */
+  renderChrome();
   var SKINS = ["glass", "light", "brutal"], saved = "light";
   try {
     var q = new URLSearchParams(location.search).get("skin");
@@ -672,9 +690,8 @@ __CALC_ENGINE__
   if (SKINS.indexOf(saved) < 0) saved = "light";
   applySkin(saved);
 
-  var first = preview();
-  selectOp("limBoth");
-  PLOT.node = first;
+  selectOp(PAGES[PAGE_ID].groups[0].ops[0]);
+  PLOT.node = preview();
   autoY();
   plotDraw();
 })();

@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
 const html = readFileSync(join(root, "src", "home.html"), "utf8");
-for (const need of ['href="algebra.html"', 'href="transform.html"', 'href="calculus.html"', "蒲瓜的计算器"]) {
+for (const need of ['href="algebra.html"', 'href="transform.html"', 'href="limits.html"', 'href="deriv.html"', 'href="integral.html"', "蒲瓜的计算器"]) {
   if (html.indexOf(need) < 0) {
     console.error("FAIL: src/home.html 缺少 " + need);
     process.exit(2);
