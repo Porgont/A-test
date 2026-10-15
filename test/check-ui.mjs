@@ -36,6 +36,7 @@ check("REF/RREF 在运算卡片里、基本运算之上",
   html.indexOf('id="g0"') > html.indexOf('id="cardB"'));
 check("REF/RREF 用大号按钮", (html.match(/class="chip big"/g) || []).length === 3);
 check("有初等行变换步骤功能", html.indexOf('data-op="steps"') >= 0 && ui.indexOf("rowSteps") >= 0 && ui.indexOf("初等矩阵") >= 0);
+check("步骤块有渲染分支", ui.indexOf('b.type === "step"') >= 0 && ui.indexOf("stepbox") >= 0 && ui.indexOf("stepDescHTML") >= 0);
 check("分组标签齐全", html.indexOf("基本运算") >= 0 && html.indexOf("单个矩阵") >= 0 && html.indexOf("方程与特征") >= 0);
 check("有解集形式输出", ui.indexOf("解集") >= 0 && ui.indexOf("setHTML") >= 0 && ui.indexOf("coordLines") >= 0);
 check("有一键清空按钮", html.indexOf('data-fill="A:clear"') >= 0 && html.indexOf('data-fill="B:clear"') >= 0 && ui.indexOf('kind === "clear"') >= 0);

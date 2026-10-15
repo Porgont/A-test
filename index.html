@@ -918,6 +918,11 @@ const LinAlg = (function(){
       b.data.forEach(function(v){ h2 += '<div class="rcell">' + cellHTML(v) + "</div>"; });
       return h2 + "</div>";
     }
+    if (b.type === "step"){
+      var sb = b.data, no = b.index + 1;
+      return '<div class="stepbox"><div class="stepline"><span class="stepno">第 ' + no + ' 步</span>' + stepDescHTML(sb) + "</div>" +
+        '<div class="stepmats">' + matBoxHTML(sb.R, "变换后的矩阵") + matBoxHTML(sb.Ei, "初等矩阵 E" + (SUBS[no] || no)) + "</div></div>";
+    }
     if (b.type === "gensol"){
       var gd = b.data;
       var hg = '<div class="gsline"><span class="gslab">x =</span>' + vecGridHTML(gd.particular);
