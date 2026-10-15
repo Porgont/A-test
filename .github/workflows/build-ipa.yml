@@ -28,7 +28,7 @@ jobs:
       - name: Prepare web resources
         run: |
           mkdir -p ios/Resources
-          cp index.html ios/Resources/index.html
+          cp index.html algebra.html transform.html calculus.html ios/Resources/
           ls -la ios/Resources
 
       - name: Install XcodeGen

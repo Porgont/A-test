@@ -9,9 +9,10 @@ const root = join(here, "..");        // 线代计算器/
 const out = join(root, "..");         // 工作区根目录
 
 const PAGES = [
-  { master: "index.html", copy: "线性代数计算器.html", links: { "transform.html": "线性变换演示.html", "calculus.html": "微积分计算器.html" } },
-  { master: "transform.html", copy: "线性变换演示.html", links: { "index.html": "线性代数计算器.html", "calculus.html": "微积分计算器.html" } },
-  { master: "calculus.html", copy: "微积分计算器.html", links: { "index.html": "线性代数计算器.html", "transform.html": "线性变换演示.html" } },
+  { master: "index.html", copy: "蒲瓜的计算器.html", links: { "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "calculus.html": "微积分计算器.html" } },
+  { master: "algebra.html", copy: "线性代数计算器.html", links: { "index.html": "蒲瓜的计算器.html", "transform.html": "线性变换演示.html", "calculus.html": "微积分计算器.html" } },
+  { master: "transform.html", copy: "线性变换演示.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "calculus.html": "微积分计算器.html" } },
+  { master: "calculus.html", copy: "微积分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html" } },
 ];
 
 let done = 0, skip = 0;

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const main = readFileSync(join(root, "index.html"), "utf8");
+const main = readFileSync(join(root, "algebra.html"), "utf8");
 const page = readFileSync(join(root, "transform.html"), "utf8");
 
 let pass = 0, fail = 0;

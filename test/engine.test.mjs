@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const htmlPath = join(here, "..", "index.html");
+const htmlPath = join(here, "..", "algebra.html");
 const html = readFileSync(htmlPath, "utf8");
 const parts = html.split("/* ==== ENGINE START ==== */");
 const tail = parts[1] ? parts[1].split("/* ==== ENGINE END ==== */")[0] : "";

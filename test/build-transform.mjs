@@ -8,11 +8,11 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
-const srcHtml = readFileSync(join(root, "index.html"), "utf8");
+const srcHtml = readFileSync(join(root, "algebra.html"), "utf8");
 const parts = srcHtml.split("/* ==== ENGINE START ==== */");
 const engine = parts[1] ? parts[1].split("/* ==== ENGINE END ==== */")[0] : "";
 if (!engine.trim()) {
-  console.error("FAIL: engine block not found in index.html");
+  console.error("FAIL: engine block not found in algebra.html");
   process.exit(2);
 }
 

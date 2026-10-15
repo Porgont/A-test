@@ -10,8 +10,16 @@ const root = join(here, "..");
 
 let engine = readFileSync(join(root, "src", "calc-core.mjs"), "utf8");
 const before = engine.length;
-engine = engine.replace(/^export\s+(function|const|let|var|class)\s/gm, "$1 ");
-if (engine.length === before) console.log("提示：引擎里没有 export 关键字（可能已经内联过）");
+// ES module -> classic script：剥掉各种 export 写法
+engine = engine.replace(/^export\s+default\s+/gm, "var __defaultExport = ");
+engine = engine.replace(/^export\s*\{[^}]*\}\s*;?[ \t]*$/gm, "");
+engine = engine.replace(/^export\s+(async\s+function|function|const|let|var|class)\s/gm, "$1 ");
+engine = engine.replace(/<\/script/gi, "<\\/script");
+if (engine === readFileSync(join(root, "src", "calc-core.mjs"), "utf8")) console.log("提示：没有剥到 export（可能已经内联过）");
+if (/^export\s/m.test(engine)) {
+  console.error("FAIL: 还有 export 没剥掉，请更新 build-calculus.mjs 的规则");
+  process.exit(2);
+}
 
 const SHIM = `
 var Calc = {
@@ -32,3 +40,20 @@ const outPath = join(root, "calculus.html");
 writeFileSync(outPath, out);
 console.log("wrote calculus.html  " + Math.round(out.length / 1024) + " KB  (引擎 "
   + engine.trim().split("\n").length + " 行)");
+
+if (process.argv.includes("--preview")) {
+  const demo = `<script>
+(function(){
+  var fx = document.getElementById("fx");
+  fx.value = "sin(x)/x";
+  document.getElementById("limA").value = "0";
+  setTimeout(function(){
+    var b = document.querySelector('[data-op="limBoth"]');
+    if (b) b.click();
+  }, 30);
+})();
+</script>
+`;
+  writeFileSync(join(here, "_preview-calculus.html"), out.replace("</body>", demo + "</body>"));
+  console.log("wrote test/_preview-calculus.html  (演示：lim sin(x)/x, x→0)");
+}

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>蒲瓜的计算器</title>
+<style>
+:root{ --radius:18px; --card-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); }
+:root[data-skin="glass"]{
+  --bg:#080c18;
+  --bg-image:radial-gradient(880px 520px at 10% -10%, rgba(94,234,212,.20), transparent 62%), radial-gradient(820px 520px at 102% 2%, rgba(129,140,248,.26), transparent 64%), radial-gradient(700px 460px at 50% 112%, rgba(236,72,153,.14), transparent 62%);
+  --fg:#e9efff; --fg-dim:rgba(233,239,255,.52);
+  --card:rgba(255,255,255,.055); --card-border:rgba(255,255,255,.13);
+  --blur:blur(18px); --shadow:0 12px 34px rgba(0,0,0,.34);
+  --chip:rgba(255,255,255,.06); --chip-border:rgba(255,255,255,.12);
+  --chip-on-bg:linear-gradient(135deg,#5eead4,#818cf8); --chip-on-fg:#08101f;
+  --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+}
+:root[data-skin="light"]{
+  --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
+  --card:#ffffff; --card-border:rgba(0,0,0,.06); --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  --track:#e6e6ec; --chip:#ececf1; --chip-border:transparent;
+  --chip-on-bg:#0a84ff; --chip-on-fg:#ffffff;
+  --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30);
+}
+:root[data-skin="brutal"]{
+  --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
+  --card:#fffdf8; --card-border:#141414; --card-bw:2px; --radius:14px; --skin-bw:2px;
+  --shadow:6px 6px 0 #141414; --track:#fffdf8;
+  --chip:#ffffff; --chip-border:#141414;
+  --chip-on-bg:#ffd23f; --chip-on-fg:#141414;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(18px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.hero{text-align:center;padding:14px 2px 2px}
+.heroTitle{margin:0;font-size:26px;font-weight:800;letter-spacing:.005em;line-height:1.3}
+.heroSub{margin:9px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
+.toprow{display:flex;justify-content:center;margin:2px 0 6px}
+.skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
+.skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
+.skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
+.pick{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--radius);background:var(--card);border:var(--card-bw) solid var(--card-border);text-decoration:none;color:var(--fg);box-shadow:var(--shadow);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);transition:transform .16s ease,box-shadow .16s ease}
+.pick:hover{transform:translateY(-2px)}
+.pick:active{transform:translateY(0) scale(.995)}
+.plogo{width:52px;height:52px;border-radius:15px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:700;flex:0 0 auto;box-shadow:var(--logo-shadow)}
+.plogo.i{font-style:italic}
+.pbody{min-width:0;flex:1}
+.ptitle{display:block;font-size:17px;font-weight:700}
+.pdesc{display:block;font-size:12.5px;color:var(--fg-dim);margin-top:6px;line-height:1.65}
+.ptags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ptag{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-border);color:var(--fg-dim);white-space:nowrap}
+.parrow{font-size:19px;color:var(--fg-dim);flex:0 0 auto;padding-left:2px}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:10px 0 0;line-height:1.75}
+@media (max-width:400px){ .heroTitle{font-size:23px} .plogo{width:46px;height:46px;font-size:22px} .pick{padding:14px;gap:12px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1 class="heroTitle">蒲瓜的计算器</h1>
+    <p class="heroSub">由 Deepseek 制作</p>
+  </div>
+
+  <div class="toprow">
+    <div class="skins" id="skins">
+      <button data-skin-set="glass">玻璃</button>
+      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="brutal">粗野</button>
+    </div>
+  </div>
+
+  <a class="pick" href="algebra.html">
+    <span class="plogo">Σ</span>
+    <span class="pbody">
+      <span class="ptitle">矩阵计算器</span>
+      <span class="pdesc">矩阵加减乘、数乘、转置、行列式、逆矩阵、秩、迹；REF 行阶梯形 / RREF 行最简形；一步步的初等行变换与每步初等矩阵；特征值、零空间、列空间；方程组给出向量形式、坐标形式与解集，还能在 3D 里看它把空间变成什么。</span>
+      <span class="ptags"><span class="ptag">16 个运算</span><span class="ptag">精确分数</span><span class="ptag">回车跳格</span><span class="ptag">3D 几何</span></span>
+    </span>
+    <span class="parrow">→</span>
+  </a>
+
+  <a class="pick" href="transform.html">
+    <span class="plogo">T</span>
+    <span class="pbody">
+      <span class="ptitle">线性变换 T(x) = Ax</span>
+      <span class="pdesc">输入矩阵与向量 x，看 T(x) 等于多少，以及这个变换在几何上到底做了什么：体积缩放倍数、定向有没有翻转、是不是纯旋转、哪些方向只被拉伸、哪些方向被压成零；3D 里画出原网格与变换后的网格、单位立方体与它的像。</span>
+      <span class="ptags"><span class="ptag">2×2 / 3×3</span><span class="ptag">拖动旋转</span><span class="ptag">几何解读</span></span>
+    </span>
+    <span class="parrow">→</span>
+  </a>
+
+  <a class="pick" href="calculus.html">
+    <span class="plogo i">∫</span>
+    <span class="pbody">
+      <span class="ptitle">微积分</span>
+      <span class="pdesc">极限：判断存在或不存在，分别给出左极限与右极限，并写清化简与判定过程（直接代入 → 洛必达 → 数值逼近）；求导与二阶导；泰勒展开；不定积分（给原函数）与定积分（优先精确值，找不到原函数就数值积分）；函数图像会标出极限点、切线与积分面积。</span>
+      <span class="ptags"><span class="ptag">洛必达</span><span class="ptag">过程分步</span><span class="ptag">函数图像</span></span>
+    </span>
+    <span class="parrow">→</span>
+  </a>
+
+  <p class="foot">全部计算都在你的浏览器里完成，不上传任何数据。<br>手机可以把本页「添加到主屏幕」，用起来跟 App 一样。</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var THEME = {
+    glass: { color: "#080c18", bar: "black-translucent" },
+    light: { color: "#f2f2f7", bar: "default" },
+    brutal: { color: "#fdf1dd", bar: "default" }
+  };
+  function applySkin(s){
+    document.documentElement.setAttribute("data-skin", s);
+    Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
+    });
+    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    var T = THEME[s] || THEME.light;
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute("content", T.color);
+    var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (sb) sb.setAttribute("content", T.bar);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+    b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  var SKINS = ["glass", "light", "brutal"], saved = "light";
+  try {
+    var q = new URLSearchParams(location.search).get("skin");
+    saved = q || localStorage.getItem("la-skin-v2") || "light";
+  } catch (e) {}
+  if (SKINS.indexOf(saved) < 0) saved = "light";
+  applySkin(saved);
+})();
+</script>
+</body>
+</html>

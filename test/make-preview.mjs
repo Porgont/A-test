@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const src = readFileSync(join(here, "..", "index.html"), "utf8");
+const src = readFileSync(join(here, "..", "algebra.html"), "utf8");
 
 const CASES = [
   {
