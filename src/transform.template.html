@@ -134,6 +134,7 @@ h1{font-size:17px;margin:0}
         <button data-fill="eye">I</button>
         <button data-fill="zero">0</button>
         <button data-fill="rand">随机</button>
+        <button data-fill="clear">清空</button>
       </div>
     </div>
     <div class="grid" id="gridA" style="--cols:3"></div>
@@ -575,7 +576,8 @@ __ENGINE__
       for (r = 0; r < n; r++){
         var row = [];
         for (c = 0; c < n; c++){
-          if (kind === "zero") row.push("0");
+          if (kind === "clear") row.push("");
+          else if (kind === "zero") row.push("0");
           else if (kind === "eye") row.push(r === c ? "1" : "0");
           else row.push(String(Math.floor(Math.random() * 9) - 4));
         }

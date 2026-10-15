@@ -194,6 +194,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
         <button data-fill="A:eye">I</button>
         <button data-fill="A:zero">0</button>
         <button data-fill="A:rand">随机</button>
+        <button data-fill="A:clear">清空</button>
       </div>
     </div>
     <div class="grid" id="gridA" style="--cols:3"></div>
@@ -212,6 +213,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
         <button data-fill="B:eye">I</button>
         <button data-fill="B:zero">0</button>
         <button data-fill="B:rand">随机</button>
+        <button data-fill="B:clear">清空</button>
       </div>
     </div>
     <div class="grid" id="gridB" style="--cols:3"></div>
@@ -754,7 +756,8 @@ const LinAlg = (function(){
     for (var y = 0; y < s.r; y++){
       var row = [];
       for (var x = 0; x < s.c; x++){
-        if (kind === "zero") row.push("0");
+        if (kind === "clear") row.push("");
+        else if (kind === "zero") row.push("0");
         else if (kind === "eye") row.push(y === x ? "1" : "0");
         else row.push(String(Math.floor(Math.random() * 11) - 5));
       }

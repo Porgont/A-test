@@ -36,6 +36,7 @@ check("REF/RREF 在运算卡片里、基本运算之上",
   html.indexOf('id="g0"') > html.indexOf('id="cardB"'));
 check("REF/RREF 用大号按钮", (html.match(/class="chip big"/g) || []).length === 2);
 check("有解集形式输出", ui.indexOf("解集") >= 0 && ui.indexOf("setHTML") >= 0 && ui.indexOf("coordLines") >= 0);
+check("有一键清空按钮", html.indexOf('data-fill="A:clear"') >= 0 && html.indexOf('data-fill="B:clear"') >= 0 && ui.indexOf('kind === "clear"') >= 0);
 
 for (const op of chipOps) {
   check("已实现：" + op, ui.indexOf('op === "' + op + '"') >= 0 || ui.indexOf('"' + op + '":') >= 0);
