@@ -51,7 +51,9 @@ for (const p of PAGES) {
 
   check("有函数输入框 + 符号面板", page.indexOf('id="fx"') >= 0 && page.indexOf('id="syms"') >= 0 && ui.indexOf("insertSym") >= 0);
   check("有计算按钮（先选后算）", page.indexOf('id="calcBtn"') >= 0 &&
-    ui.indexOf("selectOp(b.getAttribute") >= 0 && ui.indexOf('el("calcBtn").addEventListener("click", runCalc)') >= 0);
+    ui.indexOf('el("opsArea").addEventListener("click"') >= 0 &&
+    ui.indexOf('el("calcBtn").addEventListener("click", runCalc)') >= 0);
+  check("渲染在事件绑定之前", ui.indexOf("renderChrome();   //") >= 0 && ui.indexOf("renderChrome();   //") < ui.indexOf('el("opsArea").addEventListener'));
   check("有运算说明行", page.indexOf('id="ophint"') >= 0 && ui.indexOf("OPDEF") >= 0);
   check("有函数图像画布", page.indexOf('id="plot"') >= 0 && ui.indexOf("plotDraw") >= 0);
   check("有复制结果按钮", page.indexOf('id="copy"') >= 0);

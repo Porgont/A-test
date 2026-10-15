@@ -62,6 +62,27 @@ for (const p of PAGES) {
     writeFileSync(join(here, "_preview-" + p.id + ".html"), html.replace("</body>", demo + "</body>"));
     console.log("  + test/_preview-" + p.id + ".html  (演示 " + demoFn + ")");
   }
+
+  // 运行时自检页：真的点一下运算按钮，看选中状态有没有跟着变
+  if (process.argv.includes("--preview") && p.id === "limits") {
+    const selfcheck = `<script>
+(function(){
+  document.getElementById("fx").value = "1/x";
+  setTimeout(function(){
+    var btns = document.querySelectorAll("[data-op]");
+    var target = btns[2];
+    if (target) target.click();
+    var on = document.querySelector("[data-op].on");
+    document.getElementById("ophint").textContent =
+      "点击自检：点了第 3 个按钮 " + (target ? target.getAttribute("data-op") : "无") +
+      "，现在高亮的是 " + (on ? on.getAttribute("data-op") : "无") + "（两者应一致）";
+  }, 40);
+})();
+</script>
+`;
+    writeFileSync(join(here, "_check-click.html"), html.replace("</body>", selfcheck + "</body>"));
+    console.log("  + test/_check-click.html  (点击自检)");
+  }
 }
 
 // 旧的 calculus.html 保留为指路页

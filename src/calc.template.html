@@ -267,6 +267,7 @@ __CALC_ENGINE__
     });
     el("opsArea").innerHTML = h;
   }
+  renderChrome();   // 先把导航与运算区注入 DOM，后面的事件绑定才有对象可绑
 
   var S = { dec: false, op: PAGES[PAGE_ID].groups[0].ops[0] };
   var lastReport = "";
@@ -583,8 +584,12 @@ __CALC_ENGINE__
     else if (op === "integ") runInteg();
     else if (op === "defint") runDefint();
   }
-  Array.prototype.forEach.call(document.querySelectorAll("[data-op]"), function(b){
-    b.addEventListener("click", function(){ selectOp(b.getAttribute("data-op")); });
+  // 事件委托：运算按钮是 renderChrome() 之后才注入的，
+  // 直接给按钮绑事件会绑在空集合上（这正是之前的 bug），所以绑在容器上。
+  el("opsArea").addEventListener("click", function(e){
+    var node = e.target;
+    while (node && node !== this && !(node.getAttribute && node.getAttribute("data-op"))) node = node.parentNode;
+    if (node && node !== this && node.getAttribute) selectOp(node.getAttribute("data-op"));
   });
   el("calcBtn").addEventListener("click", runCalc);
 
@@ -681,7 +686,6 @@ __CALC_ENGINE__
   window.addEventListener("resize", plotDraw);
 
   /* ---------- 启动 ---------- */
-  renderChrome();
   var SKINS = ["glass", "light", "brutal"], saved = "light";
   try {
     var q = new URLSearchParams(location.search).get("skin");
