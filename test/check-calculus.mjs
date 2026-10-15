@@ -50,9 +50,10 @@ for (const p of PAGES) {
   check("本页需要的输入框对", p.needs.every((id) => ui.indexOf('"' + id + '"') >= 0 || ui.indexOf(id) >= 0));
 
   check("有函数输入框 + 符号面板", page.indexOf('id="fx"') >= 0 && page.indexOf('id="syms"') >= 0 && ui.indexOf("insertSym") >= 0);
-  check("例子按钮显示好看字形（不露 ^ 和 *）",
-    ui.indexOf('label: "x²"') >= 0 && ui.indexOf('label: "x²·eˣ"') >= 0 &&
-    ui.indexOf('label: "|x|/x"') >= 0 && ui.indexOf('label: "e^(−x²)"') >= 0);
+  check("例子按钮用真上标（不露 ^ 和 *）",
+    ui.indexOf('label: "x<sup>2</sup>"') >= 0 && ui.indexOf('label: "x<sup>2</sup>·e<sup>x</sup>"') >= 0 &&
+    ui.indexOf('label: "|x|/x"') >= 0 && ui.indexOf('label: "e<sup>−x<sup>2</sup></sup>"') >= 0 &&
+    ui.indexOf("b.innerHTML = s.label") >= 0 && page.indexOf(".chip sup{") >= 0);
   check("点例子仍然插入可解析的原始写法",
     ui.indexOf("el(\"fx\").value = s.src") >= 0 && ui.indexOf('src: "abs(x)/x"') >= 0 && ui.indexOf('src: "x*sin(1/x)"') >= 0);
   check("识别为那行也不露 *（用 · 和上标）", ui.indexOf('.replace(/\\s*\\*\\s*/g, "·")') >= 0);
