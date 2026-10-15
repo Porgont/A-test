@@ -2124,11 +2124,23 @@ var Calc = {
   }
   function pretty(str){
     return String(str)
-      .replace(/\*/g, " · ")
-      .replace(/\^(\d+)/g, function(m, d){ return sup(d); })
+      .replace(/\s*\*\s*/g, "·")
+      .replace(/\^\(([^()]*)\)/g, function(m, d){ return supText(d); })
+      .replace(/\^([0-9]+)/g, function(m, d){ return sup(d); })
       .replace(/sqrt\(/g, "√(")
+      .replace(/abs\(/g, "|")
       .replace(/pi/g, "π")
       .replace(/-/g, "−");
+  }
+  function supText(s){
+    // 把 2、3、-x^2 这类指数整体转成上标写法
+    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻", "+": "⁺", "x": "ˣ", "y": "ʸ", "n": "ⁿ" };
+    var out = "", i, ch;
+    for (i = 0; i < s.length; i++){
+      ch = s.charAt(i);
+      out += map[ch] || ch;
+    }
+    return out;
   }
 
   /* ---------- 解析当前函数 ---------- */
@@ -2455,13 +2467,27 @@ var Calc = {
     if (n){ autoY(); plotDraw(); }
   }
 
-  /* ---------- 例子 ---------- */
-  var EXAMPLES = ["sin(x)/x", "(x^2-1)/(x-1)", "(1-cos(x))/x^2", "1/x", "abs(x)/x", "x*sin(1/x)", "x^2", "x^2*e^x", "e^(-x^2)", "1/(1+x^2)", "ln(x)", "tan(x)"];
+  /* ---------- 例子（按钮上显示好看的写法，点进去插入可解析的原始写法） ---------- */
+  var EXAMPLES = [
+    { src: "sin(x)/x",        label: "sin x / x" },
+    { src: "(x^2-1)/(x-1)",   label: "(x²−1)/(x−1)" },
+    { src: "(1-cos(x))/x^2",  label: "(1−cos x)/x²" },
+    { src: "1/x",             label: "1/x" },
+    { src: "abs(x)/x",        label: "|x|/x" },
+    { src: "x*sin(1/x)",      label: "x·sin(1/x)" },
+    { src: "x^2",             label: "x²" },
+    { src: "x^2*e^x",         label: "x²·eˣ" },
+    { src: "e^(-x^2)",        label: "e^(−x²)" },
+    { src: "1/(1+x^2)",       label: "1/(1+x²)" },
+    { src: "ln(x)",           label: "ln x" },
+    { src: "tan(x)",          label: "tan x" }
+  ];
   EXAMPLES.forEach(function(s){
     var b = document.createElement("button");
-    b.className = "chip"; b.textContent = s;
+    b.className = "chip"; b.textContent = s.label;
+    b.title = s.src;
     b.addEventListener("click", function(){
-      el("fx").value = s;
+      el("fx").value = s.src;
       var n = preview();
       PLOT.node = n; PLOT.overlay = null; PLOT.label = "";
       if (n){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); }
