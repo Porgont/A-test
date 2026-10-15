@@ -114,6 +114,11 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 .chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer;transition:.16s}
 .chip:active{transform:translateY(1px)}
 .chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
+.chip i{font-style:normal;font-size:11px;opacity:.68;margin-left:5px;font-weight:400}
+.chip.on i{opacity:.8}
+.chip.big{font-size:14.5px;padding:12px 17px;font-weight:650;border-color:var(--accent-line)}
+.chip.big i{font-size:12px;opacity:.85}
+.chip.big.on i{opacity:.9}
 .kbox{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--fg-dim);border:1px solid var(--input-border);border-radius:999px;padding:4px 10px}
 .kbox input{width:52px;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;outline:none}
 .hint{font-size:12px;color:var(--fg-dim);margin:0 0 10px;min-height:15px}
@@ -213,30 +218,33 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
   </section>
 
   <section class="card">
+    <div class="glabel">行阶梯形（最常用）</div>
+    <div class="chips" id="g0">
+      <button class="chip big" data-op="ref">REF A<i>行阶梯形</i></button>
+      <button class="chip big" data-op="rref">RREF A<i>行最简形</i></button>
+    </div>
     <div class="glabel">基本运算</div>
     <div class="chips" id="g1">
-      <button class="chip on" data-op="add">A + B</button>
-      <button class="chip" data-op="sub">A − B</button>
-      <button class="chip" data-op="mul">A × B</button>
-      <button class="chip" data-op="kA">k · A</button>
+      <button class="chip on" data-op="add">A + B<i>加法</i></button>
+      <button class="chip" data-op="sub">A − B<i>减法</i></button>
+      <button class="chip" data-op="mul">A × B<i>乘法</i></button>
+      <button class="chip" data-op="kA">k · A<i>数乘</i></button>
       <label class="kbox" id="kbox" hidden>k = <input id="kval" value="2" inputmode="text" autocomplete="off"></label>
     </div>
     <div class="glabel">单个矩阵</div>
     <div class="chips" id="g2">
-      <button class="chip" data-op="trans">Aᵀ</button>
-      <button class="chip" data-op="det">det A</button>
-      <button class="chip" data-op="inv">A⁻¹</button>
-      <button class="chip" data-op="rank">rank A</button>
-      <button class="chip" data-op="trace">tr A</button>
-      <button class="chip" data-op="ref">REF A</button>
-      <button class="chip" data-op="rref">RREF A</button>
+      <button class="chip" data-op="trans">Aᵀ<i>转置</i></button>
+      <button class="chip" data-op="det">det A<i>行列式</i></button>
+      <button class="chip" data-op="inv">A⁻¹<i>逆矩阵</i></button>
+      <button class="chip" data-op="rank">rank A<i>秩</i></button>
+      <button class="chip" data-op="trace">tr A<i>迹</i></button>
     </div>
     <div class="glabel">方程与特征</div>
     <div class="chips" id="g3">
-      <button class="chip" data-op="solve">解 Ax = b</button>
-      <button class="chip" data-op="eig">特征值 A</button>
-      <button class="chip" data-op="ker">ker A</button>
-      <button class="chip" data-op="col">col A</button>
+      <button class="chip" data-op="solve">解 Ax = b<i>方程组</i></button>
+      <button class="chip" data-op="eig">特征值 A<i>特征值</i></button>
+      <button class="chip" data-op="ker">ker A<i>零空间</i></button>
+      <button class="chip" data-op="col">col A<i>列空间</i></button>
     </div>
     <p class="hint" id="ophint"></p>
     <button class="run" id="run">计 算</button>
@@ -781,10 +789,52 @@ const LinAlg = (function(){
   }
   function cellHTML(f){ return S.dec ? fmtNum(f.toNumber()) : fracHTML(f); }
   var SUBS = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇"];
+  var SUPS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
+  function rn(n){ return "R" + String(n).split("").map(function(ch){ return SUPS[+ch] || ch; }).join(""); }
   function vecGridHTML(v){
     var h = '<div class="rgrid vec" style="--cols:1">';
     v.forEach(function(x){ h += '<div class="rcell">' + cellHTML(x) + "</div>"; });
     return h + "</div>";
+  }
+  function tupleHTML(v){
+    return "(" + v.map(function(f){ return S.dec ? fmtNum(f.toNumber()) : fracHTML(f); }).join(", ") + ")";
+  }
+  function kName(j){ return "k" + SUBS[j + 1]; }
+  function coordExpr(i, p, basis){
+    var terms = [], j;
+    if (!p[i].isZero() || basis.length === 0){
+      terms.push({ neg: p[i].n < 0n, txt: S.dec ? fmtNum(Math.abs(p[i].toNumber())) : fracHTML(p[i].n < 0n ? p[i].neg() : p[i]) });
+    }
+    for (j = 0; j < basis.length; j++){
+      var c = basis[j][i];
+      if (c.isZero()) continue;
+      var mag = Math.abs(c.toNumber());
+      var pos = c.n < 0n ? c.neg() : c;
+      var coefTxt = S.dec ? fmtNum(mag) : fracHTML(pos);
+      var isInt = S.dec ? Math.abs(mag - Math.round(mag)) < 1e-12 : pos.d === 1n;
+      var coef = (Math.abs(mag - 1) < 1e-12) ? "" : (isInt ? coefTxt : "(" + coefTxt + ")");
+      terms.push({ neg: c.n < 0n, txt: coef + kName(j) });
+    }
+    if (!terms.length) return "0";
+    var out = (terms[0].neg ? "−" : "") + terms[0].txt;
+    for (j = 1; j < terms.length; j++) out += (terms[j].neg ? " − " : " + ") + terms[j].txt;
+    return out;
+  }
+  function setHTML(p, basis){
+    var s = "S = { " + tupleHTML(p);
+    basis.forEach(function(v, j){ s += " + " + kName(j) + tupleHTML(v); });
+    s += " }";
+    return s;
+  }
+  function coordLines(p, basis){
+    var out = [], i;
+    for (i = 0; i < p.length; i++) out.push("x" + SUBS[i + 1] + " = " + coordExpr(i, p, basis));
+    return out.join("<br>");
+  }
+  function kListHTML(basis){
+    var names = [];
+    basis.forEach(function(v, j){ names.push(kName(j)); });
+    return names.join(", ") + " ∈ R";
   }
   function blockHTML(b){
     if (b.type === "matrix"){
@@ -866,15 +916,22 @@ const LinAlg = (function(){
       else if (op === "rref") res = { label: "RREF A（行最简形）", blocks: [{ type: "matrix", data: L.rref(A).R }] };
       else if (op === "solve"){
         var r = L.generalSolution(A, B);
-        if (r.type === "none") res = { label: "Ax = b", blocks: [{ type: "text", text: "无解：方程互相矛盾。", danger: true }] };
-        else if (r.type === "unique") res = { label: "唯一解", blocks: [
-          { type: "text", text: "dim ker A = 0（零空间只有零向量），所以通解就是这个唯一解：" },
-          { type: "gensol", data: r }
+        var nv = A[0] ? A[0].length : 0;
+        if (r.type === "none") res = { label: "无解", blocks: [
+          { type: "text", text: "方程组互相矛盾，没有解。", danger: true },
+          { type: "text", text: "<b>解集</b>：S = ∅（空集）" }
         ] };
-        else res = { label: "通解（向量形式）", blocks: [
-          { type: "text", text: "无穷多解，自由变量 " + r.free + " 个。通解 = 一个特解 η* + 齐次通解（ker A 的基的线性组合）：" },
+        else if (r.type === "unique") res = { label: "唯一解", blocks: [
+          { type: "text", text: "dim ker A = 0（零空间只有零向量），所以解只有一个：" },
           { type: "gensol", data: r },
-          { type: "text", text: (r.free === 1 ? "k₁ 是任意常数" : "k₁…k" + SUBS[Math.min(r.free, 7)] + " 是任意常数") + "；取全部为 0 就得到上面那个特解。" }
+          { type: "text", text: "<b>坐标形式</b>：<br>" + coordLines(r.particular, []) },
+          { type: "text", text: "<b>解集</b>：S = { " + tupleHTML(r.particular) + " }（只含这一个向量）" }
+        ] };
+        else res = { label: "通解 · 解集", blocks: [
+          { type: "text", text: "无穷多解，自由变量 " + r.free + " 个。<b>向量形式</b>（通解 = 一个特解 + 齐次通解的线性组合）：" },
+          { type: "gensol", data: r },
+          { type: "text", text: "<b>坐标形式</b>：<br>" + coordLines(r.particular, r.basis) },
+          { type: "text", text: "<b>解集</b>（集合写法，x ∈ " + rn(nv) + "）：<br>" + setHTML(r.particular, r.basis) + "<br>其中 " + kListHTML(r.basis) }
         ] };
       }
       else if (op === "eig") res = { label: "A 的特征值", blocks: [{ type: "roots", data: L.eigen(A) }] };
@@ -918,7 +975,7 @@ const LinAlg = (function(){
         var t = r.exact ? r.exact.toString() : fmtNum(r.re) + (Math.abs(r.im) > 1e-9 ? (r.im < 0 ? " - " : " + ") + fmtNum(Math.abs(r.im)) + "i" : "");
         return "λ" + (i + 1) + " = " + t;
       }).join("\n");
-      return b.text;
+      return String(b.text).replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
     }).join("\n\n");
     if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(txt).then(function(){ flash("已复制"); }, function(){ flash("复制失败"); });
