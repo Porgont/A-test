@@ -39,6 +39,8 @@ const blocks = page.split("<script>");
 const ui = blocks[2] ? blocks[2].split("</script>")[0] : "";
 const inline = (page.split("/* ==== CALC ENGINE START ==== */")[1] || "")
   .split("/* ==== CALC ENGINE END ==== */")[0].trim();
+// 把内联引擎实例化一份，方程几何自测要用真的 Calc
+const CalcShim = new Function(inline + "\nreturn Calc;")().valueOf();
 
 /* ---------- 构建与引擎 ---------- */
 check("内联了引擎", inline.length > 500 && !/^export\s/m.test(inline), inline.length + " 字符");
@@ -171,22 +173,30 @@ check("两边相减得到 F(x,y)",
 check("implicit 标记存在",
   ui.indexOf("implicit: true, raw:") >= 0 && ui.indexOf("P2.eqs.push(rec)") >= 0);
 check("marching squares 实现存在",
-  ui.indexOf("function marchingSquares(ctx, node, color)") >= 0 &&
-  ui.indexOf("function msCell(path, vals, bads, i, j, mx, gx, gy, node, tol)") >= 0 &&
+  ui.indexOf("function marchingSquares(ctx, node, color, bd)") >= 0 &&
+  ui.indexOf("function msCell(path, vals, bads, i, j, mx, dims, bd, node)") >= 0 &&
   ui.indexOf("function msCount(w, h)") >= 0 && ui.indexOf("var MS_STEP = ") >= 0);
 check("只画零水平集（F = 0）",
   ui.indexOf('ch + "：F(x,y) = "') >= 0 &&
   ui.indexOf("if (!node || !(w > 0) || !(h > 0)) return 0;") >= 0);
 check("NaN / 无穷大不当普通值连（bads 标记）",
   ui.indexOf("function msSample(row, x, avals, bads)") >= 0 &&
-  ui.indexOf("bads.push(true)") >= 0 && ui.indexOf("!bads[ia]") >= 0);
-check("插值点用中点实测，过不了就不画（极点过滤）",
-  ui.indexOf("lim = (hi - lo) * 0.02 + tol;") >= 0 &&
-  ui.indexOf("var vm = evalX(substY(node, myp), mxp);") >= 0 &&
-  ui.indexOf("if (!isFinite(vm) || Math.abs(vm) > lim) return 0;") >= 0);
+  ui.indexOf("bads.push(true)") >= 0 && ui.indexOf("if (cbad[u] || cbad[v]) return null;") >= 0);
+check("交点用二分法收敛到真曲线（极点收敛不了就丢掉）",
+  ui.indexOf("function onEdge(u, v)") >= 0 &&
+  ui.indexOf("if ((fl > 0) === (fh > 0)) return null;") >= 0 &&
+  ui.indexOf("var horiz = (cy[u] === cy[v]);") >= 0 &&
+  ui.indexOf("if ((fm > 0) === (fl > 0)){ lo = p; fl = fm; } else hi = p;") >= 0);
+check("经典 16 情形表 + 对角二义判定",
+  ui.indexOf("var MS_PAIR = [0, 8 | 4, 1 | 2, 8 | 2, 2 | 4, 0, 1 | 4, 8 | 4,") >= 0 &&
+  ui.indexOf("if (k === 5 || k === 10){") >= 0 &&
+  ui.indexOf("var qv = (a * c - b * d) / (a + c - b - d);") >= 0);
+check("格子 y 坐标与采样行同向（不镜像）",
+  ui.indexOf("var dy0 = bd.y1 - (bd.y1 - bd.y0) * j / dims[1];") >= 0 &&
+  ui.indexOf("row = substY(node, bd.y1 - spanY * j / dims[1]);") >= 0);
 check("一行只代一次 y（性能）",
   ui.indexOf("function substY(node, y)") >= 0 &&
-  ui.indexOf("row = substY(node, P2.ymax - spanY * j / dims[1]);") >= 0 &&
+  ui.indexOf("row = substY(node, bd.y1 - spanY * j / dims[1]);") >= 0 &&
   ui.indexOf("function evalX(node, x)") >= 0);
 check("方程按 1:1 比例显示（圆不被压扁）",
   (ui.indexOf("function aspectFit()") >= 0 || ui.indexOf("hasEq = P2.eqs") >= 0));
@@ -301,6 +311,77 @@ check("起手就画一次（启动即渲染）",
   ui.indexOf("read2D();") >= 0 && ui.indexOf("refresh3D(true);") >= 0 &&
   ui.indexOf("window.__graphReady = true;") >= 0);
 
+/* ---------- 方程支持：把 marching squares 抠出来真跑一遍几何 ---------- */
+// 这一段跑的是 graph.html 里的真代码（不是复制品），所以能验到几何本身
+{
+  const uiAll = ui;
+  function pick(name) {
+    const i = uiAll.indexOf("function " + name + "(");
+    if (i < 0) return null;
+    let d = 0, started = false;
+    for (let k = i; k < uiAll.length; k++) {
+      if (uiAll[k] === "{") { d++; started = true; }
+      else if (uiAll[k] === "}") { d--; if (started && d === 0) return uiAll.slice(i, k + 1); }
+    }
+    return null;
+  }
+  const fns = ["substVar", "substY", "evalX", "evalXY", "msSample", "msCell", "marchingSquares",
+    "msCount", "msMedian", "msScale"];
+  const parts = fns.map(pick);
+  const stepM = /var MS_STEP = [^;]+;/.exec(uiAll);
+  const bigM = /var MS_BIG = [^;]+;/.exec(uiAll);
+  if (parts.every(Boolean) && stepM && bigM) {
+    const P2 = { w: 444, h: 298, box: null };
+    const box = new Function("C", "P2",
+      stepM[0] + "\n" + bigM[0] + "\n" + parts.join("\n") +
+      "\nreturn {" + fns.join(",") + "};")(CalcShim, P2);
+    const W = 444, H = 298, X0 = -6, X1 = 6, Y0 = -4.027027, Y1 = 4.027027;
+    P2.box = {
+      X: (x) => (x - X0) / (X1 - X0) * W,
+      Y: (y) => H - (y - Y0) / (Y1 - Y0) * H,
+      Xinv: (px) => X0 + (px / W) * (X1 - X0),
+      Yinv: (py) => Y1 - (py / H) * (Y1 - Y0)
+    };
+    // 造一条假 canvas，把画出来的点收下来
+    function runEq(node) {
+      const pts = [];
+      const ctx = { save() {}, restore() {}, beginPath() {}, stroke() {},
+        moveTo(x, y) { pts.push([x, y]); }, lineTo(x, y) { pts.push([x, y]); } };
+      const segs = box.marchingSquares(ctx, node, "#000", { x0: X0, x1: X1, y0: Y0, y1: Y1 });
+      const data = pts.map((p) => [P2.box.Xinv(p[0]), P2.box.Yinv(p[1])]);
+      return { segs, data };
+    }
+    const mk = (src) => CalcShim.simplify(CalcShim.parse(src));
+    const circle = runEq(mk("x^2+y^2-4"));
+    let dev = 0;
+    for (const d of circle.data) dev = Math.max(dev, Math.abs(Math.hypot(d[0], d[1]) - 2));
+    check("圆 x²+y²=4 画出来了（>100 段）", circle.segs > 100, circle.segs + " 段");
+    check("圆的每个交点都落在半径 2 上（偏差 < 0.01）", dev < 0.01, "最大偏差 " + dev.toFixed(5));
+    const hyp = runEq(mk("x*y-1"));
+    let onHyp = 0;
+    for (const d of hyp.data) if (Math.abs(d[0] * d[1] - 1) < 0.02) onHyp++;
+    check("双曲线 xy=1 的支画出来了", hyp.segs > 100 && onHyp / (hyp.data.length || 1) > 0.95,
+      hyp.segs + " 段，" + onHyp + "/" + hyp.data.length + " 在 xy=1 上");
+    const par = runEq(mk("y-x^2"));
+    let onPar = 0;
+    for (const d of par.data) if (Math.abs(d[1] - d[0] * d[0]) < 0.02) onPar++;
+    check("抛物线 y=x² 的支画出来了", par.segs > 50 && onPar / (par.data.length || 1) > 0.95,
+      par.segs + " 段，" + onPar + "/" + par.data.length + " 在 y=x² 上");
+    const none = runEq(mk("x^2+y^2+100"));
+    check("没有零点的 F 不画线", none.segs === 0, none.segs + " 段");
+    const pole = runEq(mk("1/(x*y)-1"));
+    let cross = 0;
+    for (const d of pole.data) if (d[0] * d[1] <= 0 && Math.abs(d[0] * d[1]) > 1e-9) cross++;
+    check("极点不产生横贯屏幕的假线（1/(xy)=1）", cross === 0, cross + " 个穿轴点");
+    const t0 = Date.now();
+    for (let k = 0; k < 5; k++) runEq(mk("x^2+y^2-4"));
+    const perFrame = (Date.now() - t0) / 5;
+    check("一帧 marching squares 够快（< 30 ms）", perFrame < 30, perFrame.toFixed(1) + " ms/帧");
+  } else {
+    check("方程几何自测能取到页面代码", false, "抠函数失败");
+  }
+}
+
 /* ---------- 预览页 ---------- */
 if (existsSync(join(here, "_preview-graph.html"))) {
   const prev = readFileSync(join(here, "_preview-graph.html"), "utf8");
@@ -308,7 +389,7 @@ if (existsSync(join(here, "_preview-graph.html"))) {
   check("预览页含演示脚本", prev.indexOf("__graphReady") >= 0 && prev.indexOf("dispatchEvent") >= 0);
   check("预览页仍然是完整页面", prev.indexOf("蒲瓜的计算器") >= 0 && prev.indexOf('id="geo3d"') >= 0);
   check("预览页默认演示一个方程（圆）",
-    prev.indexOf('f.value = "x^2+y^2=4"') >= 0 && prev.indexOf('g.value = "sin(x)"') >= 0 &&
+    prev.indexOf('p.get("f") || "x^2+y^2=4"') >= 0 && prev.indexOf('p.get("g") || "sin(x)"') >= 0 &&
     prev.indexOf('getElementById("plotFit")') >= 0);
   check("本页脚本确实挂在预览页末尾",
     prev.lastIndexOf("__graphReady") > prev.lastIndexOf("二维曲线 · 三维曲面"));

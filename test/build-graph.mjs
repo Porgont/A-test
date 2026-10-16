@@ -54,8 +54,9 @@ if (process.argv.includes("--preview")) {
     var f = document.getElementById("fx");
     var g = document.getElementById("gx");
     var z = document.getElementById("fxy");
-    if (f) f.value = "x^2+y^2=4";
-    if (g) g.value = "sin(x)";
+    var p = new URLSearchParams(location.search);
+    if (f) f.value = p.get("f") || "x^2+y^2=4";
+    if (g) g.value = p.get("g") || "sin(x)";
     if (z) z.value = "sin(x)*cos(y)";
     // 触发一遍输入事件，让页面把方程、曲线和三维曲面都画出来
     ["fx", "gx", "fxy"].forEach(function(id){

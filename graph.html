@@ -80,7 +80,7 @@
 :root[data-skin="ark"] .card{position:relative;overflow:hidden}
 :root[data-skin="ark"] .card::before{content:"";position:absolute;left:0;top:10px;width:3px;height:20px;background:var(--mark)}
 :root[data-skin="ark"] .chip.on,:root[data-skin="ark"] .tabs .on{box-shadow:none;font-weight:700;letter-spacing:.02em}
-:root[data-skin="ark"] .tabs .tag{color:#0b0b0c;background:var(--mark);border-radius:2px;padding:1px 4px;opacity:1}
+:root[data-skin="ark"] .tabs .tag{color:#111213;background:transparent;border-radius:0;padding:0;opacity:.6;font-weight:400}
 /* 霓虹的发光选中态 */
 :root[data-skin="neon"] .chip.on,:root[data-skin="neon"] .tabs .on{box-shadow:0 0 16px rgba(0,229,255,.45)}
 /* 终端用等宽字体 */
@@ -2865,16 +2865,20 @@ var Calc = {
     }
     return d > 0 ? "括号不匹配：还有 " + d + " 个左括号没有闭合" : null;
   }
-  // 把某个变量的数值代入常量化：引擎的 evalAt 一次只认一个变量，这里先把另一个变量换掉
+  // 把某个变量的数值代入常量化：引擎的 evalAt 一次只认一个变量，这里先把另一个变量换掉。
+  // 每一层都返回新节点（连 num / var 也不复用），否则算出来的树会和原树共享子节点，
+  // 下一次代入就把上一次的结果改掉了。
   function substVar(node, name, value){
     switch (node.t){
-      case "num": return node;
-      case "var": return node.name === name ? C.parse("(" + String(value) + ")") : node;
+      case "num": return { t: "num", v: node.v };
+      case "var": return node.name === name ? C.parse("(" + String(value) + ")") : { t: "var", name: node.name };
       case "neg": return { t: "neg", a: substVar(node.a, name, value) };
       case "add": return { t: "add", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
       case "mul": return { t: "mul", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
       case "pow": return { t: "pow", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
-      case "fn": return node.arg ? { t: "fn", name: node.name, arg: substVar(node.arg, name, value) } : node;
+      case "fn": return node.arg
+        ? { t: "fn", name: node.name, arg: substVar(node.arg, name, value) }
+        : { t: "fn", name: node.name, arg: null };
       default: return node;
     }
   }
@@ -3002,14 +3006,15 @@ var Calc = {
   }
 
   /* ---------- 隐式方程：把 F(x,y) 画成零等值线（marching squares） ---------- */
-  // 像素步长 2 起步：手机上一帧百来个格子、约一万次求值，够快；太慢再退到 3。
+  // 像素步长 2：手机上一帧约两万次求值，够快；交点用二分法补正，线条不受步长影响
   var MS_STEP = 2;
   function msCount(w, h){
     var n = w / MS_STEP;
     if (n > 260) n = 260; else if (n < 24) n = 24;
+    n = Math.round(n);                       // 必须是整数，格子下标才对得齐
     var m = Math.round(n * h / w);
     if (m > 220) m = 220; else if (m < 16) m = 16;
-    return [Math.round(n), m];
+    return [n, m];
   }
   function msMedian(a){
     if (!a.length) return 1;
@@ -3033,85 +3038,102 @@ var Calc = {
     return v;
   }
   // 一个格子：两条边各求一个交点，连成一条线段
-  function msCell(path, vals, bads, i, j, mx, gx, gy, node, tol){
+  // 位置一律由格子下标算（不用步长累加），相邻格子共用同一条边，交点必然重合
+  function msCell(path, vals, bads, i, j, mx, dims, bd, node){
     var ia = j * mx + i, ib = ia + 1, ic = (j + 1) * mx + i + 1, idc = ic - 1;
     var a = vals[ia], b = vals[ib], c = vals[ic], d = vals[idc];
     if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return 0;
     var pa = a >= 0, pb = b >= 0, pc = c >= 0, pd = d >= 0;
     var k = (pa ? 1 : 0) | (pb ? 2 : 0) | (pc ? 4 : 0) | (pd ? 8 : 0);
     if (k === 0 || k === 15) return 0;
-    var gx0 = gx + i * MS_STEP, gx1 = gx0 + MS_STEP;
-    var gy0 = gy + j * MS_STEP, gy1 = gy0 + MS_STEP;
-    function cross(v0, v1, x0, y0, x1, y1){
-      var t = v0 / (v0 - v1);
-      if (!isFinite(t)) t = 0.5;
-      if (t < 0) t = 0; else if (t > 1) t = 1;
-      return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
-    }
-    // 两条边的交点（边号 1 下、2 右、4 上、8 左）；有一头是 NaN/无穷大就不算交点
-    var pts = [];
-    if (pa !== pb && !bads[ia] && !bads[ib]) pts.push([1, 2, cross(a, b, gx0, gy0, gx1, gy0)]);
-    if (pb !== pc && !bads[ib] && !bads[ic]) pts.push([2, 4, cross(b, c, gx1, gy0, gx1, gy1)]);
-    if (pc !== pd && !bads[ic] && !bads[idc]) pts.push([4, 8, cross(c, d, gx1, gy1, gx0, gy1)]);
-    if (pd !== pa && !bads[idc] && !bads[ia]) pts.push([8, 1, cross(d, a, gx0, gy1, gx0, gy0)]);
-    // 不连对角：找一条真正相邻的边对（两个交点共用那个同号的角）
-    var cb = [pa ? 1 : 0, pb ? 2 : 0, pc ? 4 : 0, pd ? 8 : 0];
-    var order = [ [1, 4, 2], [1, 2, 3], [2, 8, 4], [1, 8, 4], [1, 4, 3], [2, 8, 3] ];
-    var pick = null, oi, oj, o;
-    for (oi = 0; oi < order.length && !pick; oi++){
-      for (oj = 0; oj < pts.length; oj++){
-        if (pts[oj][0] !== order[oi][0]) continue;
-        for (o = 0; o < pts.length; o++){
-          if (o !== oj && pts[o][0] === order[oi][1] && cb[order[oi][2] - 1]){ pick = [pts[oj], pts[o]]; break; }
-        }
-        if (pick) break;
+    // 位置一律由格子下标算（不用步长累加），相邻格子共用同一条边，交点必然重合。
+    // y 必须和 marchingSquares 里采样用的公式一致（从 bd.y1 往下数），否则纵轴会镜像。
+    var dx0 = bd.x0 + (bd.x1 - bd.x0) * i / dims[0];
+    var dx1 = bd.x0 + (bd.x1 - bd.x0) * (i + 1) / dims[0];
+    var dy0 = bd.y1 - (bd.y1 - bd.y0) * j / dims[1];
+    var dy1 = bd.y1 - (bd.y1 - bd.y0) * (j + 1) / dims[1];
+    // 角 1 下左、2 下右、3 上右、4 上左
+    var cx = [dx0, dx1, dx1, dx0], cy = [dy0, dy0, dy1, dy1];
+    var cv = [a, b, c, d], cbad = [bads[ia], bads[ib], bads[ic], bads[idc]];
+    // 在一条边上找 F=0：先线性插值，再用二分法收敛到真交点。
+    // 真曲线几次二分就收敛；穿过极点的假交点（两侧都是巨值）永远收不进去，直接丢掉。
+    function onEdge(u, v){
+      if (cbad[u] || cbad[v]) return null;
+      var v0 = cv[u], v1 = cv[v];
+      if (v0 === 0) return [cx[u], cy[u]];
+      if (v1 === 0) return [cx[v], cy[v]];
+      if ((v0 > 0) === (v1 > 0)) return null;
+      var fl = evalX(substY(node, cy[u]), cx[u]);
+      var fh = evalX(substY(node, cy[v]), cx[v]);
+      if (!isFinite(fl) || !isFinite(fh) || fl === 0 || fh === 0) return null;
+      if ((fl > 0) === (fh > 0)) return null;
+      var horiz = (cy[u] === cy[v]);      // 横边：沿 x 二分，y 固定
+      var row = null, yFix = cy[u];
+      if (horiz) row = substY(node, yFix);
+      // 真曲线在区间里不会比两端大太多；1/(xy) 这种在两端之间冲上百万倍，直接判假
+      var cap = 20 * (Math.abs(fl) + Math.abs(fh)) + 1e-9;
+      var lo = 0, hi = 1, p = 0.5, fm;
+      for (var it = 0; it < 16; it++){
+        p = (lo + hi) / 2;
+        fm = horiz ? evalX(row, cx[u] + (cx[v] - cx[u]) * p)
+                   : evalX(substY(node, cy[u] + (cy[v] - cy[u]) * p), cx[u]);
+        if (!isFinite(fm) || Math.abs(fm) > cap) return null;
+        if (fm === 0) break;
+        if ((fm > 0) === (fl > 0)){ lo = p; fl = fm; } else hi = p;
       }
+      return [cx[u] + (cx[v] - cx[u]) * p, cy[u] + (cy[v] - cy[u]) * p];
     }
-    if (!pick) return 0;
-    var p0 = pick[0][2], p1 = pick[1][2];
-    // 线性插值出来的点未必真在等值线上（陡峭／极点附近差得远），拿中点实测一下。
-    // 只拿有限的那几个角来估容差，占位巨值不参与，否则容差会被撑得形同虚设。
-    if (node && P2.box){
-      var cs = [a, b, c, d], ix = [ia, ib, ic, idc], fin = [], z, lo, hi, lim;
-      for (z = 0; z < 4; z++) if (!bads[ix[z]]) fin.push(cs[z]);
-      if (fin.length){
-        lo = Math.min.apply(null, fin); hi = Math.max.apply(null, fin);
-        lim = (hi - lo) * 0.02 + tol;
-      } else lim = tol;
-      var mxp = P2.box.Xinv((p0[0] + p1[0]) / 2);
-      var myp = P2.box.Yinv((p0[1] + p1[1]) / 2);
-      var vm = evalX(substY(node, myp), mxp);
-      if (!isFinite(vm) || Math.abs(vm) > lim) return 0;
+    // 经典的 16 种情形表：k = (a≥0) | (b≥0)<<1 | (c≥0)<<2 | (d≥0)<<3，
+    // 值是要连起来的两条边（边号 1 下、2 右、4 上、8 左；0 表示情形退化、不画）。
+    // 5 和 10 是对角二义，交给双线性中点决定。
+    var MS_PAIR = [0, 8 | 4, 1 | 2, 8 | 2, 2 | 4, 0, 1 | 4, 8 | 4,
+      8 | 1, 1 | 4, 0, 2 | 4, 2 | 8, 1 | 2, 8 | 1, 0];
+    var want = MS_PAIR[k];
+    if (k === 5 || k === 10){
+      // 双线性插值的中点值：它的符号决定哪两个同号的角被连起来
+      var qv = (a * c - b * d) / (a + c - b - d);
+      var qpos = !(qv < 0);
+      if (k === 5) want = qpos ? (8 | 1) : (2 | 4);
+      else want = qpos ? (1 | 2) : (8 | 4);
     }
-    path.moveTo(p0[0], p0[1]);
-    path.lineTo(p1[0], p1[1]);
+    if (!want) return 0;
+    // 两条边各求一个交点
+    var EDGES = [[0, 1, 1], [1, 2, 2], [2, 3, 4], [3, 0, 8]];
+    var q0 = null, q1 = null, pj;
+    for (pj = 0; pj < 4; pj++){
+      if (!(want & EDGES[pj][2])) continue;
+      if (!q0) q0 = onEdge(EDGES[pj][0], EDGES[pj][1]);
+      else q1 = onEdge(EDGES[pj][0], EDGES[pj][1]);
+    }
+    if (!q0 || !q1) return 0;
+    path.moveTo(P2.box.X(q0[0]), P2.box.Y(q0[1]));
+    path.lineTo(P2.box.X(q1[0]), P2.box.Y(q1[1]));
     return 1;
   }
-  // 只画零等值线：F(x,y) = 0
-  function marchingSquares(ctx, node, color){
+  // 只画零等值线：F(x,y) = 0。bd 可选，默认用当前视窗（测试会显式传）
+  function marchingSquares(ctx, node, color, bd){
     var w = P2.w, h = P2.h;
     if (!node || !(w > 0) || !(h > 0)) return 0;
+    if (!bd) bd = { x0: P2.xmin, x1: P2.xmax, y0: P2.ymin, y1: P2.ymax };
     var dims = msCount(w, h), mx = dims[0] + 1, my = dims[1] + 1;
-    var gx = P2.box ? P2.box.X(P2.xmin) : 0;
-    var gy = P2.box ? P2.box.Y(P2.ymax) : 0;
-    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+    var spanX = bd.x1 - bd.x0, spanY = bd.y1 - bd.y0;
     var vals = new Array(mx * my), bads = [];
     var avals = [], i, j, row;
     for (j = 0; j < my; j++){
-      row = substY(node, P2.ymax - spanY * j / dims[1]);
+      row = substY(node, bd.y1 - spanY * j / dims[1]);
       for (i = 0; i < mx; i++){
-        vals[j * mx + i] = msSample(row, P2.xmin + spanX * i / dims[0], avals, bads);
+        vals[j * mx + i] = msSample(row, bd.x0 + spanX * i / dims[0], avals, bads);
       }
     }
-    // 典型量级：用来判断插值出来的点算不算落在等值线上
+    // 典型量级：只用来给中点实测兜个底（真正管用的是每格自己的值域）
     var scale = msScale(avals);
-    var tol = scale * 4 + 1e-9;
+    var tol = scale * 0.05 + 1e-9;
     ctx.save();
     ctx.strokeStyle = color; ctx.lineWidth = 2.3; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();
     var segs = 0;
     for (j = 0; j < dims[1]; j++)
-      for (i = 0; i < dims[0]; i++) segs += msCell(ctx, vals, bads, i, j, mx, gx, gy, node, tol);
+      for (i = 0; i < dims[0]; i++) segs += msCell(ctx, vals, bads, i, j, mx, dims, bd, node);
     if (segs) ctx.stroke();
     ctx.restore();
     return segs;

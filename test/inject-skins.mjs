@@ -47,7 +47,7 @@ const NEW_CSS = `
 :root[data-skin="ark"] .card{position:relative;overflow:hidden}
 :root[data-skin="ark"] .card::before{content:"";position:absolute;left:0;top:10px;width:3px;height:20px;background:var(--mark)}
 :root[data-skin="ark"] .chip.on,:root[data-skin="ark"] .tabs .on{box-shadow:none;font-weight:700;letter-spacing:.02em}
-:root[data-skin="ark"] .tabs .tag{color:#0b0b0c;background:var(--mark);border-radius:2px;padding:1px 4px;opacity:1}
+:root[data-skin="ark"] .tabs .tag{color:#111213;background:transparent;border-radius:0;padding:0;opacity:.6;font-weight:400}
 /* 霓虹的发光选中态 */
 :root[data-skin="neon"] .chip.on,:root[data-skin="neon"] .tabs .on{box-shadow:0 0 16px rgba(0,229,255,.45)}
 /* 终端用等宽字体 */
