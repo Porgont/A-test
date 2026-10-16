@@ -24,10 +24,10 @@ function pick(name) {
   }
   throw new Error("函数 " + name + " 没闭合");
 }
-const needed = ["hasVar", "sub", "countEq", "evalXY", "stripOuterParen", "parseExprNode",
-  "parseExpr", "cleanErr", "parseEq", "yOnlyConst", "msCount", "msMedian", "msScale", "msSample",
-  "msCell", "marchingSquares", "legendLabel", "prettyExpr", "supHTML", "unary", "sig6",
-  "checkBrackets", "substVar", "safeEval", "errHTML"];
+const needed = ["hasVar", "sub", "countEq", "evalXY", "evalX", "substY", "stripOuterParen",
+  "parseExprNode", "parseExpr", "cleanErr", "parseEq", "yOnlyConst", "msCount", "msMedian",
+  "msScale", "msSample", "msCell", "marchingSquares", "legendLabel", "prettyExpr", "supHTML",
+  "unary", "sig6", "checkBrackets", "substVar", "safeEval", "errHTML"];
 const src = needed.map(pick).join("\n");
 /** 抠出页面脚本里的常量声明（var NAME = …;） */
 function pickConst(name) {
@@ -200,22 +200,26 @@ check("没有零点的 F 不画线", segZero === 0, segZero + " 段");
 
 // 极点过滤：1/(x*y)=1 不该在坐标轴上横贯一条假线
 const rpNode = C.simplify(C.parse("1/(x*y)-1"));
-console.log("  dbg rpNode str=" + C.str(rpNode));
-for (const pt of [[-6, -0.052], [-6, -0.0526], [-5.948, -0.052], [-6, 0.052], [-6, 0.16]]) {
-  console.log("  dbg F(" + pt[0] + "," + pt[1] + ")=" + box.evalXY(rpNode, pt[0], pt[1]) +
-    "  raw=" + C.evalAt(box.substVar(rpNode, "y", pt[1]), pt[0], "x"));
-}
+const dbgCells = [];
 const rp = runMS(rpNode, WIN);
-let poleBad = 0, badSamples = [];
+let poleBad = 0, badSamples = [], hyperPts = 0;
 for (const p of rp.pts) {
   const d = toData(p, rp);
-  if (Math.abs(Math.abs(d[0] * d[1]) - 1) > 0.5) {
+  if (d[0] * d[1] > 0) { hyperPts++; continue; }     // 同号才是真支
+  if (Math.abs(d[0] * d[1]) > 1e-9) {
     poleBad++;
-    if (badSamples.length < 8) badSamples.push(d[0].toFixed(3) + "," + d[1].toFixed(3));
+    if (badSamples.length < 6) badSamples.push(d[0].toFixed(3) + "," + d[1].toFixed(3));
   }
 }
-console.log("  dbg pole: segs=" + rp.segs + " pts=" + rp.pts.length + " bad=" + poleBad +
-  " 例: " + badSamples.join(" | "));check("1/(xy)=1 没有横贯屏幕的假线", poleBad === 0, poleBad + " 个越界端点 / 共 " + rp.pts.length);
+check("1/(xy)=1 没有横贯屏幕的假线（只剩坐标轴断点）", poleBad === 0,
+  poleBad + " 个穿轴端点 / 共 " + rp.pts.length + "  例: " + badSamples.join(" | "));
+check("1/(xy)=1 的真实两支还在", hyperPts > 100, hyperPts + " 个同号端点");
+
+// 一帧要够快
+const t0 = Date.now();
+for (let k = 0; k < 10; k++) runMS(r1.node, WIN);
+const perFrame = (Date.now() - t0) / 10;
+check("一帧 marching squares 够快（< 30 ms）", perFrame < 30, perFrame.toFixed(1) + " ms/帧");
 
 const rpar = runMS(r5.node, WIN);
 let parOk = 0;

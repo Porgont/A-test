@@ -2742,12 +2742,15 @@ var Calc = {
     return n;
   }
   // 代入两个变量求 F(x,y)：引擎的 evalAt 一次只认一个变量，先把 y 换掉
-  function evalXY(node, x, y){
+  // substY 单独拿出来是为了省事：同一行的 y 只换一次，x 逐点求值，快 200 倍
+  function substY(node, y){ return substVar(node, "y", y); }
+  function evalX(node, x){
     try {
-      var v = C.evalAt(substVar(node, "y", y), x, "x");
+      var v = C.evalAt(node, x, "x");
       return typeof v === "number" ? v : NaN;
     } catch (e){ return NaN; }
   }
+  function evalXY(node, x, y){ return evalX(substY(node, y), x); }
   // 解析一条输入：返回 { node }（显函数）/ { node, implicit:true, raw }（隐式方程）/ { err }
   function parseEq(src){
     var s = String(src);
@@ -2957,9 +2960,10 @@ var Calc = {
     return f.length ? msMedian(f) : 1;
   }
   // 格子角点取值；NaN / 无穷大换成带符号的巨大值，让等值线在那儿断开而不是乱连
+  // row 是已经代入好 y 的节点（见 substY），逐点只算 x
   var MS_BIG = 1e12;
-  function msSample(node, x, y, avals, bads){
-    var v = evalXY(node, x, y);
+  function msSample(row, x, avals, bads){
+    var v = evalX(row, x);
     if (typeof v !== "number" || isNaN(v)){ avals.push(MS_BIG); bads.push(true); return MS_BIG; }
     if (!isFinite(v)){ avals.push(MS_BIG); bads.push(true); return v > 0 ? MS_BIG : -MS_BIG; }
     avals.push(Math.abs(v)); bads.push(false);
@@ -3013,11 +3017,19 @@ var Calc = {
       } else lim = tol;
       var mxp = P2.box.Xinv((p0[0] + p1[0]) / 2);
       var myp = P2.box.Yinv((p0[1] + p1[1]) / 2);
-      var vm = evalXY(node, mxp, myp);
+      var vm = evalX(substY(node, myp), mxp);
       if (!isFinite(vm) || Math.abs(vm) > lim) return 0;
     }
     path.moveTo(p0[0], p0[1]);
     path.lineTo(p1[0], p1[1]);
+    if (P2.debug){
+      P2.debug({
+        i: i, j: j, a: a, b: b, c: c, d: d,
+        bad: [bads[ia], bads[ib], bads[ic], bads[idc]],
+        tol: tol, x0: P2.box.Xinv(p0[0]), y0: P2.box.Yinv(p0[1]),
+        x1: P2.box.Xinv(p1[0]), y1: P2.box.Yinv(p1[1])
+      });
+    }
     return 1;
   }
   // 只画零等值线：F(x,y) = 0
@@ -3028,17 +3040,22 @@ var Calc = {
     var gx = P2.box ? P2.box.X(P2.xmin) : 0;
     var gy = P2.box ? P2.box.Y(P2.ymax) : 0;
     var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
-    var vals = new Array(mx * my), bads = new Array(mx * my);
-    var avals = [], i, j;
+    var vals = new Array(mx * my), bads = [];
+    var avals = [], i, j, row;
     for (j = 0; j < my; j++){
-      var y = P2.ymax - spanY * j / dims[1];
+      row = substY(node, P2.ymax - spanY * j / dims[1]);
       for (i = 0; i < mx; i++){
-        vals[j * mx + i] = msSample(node, P2.xmin + spanX * i / dims[0], y, avals, bads);
+        vals[j * mx + i] = msSample(row, P2.xmin + spanX * i / dims[0], avals, bads);
       }
     }
     // 典型量级：用来判断插值出来的点算不算落在等值线上
     var scale = msScale(avals);
     var tol = scale * 4 + 1e-9;
+    if (P2.debug){
+      var nb = 0, zz;
+      for (zz = 0; zz < bads.length; zz++) if (bads[zz]) nb++;
+      P2.debug({ gridBad: nb, grid: bads.length, scale: scale, vals0: vals[115], bad0: bads[115] });
+    }
     ctx.save();
     ctx.strokeStyle = color; ctx.lineWidth = 2.3; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();

@@ -26,9 +26,10 @@ check("共六套皮肤（含方舟/霓虹/终端）",
   ["glass", "light", "brutal", "ark", "neon", "mono"].every((s) =>
     page.indexOf(':root[data-skin="' + s + '"]') >= 0 && page.indexOf('data-skin-set="' + s + '"') >= 0) &&
   ui.indexOf('"ark", "neon", "mono"') >= 0);
-check("方舟皮肤：直角 + 细边 + 亮黄点缀",
-  /:root\[data-skin="ark"\]\{[^}]*--radius:3px/.test(page) &&
-  /:root\[data-skin="ark"\]\{[^}]*--chip-on-bg:#f5e400/.test(page) &&
+check("方舟皮肤：终末地风格（白底 + 直角 + 亮黄标记块）",
+  /:root\[data-skin="ark"\]\{[^}]*--bg:#ffffff/.test(page) &&
+  /:root\[data-skin="ark"\]\{[^}]*--radius:2px/.test(page) &&
+  /:root\[data-skin="ark"\]\{[^}]*--chip-on-bg:#ffe600/.test(page) &&
   page.indexOf(':root[data-skin="ark"] .card::before') >= 0);
 check("终端皮肤：等宽字体",
   page.indexOf(':root[data-skin="mono"] body{font-family:ui-monospace') >= 0);

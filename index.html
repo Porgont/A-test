@@ -37,13 +37,13 @@
 /* ==================== 新增皮肤：方舟 / 霓虹 / 终端 ==================== */
 /* 方舟：深黑底、直角、1px 细亮边、亮黄点缀、轻微斜纹（军事科技感） */
 :root[data-skin="ark"]{
-  --bg:#0b0b0c; --bg-image:repeating-linear-gradient(135deg, rgba(255,255,255,.016) 0 10px, transparent 10px 20px);
-  --fg:#f2f2f2; --fg-dim:#8d8d92;
-  --card:#141416; --card-border:#3b3b40; --card-bw:1px; --radius:3px; --skin-bw:1px;
-  --shadow:0 2px 0 rgba(0,0,0,.5); --track:#0f0f11;
-  --chip:#1b1b1e; --chip-border:#42424a;
-  --chip-on-bg:#f5e400; --chip-on-fg:#0b0b0c;
-  --mark:#f5e400; --mark-fg:#0b0b0c; --logo-shadow:none;
+  --bg:#ffffff; --bg-image:repeating-linear-gradient(135deg, rgba(17,17,17,.022) 0 10px, transparent 10px 20px);
+  --fg:#111213; --fg-dim:#6b7280;
+  --card:#ffffff; --card-border:#d5d9de; --card-bw:1px; --radius:2px; --skin-bw:1px;
+  --shadow:0 1px 2px rgba(17,17,17,.05); --track:#f1f3f5;
+  --chip:#f6f7f9; --chip-border:#c9ced4;
+  --chip-on-bg:#ffe600; --chip-on-fg:#111213;
+  --mark:#111213; --mark-fg:#ffe600; --logo-shadow:none;
 }
 /* 霓虹：深紫黑底 + 青/品红辉光 */
 :root[data-skin="neon"]{
@@ -69,9 +69,9 @@
 .skins{flex-wrap:wrap;justify-content:flex-end}
 /* 方舟的直角卡片：左侧亮条 + 右上角标 */
 :root[data-skin="ark"] .card{position:relative;overflow:hidden}
-:root[data-skin="ark"] .card::before{content:"";position:absolute;left:0;top:10px;width:3px;height:20px;background:var(--mark)}
-:root[data-skin="ark"] .chip.on,:root[data-skin="ark"] .tabs .on{box-shadow:none;font-weight:700;letter-spacing:.02em}
-:root[data-skin="ark"] .tabs .tag{color:#0b0b0c;background:var(--mark);border-radius:2px;padding:1px 4px;opacity:1}
+:root[data-skin="ark"] .card::before{content:"";position:absolute;left:0;top:9px;width:3px;height:22px;background:var(--fg)}
+:root[data-skin="ark"] .chip.on,:root[data-skin="ark"] .tabs .on{box-shadow:none;font-weight:700;letter-spacing:.02em;border-color:#111213}
+:root[data-skin="ark"] .tabs .tag{color:#111213;background:transparent;border-radius:0;padding:0;opacity:.6;font-weight:400}
 /* 霓虹的发光选中态 */
 :root[data-skin="neon"] .chip.on,:root[data-skin="neon"] .tabs .on{box-shadow:0 0 16px rgba(0,229,255,.45)}
 /* 终端用等宽字体 */
@@ -118,7 +118,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   <div class="hero">
     <h1 class="heroTitle">蒲瓜的计算器</h1>
     <p class="heroSub">由 Deepseek 制作</p>
-    <p class="ver">版本 <b>V2.4</b>　·　更新于 2026-10-16 18:14</p>
+    <p class="ver">版本 <b>V2.5</b>　·　更新于 2026-10-16 18:15</p>
   </div>
 
   <div class="toprow">
