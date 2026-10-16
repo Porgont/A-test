@@ -312,6 +312,34 @@ approx("33. definiteIntegral(sin(x),0,pi) ≈ 2", definiteIntegral(P("sin(x)"), 
   approx("补充：definiteIntegral(1/(1+x^2),0,1) ≈ pi/4", r.numeric, Math.PI / 4, 1e-12);
   eq("补充：∫₀¹ 1/(1+x²) dx 现在给精确表达式 pi/4（不再是 null）", r.exact, "pi/4");
 }
+console.log("== 瑕积分（端点奇异）==");
+{
+  const r = definiteIntegral(P("ln(x)"), 0, "pi/2");
+  approx("∫₀^(π/2) ln(x) dx = −0.8614518718…（收敛的瑕积分）", r.numeric, -0.8614518718188342, 1e-9);
+  is("   给的是有限值（不是 NaN）", Number.isFinite(r.numeric) ? "yes" : "no", "yes");
+  is("   标记为瑕积分", r.improper ? "yes" : "no", "yes");
+  is("   不判为发散", r.divergent ? "yes" : "no", "no");
+  is("   带中文说明", /瑕积分/.test(r.note || "") ? "yes" : "no", "yes");
+}
+{
+  const r = definiteIntegral(P("1/sqrt(x)"), 0, 1);
+  approx("∫₀¹ 1/√x dx ≈ 2（缩进外推）", r.numeric, 2, 2e-3);
+  is("   不判为发散", r.divergent ? "yes" : "no", "no");
+}
+{
+  const r = definiteIntegral(P("x^(-1/2)"), 0, 1);
+  approx("∫₀¹ x^(−1/2) dx ≈ 2", r.numeric, 2, 1e-6);
+}
+{
+  const r = definiteIntegral(P("1/x"), 0, 1);
+  is("∫₀¹ 1/x dx 判为发散", r.divergent ? "yes" : "no", "yes");
+  is("   说明里写明发散", /发散/.test(r.note || "") ? "yes" : "no", "yes");
+}
+{
+  const r = definiteIntegral(P("x^2"), 0, 1);
+  eq("瑕积分改动没影响普通积分", r.exact, "1/3");
+  is("   普通积分不标 improper", r.improper ? "yes" : "no", "no");
+}
 {
   const r = definiteIntegral(P("cos(x)"), 0, Math.PI / 2);
   approx("补充：definiteIntegral(cos(x),0,pi/2) ≈ 1", r.numeric, 1, 1e-12);

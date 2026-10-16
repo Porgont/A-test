@@ -2351,6 +2351,50 @@ function adaptiveSimpson(f, a, b, eps = 1e-10, maxDepth = 20) {
  * 或区间内被积函数无界（反常积分）、或与数值积分对不上时，都只给数值结果。
  * 返回 { numeric, exact, approxText, aNum, bNum, bounds, note }。
  */
+/* 瑕积分（广义积分）：端点上被积函数趋于 ±∞ 时的处理。
+   1) 有原函数时：在端点向区间内缩进取值，若能收敛到有限极限（如 x·ln x − x 在 0 处 → 0）就采用；
+   2) 没有原函数时：在缩进区间上做自适应 Simpson，再看缩进序列是否收敛（收敛则外推，发散则判定发散）。 */
+function antiderivLimit(F, x0, inward, singular, varName) {
+  if (!singular) {
+    const v = ev(F, { x: x0, varName });
+    return Number.isFinite(v) ? { value: v, limit: false } : null;
+  }
+  const deltas = [1e-3, 1e-5, 1e-7, 1e-9, 1e-11];
+  const vals = [];
+  for (const d of deltas) {
+    const v = ev(F, { x: x0 + inward * d, varName });
+    if (!Number.isFinite(v)) return null;
+    vals.push(v);
+  }
+  const last = vals[vals.length - 1], prev = vals[vals.length - 2];
+  if (Math.abs(last - prev) < 1e-5 * Math.max(1, Math.abs(last))) return { value: last, limit: true };
+  return null;
+}
+function improperSimpson(f, A, B, singA, singB) {
+  const deltas = [1e-3, 1e-5, 1e-7, 1e-9];
+  const vals = [];
+  for (const d of deltas) {
+    const lo = singA ? A + d : A, hi = singB ? B - d : B;
+    if (!(hi > lo)) continue;
+    /* 缩进太狠时自适应 Simpson 可能到不了精度（例如 1/√x 在 1e-9 附近），
+       这种点直接跳过，用还能算准的几个点外推，而不是整段放弃。 */
+    const v = adaptiveSimpson(f, lo, hi, 1e-8, 24);
+    if (Number.isFinite(v)) vals.push(v);
+  }
+  if (vals.length < 2) return null;
+  const n = vals.length, last = vals[n - 1], prev = vals[n - 2];
+  const near = Math.abs(last - prev);
+  if (near < 1e-5 * Math.max(1, Math.abs(last))) return { value: last };
+  /* δ 按 100 倍缩小：对 √δ 型（p=1/2）误差项，Richardson 系数 100^0.5−1 = 9。
+     变化在变小说明在收敛，就外推；否则判发散。 */
+  const before = n >= 3 ? Math.abs(vals[n - 2] - vals[n - 3]) : Infinity;
+  if (near < before) {
+    const ext = last + (last - prev) / 9;
+    if (Number.isFinite(ext) && Math.abs(ext) < 1e12) return { value: ext, extrapolated: true };
+  }
+  return null; /* 随缩进不收敛 → 判定发散 */
+}
+
 function definiteIntegral(node, a, b, varName = "x") {
   const pa = constPoint(a, "定积分的下限");
   const pb = constPoint(b, "定积分的上限");
@@ -2358,8 +2402,11 @@ function definiteIntegral(node, a, b, varName = "x") {
   const expr = simplify(clone(node));
   const f = (x) => ev(expr, { x, varName });
   const parts = integrate(expr, varName);
+  const singA = !Number.isFinite(f(A));
+  const singB = !Number.isFinite(f(B));
+  const improper = singA || singB;
 
-  let exact = null, numeric = null, note = null;
+  let exact = null, numeric = null, note = null, divergent = false;
   if (parts.ok && parts.F) {
     // 符号代入：把变量换成端点表达式（可能是 pi/2 这种），再化简、再归约
     const diff = simplify({
@@ -2372,10 +2419,15 @@ function definiteIntegral(node, a, b, varName = "x") {
       const v = ev(closed, { x: NaN, varName: "__none__" });
       if (Number.isFinite(v)) { exact = toString(tidyConst(closed)); numeric = v; }
     }
-    if (numeric === null) {
-      const fa = ev(parts.F, { x: A, varName });
-      const fb = ev(parts.F, { x: B, varName });
-      if (Number.isFinite(fa) && Number.isFinite(fb)) numeric = fb - fa;
+    /* 端点奇异时符号代入会得到 NaN（例如 x·ln x 在 0 处）——改为向内缩进取极限值 */
+    if (numeric === null || !Number.isFinite(numeric)) {
+      const fa = antiderivLimit(parts.F, A, +1, singA, varName);
+      const fb = antiderivLimit(parts.F, B, -1, singB, varName);
+      if (fa && fb) {
+        numeric = fb.value - fa.value;
+        if (improper) note = "端点处被积函数趋于无穷，这是瑕积分；用原函数在该端点的极限值算得收敛结果。";
+        if (fa.limit || fb.limit) exact = null;
+      }
     }
   }
 
@@ -2384,7 +2436,9 @@ function definiteIntegral(node, a, b, varName = "x") {
     const check = adaptiveSimpson(f, A, B, 1e-9, 18);
     if (!Number.isFinite(check)) {
       exact = null;
-      note = "区间内有被积函数无界的点（反常积分），只给数值结果。";
+      note = improper
+        ? "端点处被积函数趋于无穷（瑕积分），精确式无法直接代入，改给数值结果。"
+        : "区间内有被积函数无界的点（反常积分），只给数值结果。";
     } else if (Math.abs(check - numeric) > 1e-6 * Math.max(1, Math.abs(numeric))) {
       exact = null;
       numeric = check;
@@ -2392,13 +2446,36 @@ function definiteIntegral(node, a, b, varName = "x") {
     }
   }
   if (numeric === null || !Number.isFinite(numeric)) {
-    numeric = adaptiveSimpson(f, A, B, 1e-11, 20);
-    if (note === null && parts.ok && parts.F) note = "原函数在端点上取不到有限值，改用数值积分。";
+    if (improper) {
+      /* 瑕积分：缩进 + 外推；不收敛就是真发散 */
+      const imp = improperSimpson(f, A, B, singA, singB);
+      if (imp) {
+        numeric = imp.value;
+        if (note === null) {
+          note = "端点处被积函数趋于无穷，这是瑕积分（广义积分）；它收敛，数值" +
+            (imp.extrapolated ? "经缩进外推得到。" : "由缩进区间逼近得到。");
+        }
+        if (!imp.extrapolated) exact = null;
+      } else {
+        divergent = true;
+        note = "端点处被积函数趋于无穷，而且缩进后数值不收敛 —— 该广义积分发散。";
+      }
+    } else {
+      numeric = adaptiveSimpson(f, A, B, 1e-11, 20);
+      if (numeric === null || !Number.isFinite(numeric)) {
+        divergent = true;
+        note = "数值积分在区间内取不到有限值，该积分可能发散。";
+      } else if (note === null && parts.ok && parts.F) {
+        note = "原函数在端点上取不到有限值，改用数值积分。";
+      }
+    }
   }
   return {
-    numeric,
+    numeric: divergent ? null : numeric,
     exact,
-    approxText: numericText(numeric),
+    divergent,
+    improper,
+    approxText: numericText(divergent ? NaN : numeric),
     aNum: A,
     bNum: B,
     bounds: { a: pa.text, b: pb.text },
@@ -2733,12 +2810,18 @@ var Calc = {
     var r = C.definiteIntegral(node, pa.a, pb.a);
     var an = pa.num, bn = pb.num;
     var h = boxHTML("积分区间", "从 " + pa.text + " 到 " + pb.text);
-    h += '<p class="res">∫<sub>' + pa.text + "</sub><sup>" + pb.text + "</sup> f(x) dx = <b class=\"bigval\">" + (r.exact ? pretty(r.exact) : fmt(r.numeric)) + "</b>" + (r.exact ? "　（精确值）" : "　（数值积分）") + "</p>";
+    var shown = r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric));
+    var kind = r.exact ? "　（精确值）"
+      : r.divergent ? "　（广义积分发散）"
+      : r.improper ? "　（瑕积分·收敛，数值结果）"
+      : "　（数值积分）";
+    h += '<p class="res">∫<sub>' + pa.text + "</sub><sup>" + pb.text + "</sup> f(x) dx = <b class=\"bigval\">" + shown + "</b>" + kind + "</p>";
+    if (r.note) h += '<p class="res" style="color:var(--fg-dim)">' + r.note + "</p>";
     if (r.exact) h += '<p class="res">数值核对：' + r.approxText + "</p>";
     show(h);
-    lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || r.numeric);
+    lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || (r.divergent ? "发散" : r.numeric));
     PLOT.overlay = { type: "area", a: an, b: bn, node: node };
-    PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : fmt(r.numeric));
+    PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric)));
     var lo = Math.min(an, bn), hi = Math.max(an, bn), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();

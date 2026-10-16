@@ -481,12 +481,18 @@ __CALC_ENGINE__
     var r = C.definiteIntegral(node, pa.a, pb.a);
     var an = pa.num, bn = pb.num;
     var h = boxHTML("积分区间", "从 " + pa.text + " 到 " + pb.text);
-    h += '<p class="res">∫<sub>' + pa.text + "</sub><sup>" + pb.text + "</sup> f(x) dx = <b class=\"bigval\">" + (r.exact ? pretty(r.exact) : fmt(r.numeric)) + "</b>" + (r.exact ? "　（精确值）" : "　（数值积分）") + "</p>";
+    var shown = r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric));
+    var kind = r.exact ? "　（精确值）"
+      : r.divergent ? "　（广义积分发散）"
+      : r.improper ? "　（瑕积分·收敛，数值结果）"
+      : "　（数值积分）";
+    h += '<p class="res">∫<sub>' + pa.text + "</sub><sup>" + pb.text + "</sup> f(x) dx = <b class=\"bigval\">" + shown + "</b>" + kind + "</p>";
+    if (r.note) h += '<p class="res" style="color:var(--fg-dim)">' + r.note + "</p>";
     if (r.exact) h += '<p class="res">数值核对：' + r.approxText + "</p>";
     show(h);
-    lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || r.numeric);
+    lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || (r.divergent ? "发散" : r.numeric));
     PLOT.overlay = { type: "area", a: an, b: bn, node: node };
-    PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : fmt(r.numeric));
+    PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric)));
     var lo = Math.min(an, bn), hi = Math.max(an, bn), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();
