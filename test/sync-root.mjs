@@ -9,12 +9,14 @@ const root = join(here, "..");        // 线代计算器/
 const out = join(root, "..");         // 工作区根目录
 
 const PAGES = [
-  { master: "index.html", copy: "蒲瓜的计算器.html", links: { "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "calculus.html": "微积分计算器.html" } },
-  { master: "algebra.html", copy: "线性代数计算器.html", links: { "index.html": "蒲瓜的计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html" } },
-  { master: "transform.html", copy: "线性变换演示.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html" } },
-  { master: "limits.html", copy: "极限计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html" } },
-  { master: "deriv.html", copy: "微分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "integral.html": "积分计算器.html" } },
-  { master: "integral.html", copy: "积分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html" } },
+  { master: "index.html", copy: "蒲瓜的计算器.html", links: { "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html", "calculus.html": "微积分计算器.html" } },
+  { master: "algebra.html", copy: "线性代数计算器.html", links: { "index.html": "蒲瓜的计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html" } },
+  { master: "transform.html", copy: "线性变换演示.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html" } },
+  { master: "limits.html", copy: "极限计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html" } },
+  { master: "deriv.html", copy: "微分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html" } },
+  { master: "integral.html", copy: "积分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "graph.html": "函数图像.html", "stats.html": "概率分布列.html" } },
+  { master: "graph.html", copy: "函数图像.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "stats.html": "概率分布列.html" } },
+  { master: "stats.html", copy: "概率分布列.html", links: { "index.html": "蒲瓜的计算器.html", "algebra.html": "线性代数计算器.html", "transform.html": "线性变换演示.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html", "graph.html": "函数图像.html" } },
   { master: "calculus.html", copy: "微积分计算器.html", links: { "index.html": "蒲瓜的计算器.html", "limits.html": "极限计算器.html", "deriv.html": "微分计算器.html", "integral.html": "积分计算器.html" } },
 ];
 

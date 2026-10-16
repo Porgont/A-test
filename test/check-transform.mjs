@@ -44,7 +44,11 @@ check("画了变换后的网格", ui.indexOf("C_NET") >= 0);
 check("画了 x 与 T(x) 两个箭头", ui.indexOf("C_X") >= 0 && ui.indexOf("C_TX") >= 0);
 check("识别正交/旋转/反射", ui.indexOf("正交变换") >= 0 && ui.indexOf("旋转") >= 0 && ui.indexOf("镜像反射") >= 0);
 check("回主计算器的链接", page.indexOf('href="index.html"') >= 0);
-check("变换页有微积分页入口（顶+底各一条）", (page.match(/href="calculus\.html"/g) || []).length === 2);
+check("变换页八项导航（顶+底各一条）",
+  ["index.html\">首页", "algebra.html\">矩阵", "limits.html\">极限", "deriv.html\">微分",
+   "integral.html\">积分", "graph.html\">图像", "stats.html\">概率"]
+    .every((h) => (page.match(new RegExp('href="' + h.replace(/[.]/g, "\\."), "g")) || []).length === 2) &&
+  page.indexOf('<span class="on">变换') >= 0);
 check("主计算器有去变换页的链接", main.indexOf('href="transform.html"') >= 0);
 check("变换页有两条切换栏（顶部+底部）", (page.match(/class="tabs"/g) || []).length === 2, "找到 " + (page.match(/class="tabs"/g) || []).length + " 条");
 check("主计算器也有两条切换栏", (main.match(/class="tabs"/g) || []).length === 2, "找到 " + (main.match(/class="tabs"/g) || []).length + " 条");

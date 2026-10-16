@@ -57,8 +57,8 @@ h1{font-size:17px;margin:0}
 .skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
-.tabs{display:flex;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1;text-align:center;padding:11px 10px;border-radius:12px;font-size:13.5px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
@@ -122,7 +122,11 @@ h1{font-size:17px;margin:0}
     <a href="index.html">首页</a>
     <a href="algebra.html">矩阵</a>
     <span class="on">变换<span class="tag">当前</span></span>
-    <a href="calculus.html">微积分</a>
+    <a href="limits.html">极限</a>
+    <a href="deriv.html">微分</a>
+    <a href="integral.html">积分</a>
+    <a href="graph.html">图像</a>
+    <a href="stats.html">概率</a>
   </nav>
 
   <section class="card">
@@ -186,7 +190,11 @@ h1{font-size:17px;margin:0}
     <a href="index.html">首页</a>
     <a href="algebra.html">矩阵</a>
     <span class="on">变换<span class="tag">当前</span></span>
-    <a href="calculus.html">微积分</a>
+    <a href="limits.html">极限</a>
+    <a href="deriv.html">微分</a>
+    <a href="integral.html">积分</a>
+    <a href="graph.html">图像</a>
+    <a href="stats.html">概率</a>
   </nav>
 
   <p class="foot">拖动旋转 · 滚轮缩放 · 矩阵格里回车跳格</p>

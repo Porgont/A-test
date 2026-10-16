@@ -74,7 +74,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   <div class="hero">
     <h1 class="heroTitle">蒲瓜的计算器</h1>
     <p class="heroSub">由 Deepseek 制作</p>
-    <p class="ver">版本 <b>V1.2</b>　·　更新于 2026-10-16 01:33</p>
+    <p class="ver">版本 <b>V2.0</b>　·　更新于 2026-10-16 16:22</p>
   </div>
 
   <div class="toprow">
@@ -92,6 +92,8 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
     <a href="limits.html">极限</a>
     <a href="deriv.html">微分</a>
     <a href="integral.html">积分</a>
+    <a href="graph.html">图像</a>
+    <a href="stats.html">概率</a>
   </nav>
 
   <a class="pick" href="algebra.html">
@@ -140,6 +142,26 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
       <span class="ptitle">积分</span>
       <span class="pdesc">不定积分给出原函数（含 + C）：幂函数、1/x、e^x、sin/cos、1/(1+x²)、线性换元、分部积分等；找不到初等原函数时会如实说明。定积分优先给精确值，否则自动数值积分，并在图像上把面积填色。</span>
       <span class="ptags"><span class="ptag">原函数 + C</span><span class="ptag">定积分</span><span class="ptag">面积填色</span></span>
+    </span>
+    <span class="parrow">→</span>
+  </a>
+
+  <a class="pick" href="graph.html">
+    <span class="plogo i">ƒ</span>
+    <span class="pbody">
+      <span class="ptitle">函数图像</span>
+      <span class="pdesc">二维：同时画 f(x) 与 g(x) 两条曲线，拖动平移、滚轮缩放、自动取景，坐标轴带刻度，光标处实时显示坐标读数。三维：z = f(x, y) 曲面，线框或实体渲染，可拖动旋转、滚轮缩放、自动旋转。</span>
+      <span class="ptags"><span class="ptag">2D 曲线</span><span class="ptag">3D 曲面</span><span class="ptag">缩放平移</span></span>
+    </span>
+    <span class="parrow">→</span>
+  </a>
+
+  <a class="pick" href="stats.html">
+    <span class="plogo">P</span>
+    <span class="pbody">
+      <span class="ptitle">概率 · 分布列</span>
+      <span class="pdesc">二项分布、泊松分布、超几何分布、几何分布：一次给出完整的分布列表格（k、P(X=k)、累积概率 P(X≤k)），期望与方差（精确表达式 + 数值），并画出分布柱状图，点柱子看该点的概率。</span>
+      <span class="ptags"><span class="ptag">分布列</span><span class="ptag">期望方差</span><span class="ptag">柱状图</span></span>
     </span>
     <span class="parrow">→</span>
   </a>
