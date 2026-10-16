@@ -37,8 +37,8 @@ for (const p of PAGES) {
 
   check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
   check("默认极简 + 三套皮肤",
-    page.indexOf('data-skin="light"') >= 0 && page.indexOf(':root[data-skin="glass"]') >= 0 &&
-    page.indexOf(':root[data-skin="brutal"]') >= 0 && ui.indexOf('|| "light"') >= 0);
+    page.indexOf('data-skin="ark"') >= 0 && page.indexOf(':root[data-skin="glass"]') >= 0 &&
+    page.indexOf(':root[data-skin="brutal"]') >= 0 && ui.indexOf('|| "ark"') >= 0);
 
   check("导航表有八项（含本页与图像/概率）",
     ["首页", "矩阵", "变换", "极限", "微分", "积分", "图像", "概率"].every((t) => ui.indexOf('label: "' + t + '"') >= 0) &&

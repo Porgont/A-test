@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-skin="light">
+<html lang="zh-CN" data-skin="ark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -168,10 +168,10 @@ table.dist tr:last-child td{border-bottom:0}
     </div>
     <div class="skins" id="skins">
       <button data-skin-set="glass">玻璃</button>
-      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="light">极简</button>
       <button data-skin-set="brutal">粗野</button>
 
-      <button data-skin-set="ark">方舟</button>
+      <button data-skin-set="ark" class="on">方舟</button>
 
       <button data-skin-set="neon">霓虹</button>
 
@@ -927,7 +927,7 @@ table.dist tr:last-child td{border-bottom:0}
     Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
       b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
     });
-    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    try { localStorage.setItem("la-skin-v3", s); } catch (e) {}
     var T = THEME[s] || THEME.light;
     var mc = document.querySelector('meta[name="theme-color"]');
     if (mc) mc.setAttribute("content", T.color);
@@ -944,9 +944,9 @@ table.dist tr:last-child td{border-bottom:0}
   var SKINS = ["glass", "light", "brutal", "ark", "neon", "mono"], saved = "light";
   try {
     var qs = new URLSearchParams(location.search).get("skin");
-    saved = qs || localStorage.getItem("la-skin-v2") || "light";
+    saved = qs || localStorage.getItem("la-skin-v3") || "ark";
   } catch (e) {}
-  if (SKINS.indexOf(saved) < 0) saved = "light";
+  if (SKINS.indexOf(saved) < 0) saved = "ark";
   loadParams();
   applySkin(saved);
 })();

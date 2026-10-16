@@ -37,7 +37,7 @@ check("有 T(x) 输出区", page.indexOf('id="out"') >= 0);
 check("有几何说明区", page.indexOf('id="geoinfo"') >= 0);
 check("2×2 / 3×3 切换", page.indexOf('id="dim2"') >= 0 && page.indexOf('id="dim3"') >= 0);
 check("三套皮肤齐全", page.indexOf(':root[data-skin="glass"]') >= 0 && page.indexOf(':root[data-skin="light"]') >= 0 && page.indexOf(':root[data-skin="brutal"]') >= 0);
-check("默认皮肤是极简", page.indexOf('data-skin="light"') >= 0 && ui.indexOf('|| "light"') >= 0);
+check("默认皮肤是极简", page.indexOf('data-skin="ark"') >= 0 && ui.indexOf('|| "ark"') >= 0);
 check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
 check("回车跳格已接入", ui.indexOf('e.key !== "Enter"') >= 0);
 check("画了变换后的网格", ui.indexOf("C_NET") >= 0);

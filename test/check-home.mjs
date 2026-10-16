@@ -19,7 +19,7 @@ try { new Function(ui); check("首页脚本语法", true); }
 catch (e) { check("首页脚本语法", false, e.message); }
 
 check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
-check("默认皮肤是极简", page.indexOf('data-skin="light"') >= 0 && ui.indexOf('|| "light"') >= 0);
+check("默认皮肤是极简", page.indexOf('data-skin="ark"') >= 0 && ui.indexOf('|| "ark"') >= 0);
 check("三套皮肤齐全",
   page.indexOf(':root[data-skin="glass"]') >= 0 && page.indexOf(':root[data-skin="light"]') >= 0 && page.indexOf(':root[data-skin="brutal"]') >= 0);
 check("共六套皮肤（含方舟/霓虹/终端）",

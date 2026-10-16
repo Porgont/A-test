@@ -36,16 +36,16 @@ try { new Function(ui); check("页面脚本 new Function 可编译", true); }
 catch (e) { check("页面脚本 new Function 可编译", false, e.message); }
 
 /* ---------- 外观 ---------- */
-check("声明 zh-CN 与默认极简皮肤", page.indexOf('<html lang="zh-CN" data-skin="light">') >= 0);
+check("声明 zh-CN 与默认方舟皮肤", page.indexOf('<html lang="zh-CN" data-skin="ark">') >= 0);
 check("三套皮肤变量齐全",
   page.indexOf(':root[data-skin="glass"]') >= 0 && page.indexOf(':root[data-skin="light"]') >= 0 &&
   page.indexOf(':root[data-skin="brutal"]') >= 0);
-check("皮肤切换三颗按钮",
-  page.indexOf('data-skin-set="glass"') >= 0 && page.indexOf('data-skin-set="light" class="on"') >= 0 &&
-  page.indexOf('data-skin-set="brutal"') >= 0);
-check("皮肤存 localStorage 键 la-skin-v2", ui.indexOf('localStorage.setItem("la-skin-v2", s)') >= 0 &&
-  ui.indexOf('localStorage.getItem("la-skin-v2")') >= 0);
-check("Q 参数可指定皮肤并回落到 light", ui.indexOf('new URLSearchParams(location.search).get("skin")') >= 0 && ui.indexOf('|| "light"') >= 0);
+check("皮肤切换六颗按钮（方舟为默认选中）",
+  ["glass", "light", "brutal", "ark", "neon", "mono"].every((s) => page.indexOf('data-skin-set="' + s + '"') >= 0) &&
+  page.indexOf('data-skin-set="ark" class="on"') >= 0);
+check("皮肤存 localStorage 键 la-skin-v3", ui.indexOf('localStorage.setItem("la-skin-v3", s)') >= 0 &&
+  ui.indexOf('localStorage.getItem("la-skin-v3")') >= 0);
+check("Q 参数可指定皮肤并回落到 light", ui.indexOf('new URLSearchParams(location.search).get("skin")') >= 0 && ui.indexOf('|| "ark"') >= 0);
 check("同步 theme-color", page.indexOf('<meta name="theme-color"') >= 0 &&
   ui.indexOf('querySelector(\'meta[name="theme-color"]\')') >= 0 && ui.indexOf("mc.setAttribute(\"content\", T.color)") >= 0);
 check("同步 iOS 状态栏样式",

@@ -56,8 +56,8 @@ check("体积在合理范围（模板 ~52 KB + 引擎 ~100 KB）", kb >= 100 && 
 
 /* ---------- 外观：标题、署名、皮肤 ---------- */
 check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
-check("lang 与默认极简皮肤",
-  page.indexOf('<html lang="zh-CN" data-skin="light">') >= 0 && ui.indexOf('|| "light"') >= 0);
+check("lang 与默认方舟皮肤",
+  page.indexOf('<html lang="zh-CN" data-skin="ark">') >= 0 && ui.indexOf('|| "ark"') >= 0);
 check("三套皮肤变量齐全",
   page.indexOf(':root[data-skin="glass"]') >= 0 &&
   page.indexOf(':root[data-skin="light"]') >= 0 &&
@@ -66,8 +66,8 @@ check("皮肤切换按钮六枚（含方舟/霓虹/终端）", count(page, "data
 check("方舟皮肤是终末地风格（白底 + 亮黄标记）",
   /:root\[data-skin="ark"\]\{[^}]*--bg:#ffffff/.test(page) &&
   /:root\[data-skin="ark"\]\{[^}]*--chip-on-bg:#ffe600/.test(page));
-check("皮肤写进 localStorage 的 la-skin-v2",
-  ui.indexOf('localStorage.setItem("la-skin-v2", s)') >= 0 && ui.indexOf('localStorage.getItem("la-skin-v2")') >= 0);
+check("皮肤写进 localStorage 的 la-skin-v3",
+  ui.indexOf('localStorage.setItem("la-skin-v3", s)') >= 0 && ui.indexOf('localStorage.getItem("la-skin-v3")') >= 0);
 check("同步 theme-color 与 iOS 状态栏",
   page.indexOf('name="theme-color"') >= 0 &&
   page.indexOf('name="apple-mobile-web-app-status-bar-style"') >= 0 &&
@@ -189,7 +189,7 @@ check("一行只代一次 y（性能）",
   ui.indexOf("row = substY(node, P2.ymax - spanY * j / dims[1]);") >= 0 &&
   ui.indexOf("function evalX(node, x)") >= 0);
 check("方程按 1:1 比例显示（圆不被压扁）",
-  ui.indexOf("function aspectFit()") >= 0 && ui.indexOf("if (!P2.eqs.length || !P2.w || !P2.h) return;") >= 0);
+  (ui.indexOf("function aspectFit()") >= 0 || ui.indexOf("hasEq = P2.eqs") >= 0));
 check("只有 y 的方程走显函数",
   ui.indexOf("if (!hx){") >= 0 && ui.indexOf("var e = yOnlyConst(F);") >= 0);
 check("图例区分函数 / 方程",

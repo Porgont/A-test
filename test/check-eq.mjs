@@ -172,6 +172,36 @@ function toData(p, r) {
 }
 const rr = runMS(r1.node, WIN);
 check("圆画出一圈线段（>100 段）", rr.segs > 100, rr.segs + " 段");
+// 相邻线段的端点应当重合（否则等值线会画成虚线）
+function connectReport(r) {
+  const key = (p) => p[0].toFixed(3) + "," + p[1].toFixed(3);
+  const used = new Set();
+  let joined = 0, total = r.segs;
+  for (let k = 0; k + 1 < r.pts.length; k += 2) {
+    const a = key(r.pts[k]), b = key(r.pts[k + 1]);
+    used.add(a); used.add(b);
+  }
+  // 统计端点出现次数：内部衔接点会出现 2 次，孤立端点 1 次
+  const cnt = new Map();
+  for (let k = 0; k + 1 < r.pts.length; k += 2) {
+    for (const p of [r.pts[k], r.pts[k + 1]]) {
+      const kk = key(p);
+      cnt.set(kk, (cnt.get(kk) || 0) + 1);
+    }
+  }
+  for (const v of cnt.values()) if (v === 2) joined++;
+  let len = 0;
+  for (let k = 0; k + 1 < r.pts.length; k += 2) {
+    len += Math.hypot(r.pts[k + 1][0] - r.pts[k][0], r.pts[k + 1][1] - r.pts[k][1]);
+  }
+  const interp = new Set();
+  for (const p of r.pts) interp.add(key(p));
+  void used;
+  return { total, joined, unique: interp.size, len: len.toFixed(1) };
+}
+const cr = connectReport(rr);
+console.log("  dbg circle: segs=" + cr.total + " 内部衔接点=" + cr.joined +
+  " 不同端点=" + cr.unique + " 总弧长=" + cr.len + " px（周长约 " + (2 * Math.PI * 2 * (rr.w / 12)).toFixed(0) + " px）");
 let maxDev = 0, onCircle = 0;
 for (const p of rr.pts) {
   const d = toData(p, rr);

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-skin="light">
+<html lang="zh-CN" data-skin="ark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -163,10 +163,10 @@ sup{font-size:.7em;vertical-align:super;line-height:0}
     </div>
     <div class="skins" id="skins">
       <button data-skin-set="glass">玻璃</button>
-      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="light">极简</button>
       <button data-skin-set="brutal">粗野</button>
 
-      <button data-skin-set="ark">方舟</button>
+      <button data-skin-set="ark" class="on">方舟</button>
 
       <button data-skin-set="neon">霓虹</button>
 
@@ -2966,6 +2966,19 @@ var Calc = {
   }
 
   function autoY(){
+    /* 有隐式方程（含「=」）时不能按函数值取窗：圆这种曲线的采样值只在
+       y≈0 附近出现，会把纵轴压扁成两条竖线。方程应该按画布宽高比等比例取景，
+       这样圆看起来才是圆的。 */
+    var hasEq = P2.eqs && P2.eqs.length > 0;
+    if (hasEq){
+      var cx = (P2.xmin + P2.xmax) / 2;
+      var halfW = (P2.xmax - P2.xmin) / 2;
+      var ratio = (P2.h && P2.w) ? (P2.h / P2.w) : 0.62;
+      var halfH = halfW * ratio;
+      P2.ymin = -halfH; P2.ymax = halfH;
+      void cx;
+      return;
+    }
     var vals = [], i, v;
     var n = 600;
     for (i = 0; i <= n; i++){
@@ -3107,17 +3120,6 @@ var Calc = {
     if (!rec || !rec.node) return 0;
     if (!rec.implicit) return 0;
     return marchingSquares(ctx, rec.node, color);
-  }
-  // 隐式方程没有 y 范围可言：把比例调成 1:1，圆才不会被压成椭圆
-  function aspectFit(){
-    if (!P2.eqs.length || !P2.w || !P2.h) return;
-    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
-    if (!(spanX > 0) || !(spanY > 0)) return;
-    var mx = (P2.xmin + P2.xmax) / 2, my = (P2.ymin + P2.ymax) / 2;
-    var k = (P2.h * spanX) / (P2.w * spanY);   // 想等于 1
-    if (k > 0.98 && k < 1.02) return;
-    var ns = spanY / k;
-    P2.ymin = my - ns / 2; P2.ymax = my + ns / 2;
   }
 
   function plotDraw(){
@@ -3397,7 +3399,6 @@ var Calc = {
       el(id).value = s.src;
       markActive(id);
       autoY();
-      if (id === "fx" || P2.eqs.length) aspectFit();
       refresh2D(false);
     });
     host.appendChild(b);
@@ -3427,14 +3428,13 @@ var Calc = {
   el("plotFit").addEventListener("click", function(){
     read2D();
     autoY();
-    aspectFit();
     plotDraw();
   });
   el("plotReset").addEventListener("click", function(){
     P2.xmin = -6; P2.xmax = 6;
     read2D();
     if (!P2.curves.length && !P2.eqs.length){ P2.ymin = -3; P2.ymax = 3; }
-    else { autoY(); aspectFit(); }
+    else autoY();
     P2.readout = null;
     plotDraw();
   });
@@ -3818,7 +3818,7 @@ var Calc = {
     Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
       b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
     });
-    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    try { localStorage.setItem("la-skin-v3", s); } catch (e) {}
     var T = THEME[s] || THEME.light;
     var mc = document.querySelector('meta[name="theme-color"]');
     if (mc) mc.setAttribute("content", T.color);
@@ -3840,9 +3840,9 @@ var Calc = {
   var SKINS = ["glass", "light", "brutal", "ark", "neon", "mono"], saved = "light";
   try {
     var q = new URLSearchParams(location.search).get("skin");
-    saved = q || localStorage.getItem("la-skin-v2") || "light";
+    saved = q || localStorage.getItem("la-skin-v3") || "ark";
   } catch (e) {}
-  if (SKINS.indexOf(saved) < 0) saved = "light";
+  if (SKINS.indexOf(saved) < 0) saved = "ark";
 
   /* ---------- 某个板块出错时别让整页停摆 ---------- */
   function showFatal(where, e){
@@ -3856,13 +3856,20 @@ var Calc = {
   try { read2D(); autoY(); } catch (e){ showFatal("plotinfo", e); }
   applySkin(saved);
   try { refresh3D(true); } catch (e){ showFatal("geoinfo3d", e); }
-  try {
-    plotDraw();          // 先画一次，量出画布尺寸
-    aspectFit();         // 方程要 1:1 的比例，圆才不会被压扁
-  } catch (e){ showFatal("plotinfo", e); }
+  try { plotDraw(); } catch (e){ showFatal("plotinfo", e); }
+  // 画布尺寸到手后，方程要按 1:1 的比例重新取景（autoY 里用 P2.w/P2.h 算）
+  try { if (P2.eqs.length) autoY(); } catch (e){ showFatal("plotinfo", e); }
   try { plotDraw(); } catch (e){ showFatal("plotinfo", e); }
   try { paint3D(); } catch (e){ showFatal("geoinfo3d", e); }
   window.__graphReady = true;
+  // 调试钩子：无头截图时用来核对视窗与解析结果（只读页面内部状态）
+  window.__graphDbg = function(){
+    return "win=[" + P2.xmin.toFixed(4) + "," + P2.xmax.toFixed(4) + "]x[" +
+      P2.ymin.toFixed(4) + "," + P2.ymax.toFixed(4) + "] curves=" + P2.curves.length +
+      " eqs=" + P2.eqs.length + " fval=" + (P2.curves[0] ? safeEval(P2.curves[0].node, 1, "x") : "n/a") +
+      " eqsegs=" + (P2.eqs[0] ? P2.eqs[0].segs : "n/a") +
+      " eqF(0,0)=" + (P2.eqs[0] ? evalXY(P2.eqs[0].node, 0, 0) : "n/a");
+  };
 })();
 </script>
 </body>
