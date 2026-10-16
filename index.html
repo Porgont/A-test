@@ -100,19 +100,32 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
-.pick{display:flex;align-items:flex-start;gap:14px;padding:16px;border-radius:var(--radius);background:var(--card);border:var(--card-bw) solid var(--card-border);text-decoration:none;color:var(--fg);box-shadow:var(--shadow);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);transition:transform .16s ease,box-shadow .16s ease}
+/* 入口卡片排成多列网格：手机两列、宽屏最多三列（省掉一长条竖向滚动）
+   注意列宽要用 minmax(0,1fr)：只写 1fr 等于 minmax(auto,1fr)，
+   卡片内容的最小宽度会把列撑破、整页横向溢出。 */
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(215px,100%),1fr));gap:10px;margin-bottom:4px}
+.pick{display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:14px;border-radius:var(--radius);background:var(--card);border:var(--card-bw) solid var(--card-border);text-decoration:none;color:var(--fg);box-shadow:var(--shadow);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);transition:transform .16s ease,box-shadow .16s ease;min-width:0;overflow-wrap:anywhere}
 .pick:hover{transform:translateY(-2px)}
 .pick:active{transform:translateY(0) scale(.995)}
-.plogo{width:52px;height:52px;border-radius:15px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:700;flex:0 0 auto;box-shadow:var(--logo-shadow)}
+.plogo{width:44px;height:44px;border-radius:13px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex:0 0 auto;box-shadow:var(--logo-shadow)}
 .plogo.i{font-style:italic}
-.pbody{min-width:0;flex:1}
-.ptitle{display:block;font-size:17px;font-weight:700}
-.pdesc{display:block;font-size:12.5px;color:var(--fg-dim);margin-top:6px;line-height:1.65}
-.ptags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.ptag{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-border);color:var(--fg-dim);white-space:nowrap}
-.parrow{font-size:19px;color:var(--fg-dim);flex:0 0 auto;padding-left:2px;align-self:center}
-.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:10px 0 0;line-height:1.75}
-@media (max-width:400px){ .heroTitle{font-size:23px} .plogo{width:46px;height:46px;font-size:22px} .pick{padding:14px;gap:12px} }
+.pbody{min-width:0;flex:1;display:flex;flex-direction:column}
+.ptitle{display:block;font-size:15.5px;font-weight:700}
+/* 描述最多显示 4 行，卡片高度才整齐 */
+.pdesc{display:-webkit-box;font-size:12px;color:var(--fg-dim);margin-top:5px;line-height:1.6;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.ptags{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:9px}
+.ptag{font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-border);color:var(--fg-dim);white-space:nowrap}
+.parrow{display:none}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:12px 0 0;line-height:1.75}
+@media (max-width:430px){
+  .heroTitle{font-size:23px}
+  .picks{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .pick{padding:11px;gap:7px}
+  .plogo{width:38px;height:38px;font-size:19px;border-radius:11px}
+  .ptitle{font-size:14px}
+  .pdesc{font-size:11px;-webkit-line-clamp:3;line-height:1.55}
+  .ptag{font-size:10px;padding:2px 6px}
+}
 </style>
 </head>
 <body>
@@ -121,7 +134,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   <div class="hero">
     <h1 class="heroTitle">蒲瓜的计算器</h1>
     <p class="heroSub">由 Deepseek 制作</p>
-    <p class="ver">版本 <b>V2.9</b>　·　更新于 2026-10-16 18:36</p>
+    <p class="ver">版本 <b>V2.10</b>　·　更新于 2026-10-16 22:59</p>
   </div>
 
   <div class="toprow">
@@ -149,6 +162,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
     <a href="stats.html">概率</a>
   </nav>
 
+  <div class="picks">
   <a class="pick" href="algebra.html">
     <span class="plogo">Σ</span>
     <span class="pbody">
@@ -218,6 +232,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
     </span>
     <span class="parrow">→</span>
   </a>
+  </div>
 
   <p class="foot">全部计算都在你的浏览器里完成，不上传任何数据。<br>手机可以把本页「添加到主屏幕」，用起来跟 App 一样。</p>
 </div>
