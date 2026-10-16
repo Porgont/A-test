@@ -60,7 +60,7 @@ for (const op of chipOps) {
 check("未知运算兜底", ui.indexOf("未知运算") >= 0);
 
 const skins = [...html.matchAll(/data-skin-set="([a-z]+)"/g)].map((m) => m[1]);
-check("皮肤数量 3", skins.length === 3, skins.join(","));
+check("皮肤数量 6（含方舟/霓虹/终端）", skins.length === 6, skins.join(","));
 for (const s of ["glass", "light", "brutal"]) {
   check("皮肤定义：" + s, html.indexOf(':root[data-skin="' + s + '"]') >= 0);
   check("皮肤可选：" + s, skins.indexOf(s) >= 0);

@@ -22,6 +22,16 @@ check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.inde
 check("默认皮肤是极简", page.indexOf('data-skin="light"') >= 0 && ui.indexOf('|| "light"') >= 0);
 check("三套皮肤齐全",
   page.indexOf(':root[data-skin="glass"]') >= 0 && page.indexOf(':root[data-skin="light"]') >= 0 && page.indexOf(':root[data-skin="brutal"]') >= 0);
+check("共六套皮肤（含方舟/霓虹/终端）",
+  ["glass", "light", "brutal", "ark", "neon", "mono"].every((s) =>
+    page.indexOf(':root[data-skin="' + s + '"]') >= 0 && page.indexOf('data-skin-set="' + s + '"') >= 0) &&
+  ui.indexOf('"ark", "neon", "mono"') >= 0);
+check("方舟皮肤：直角 + 细边 + 亮黄点缀",
+  /:root\[data-skin="ark"\]\{[^}]*--radius:3px/.test(page) &&
+  /:root\[data-skin="ark"\]\{[^}]*--chip-on-bg:#f5e400/.test(page) &&
+  page.indexOf(':root[data-skin="ark"] .card::before') >= 0);
+check("终端皮肤：等宽字体",
+  page.indexOf(':root[data-skin="mono"] body{font-family:ui-monospace') >= 0);
 
 check("七张入口卡片", (page.match(/class="pick"/g) || []).length === 7, "找到 " + (page.match(/class="pick"/g) || []).length + " 张");
 check("入口指向矩阵计算器", page.indexOf('href="algebra.html"') >= 0);

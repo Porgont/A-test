@@ -346,15 +346,17 @@ __CALC_ENGINE__
     if (!hx){
       // 只有 y 而没有 x：等价于显函数，交给普通曲线那条路（更快、也更顺滑）
       var c1 = evalXY(F, 0, 0), c2 = evalXY(F, 0, 1);
-      var k = c2 - c1;
-      if (isFinite(k) && Math.abs(k - 1) < 1e-9){
-        var e = parseExprNode(R);
-        if (!e.err) return { node: C.simplify(e.node) };     // y = 右边
-        e = parseExprNode(L);
-        if (!e.err) return { node: C.simplify(e.node) };     // 左边 = y
+      var k = c2 - c1, e;
+      if (!isFinite(k)) return { err: "方程里有算不出数值的部分，请检查写法" };
+      if (Math.abs(k - 1) < 1e-9){                      // 左边是 −y：(−y) = 右边 → 取负
+        e = parseExprNode(R);
+        if (!e.err) return { node: C.simplify({ t: "mul", a: C.parse("-1"), b: e.node }) };
       }
-      if (!isFinite(c1) || !isFinite(c2)) return { err: "方程里有算不出数值的部分，请检查写法" };
-      return { err: "只含 y 的方程要能写成 y = …，例如 y = x^2（这条暂时画不了）" };
+      if (Math.abs(k + 1) < 1e-9){                      // 左边就是 y：y = 右边
+        e = parseExprNode(R);
+        if (!e.err) return { node: C.simplify(e.node) };
+      }
+      return { err: "只含 y 的方程要能写成 y = …，例如 y = 3（这条暂时画不了）" };
     }
     if (hy){
       var t1 = evalXY(F, 0, 0), t2 = evalXY(F, 1, 0), t3 = evalXY(F, 0, 1), t4 = evalXY(F, 1, 1);
@@ -561,9 +563,8 @@ __CALC_ENGINE__
       }
     }
     if (!pick) return 0;
-    // 两端求出的值都是巨值 = 穿过极点（例如 x*y=1 的坐标轴），别画成一条横贯屏幕的假线
-    var big = Math.max(1e11, skip * 64);
-    if (Math.abs(a) > big && Math.abs(b) > big && Math.abs(c) > big && Math.abs(d) > big) return 0;
+    // 四个角都远超典型量级的格子：里面是极点，不是零水平集，别画成横贯屏幕的假线
+    if (Math.abs(a) > skip && Math.abs(b) > skip && Math.abs(c) > skip && Math.abs(d) > skip) return 0;
     var p0 = pick[0][2], p1 = pick[1][2];
     path.moveTo(p0[0], p0[1]);
     path.lineTo(p1[0], p1[1]);
@@ -584,8 +585,10 @@ __CALC_ENGINE__
         vals[j * mx + i] = msSample(node, P2.xmin + spanX * i / dims[0], y, ivals, avals);
       }
     }
-    // 典型量级：两端都远超它、还异号的格子就是穿过了极点，那条线不是零水平集
-    var skip = Math.max(1e11, msMedian(avals) * 64);
+    // 典型量级：四个角都远超它的格子，里面是极点而不是零水平集
+    var skip = msMedian(avals) * 64;
+    if (skip > 1e7) skip = 1e7;
+    if (skip < 1e3) skip = 1e3;
     ctx.save();
     ctx.strokeStyle = color; ctx.lineWidth = 2.3; ctx.lineJoin = "round"; ctx.lineCap = "round";
     ctx.beginPath();

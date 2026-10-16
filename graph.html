@@ -56,7 +56,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
 .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a,.tabs span{flex:1 1 calc(25% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:10.5px;opacity:.75;margin-left:3px}
@@ -75,6 +75,8 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .fxin:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
 .fxin.on{border-color:var(--accent-line)}
 .glabel{font-size:11px;color:var(--fg-dim);letter-spacing:.12em;margin:12px 0 7px}
+.exerr{font-size:12px;color:var(--danger);margin:6px 0 0;line-height:1.6;min-height:15px}
+.exerr:empty{display:none}
 .glabel:first-child{margin-top:2px}
 .chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
 .chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
@@ -127,14 +129,19 @@ sup{font-size:.7em;vertical-align:super;line-height:0}
   <section class="card">
     <div class="chead">
       <span class="mtag">f</span>
-      <span class="note">输入函数，支持 sin cos tan ln exp sqrt abs 和 pi、e，可以写 2x 这种隐式乘法</span>
+      <span class="note">输入函数或方程：支持 sin cos tan ln exp sqrt abs 和 pi、e，可写 2x 这种隐式乘法</span>
+      <div class="tools"><button id="graphClear">清空</button></div>
     </div>
 
-    <div class="glabel">第一条曲线 f(x)</div>
+    <div class="glabel">第一条曲线 f(x) 或方程</div>
     <input id="fx" class="fxin" value="sin(x)/x" autocomplete="off" spellcheck="false" inputmode="text">
+    <p class="exerr" id="fxErr"></p>
 
-    <div class="glabel">第二条曲线 g(x)（留空就只画 f）</div>
+    <div class="glabel">第二条曲线 g(x) 或方程（留空就只画 f）</div>
     <input id="gx" class="fxin" value="" placeholder="留空不画" autocomplete="off" spellcheck="false" inputmode="text">
+    <p class="exerr" id="gxErr"></p>
+
+    <p class="hint" id="inputHint">含「=」的按隐式方程处理（例如 x^2+y^2=4 是圆），画它等于 0 的那条线；不含「=」的按函数画。</p>
 
     <div class="syms" id="syms"></div>
     <p class="hint" id="symHint">符号插到当前光标所在的输入框（默认是 f(x)）。</p>
@@ -153,7 +160,7 @@ sup{font-size:.7em;vertical-align:super;line-height:0}
     <canvas id="plot" class="geo"></canvas>
     <div class="legend" id="legend2d"></div>
     <p class="geoinfo" id="plotinfo"></p>
-    <p class="hint">拖动平移 · 滚轮或双指捏合缩放（以光标为中心）· 把鼠标或手指放在画布上会显示该处坐标。</p>
+    <p class="hint">拖动平移 · 滚轮或双指捏合缩放（以光标为中心）· 把鼠标或手指放在画布上会显示该处坐标。方程模式下显示 F(x,y) 的值（F = 左边 − 右边）。</p>
   </section>
 
   <section class="card">
@@ -2586,11 +2593,115 @@ var Calc = {
   }
 
   /* ---------- 解析输入：把中文报错拆开显示 ---------- */
+  function parseExprNode(src){
+    try { return { node: C.parse(src) }; }
+    catch (e){ return { err: e && e.message ? e.message : String(e) }; }
+  }
   function parseExpr(src){
-    try { return { node: C.simplify(C.parse(src)) }; }
+    var r = parseExprNode(src);
+    if (r.err) return r;
+    try { return { node: C.simplify(r.node) }; }
     catch (e){ return { err: e && e.message ? e.message : String(e) }; }
   }
   function errHTML(msg){ return '<span style="color:var(--danger)">' + msg + "</span>"; }
+  function cleanErr(msg){ return String(msg || "语法错误").replace(/^语法错误：/, "").trim(); }
+  // 去掉最外层成对的括号：( ( x+1 ) ) → ( x+1 )
+  function stripOuterParen(s){
+    var t = s.trim();
+    for (;;){
+      if (t.charAt(0) !== "(" || t.charAt(t.length - 1) !== ")") return t;
+      var d = 0, ok = true, i;
+      for (i = 0; i < t.length; i++){
+        if (t.charAt(i) === "(") d++;
+        else if (t.charAt(i) === ")"){ d--; if (d === 0 && i < t.length - 1){ ok = false; break; } }
+      }
+      if (!ok || d !== 0) return t;
+      t = t.slice(1, t.length - 1).trim();
+    }
+  }
+
+  /* ---------- 方程支持：左边 − 右边 = 0 的等值线 ---------- */
+  // AST 里是否出现某个变量；遇到不认识的节点就保守返回 true（宁可走隐式，不要漏画）
+  function hasVar(n, name){
+    if (!n || typeof n !== "object") return false;
+    switch (n.t){
+      case "num": return false;
+      case "var": return n.name === name;
+      case "neg": return hasVar(n.a, name);
+      case "add": case "mul": case "pow": return hasVar(n.a, name) || hasVar(n.b, name);
+      case "fn": return n.arg ? hasVar(n.arg, name) : false;
+      default: return true;
+    }
+  }
+  function sub(a, b){ return { t: "add", a: a, b: { t: "mul", a: C.parse("-1"), b: b } }; }
+  // 等于号个数：一个正常，多个（学生常写成 x^2/4+y^2=9=1）单独报中文提示
+  function countEq(s){
+    var n = 0, i;
+    for (i = 0; i < s.length; i++) if (s.charAt(i) === "=") n++;
+    return n;
+  }
+  // 代入两个变量求 F(x,y)：引擎的 evalAt 一次只认一个变量，先把 y 换掉
+  function evalXY(node, x, y){
+    try {
+      var v = C.evalAt(substVar(node, "y", y), x, "x");
+      return typeof v === "number" ? v : NaN;
+    } catch (e){ return NaN; }
+  }
+  // 解析一条输入：返回 { node }（显函数）/ { node, implicit:true, raw }（隐式方程）/ { err }
+  function parseEq(src){
+    var s = String(src);
+    if (countEq(s) === 0) return parseExpr(s);
+    if (countEq(s) > 1) return { err: "等号只能有一个（等号在这里表示方程，不是赋值）" };
+    var parts = s.split("=");
+    var L = stripOuterParen(parts[0]), R = stripOuterParen(parts[1]);
+    if (!L && !R) return { err: "等号两边都是空的" };
+    if (!L) return { err: "等号左边是空的" };
+    if (!R) return { err: "等号右边是空的" };
+    var rl = parseExprNode(L);
+    if (rl.err) return { err: "等号左边：" + cleanErr(rl.err) };
+    var rr = parseExprNode(R);
+    if (rr.err) return { err: "等号右边：" + cleanErr(rr.err) };
+    var F = sub(rl.node, rr.node), i;
+    var lx = hasVar(rl.node, "x"), ly = hasVar(rl.node, "y");
+    var rx = hasVar(rr.node, "x"), ry = hasVar(rr.node, "y");
+    var hx = lx || rx, hy = ly || ry;
+    // 未知变量提示：只允许 x、y
+    var other = [];
+    ["z", "t", "a", "b", "c", "n", "u", "v"].forEach(function(v){
+      if (hasVar(rl.node, v) || hasVar(rr.node, v)) other.push(v);
+    });
+    if (other.length) return { err: "方程里只能出现 x 和 y，不认识「" + other.join("、") + "」" };
+    if (!hx && !hy) return { err: "方程里没有 x 也没有 y，请写成含变量的方程，例如 x^2+y^2=4" };
+    if (!hx){
+      // 只有 y 而没有 x：等价于显函数，交给普通曲线那条路（更快、也更顺滑）
+      var c1 = evalXY(F, 0, 0), c2 = evalXY(F, 0, 1);
+      var k = c2 - c1, e;
+      if (!isFinite(k)) return { err: "方程里有算不出数值的部分，请检查写法" };
+      if (Math.abs(k - 1) < 1e-9){                      // 左边是 −y：(−y) = 右边 → 取负
+        e = parseExprNode(R);
+        if (!e.err) return { node: C.simplify({ t: "mul", a: C.parse("-1"), b: e.node }) };
+      }
+      if (Math.abs(k + 1) < 1e-9){                      // 左边就是 y：y = 右边
+        e = parseExprNode(R);
+        if (!e.err) return { node: C.simplify(e.node) };
+      }
+      return { err: "只含 y 的方程要能写成 y = …，例如 y = 3（这条暂时画不了）" };
+    }
+    if (hy){
+      var t1 = evalXY(F, 0, 0), t2 = evalXY(F, 1, 0), t3 = evalXY(F, 0, 1), t4 = evalXY(F, 1, 1);
+      if (!isFinite(t1) || !isFinite(t2) || !isFinite(t3) || !isFinite(t4)){
+        i = [t1, t2, t3, t4].filter(function(v){ return isFinite(v); });
+        if (i.length === 0) return { err: "方程里有算不出数值的部分，请检查写法" };
+      }
+    }
+    return { node: C.simplify(F), implicit: true, raw: L + " = " + R };
+  }
+  // 图例里怎么标：函数 / 方程
+  function legendLabel(ch, parsed){
+    if (!parsed) return "";
+    if (parsed.implicit) return ch + ": " + prettyExpr(parsed.raw).replace(/\^([0-9]+)/g, function(m, d){ return supHTML(d); }) + "（方程）";
+    return ch + "(x) = " + prettyExpr(C.str(parsed.node)) + "（函数）";
+  }
   function checkBrackets(s){
     var d = 0, i;
     for (i = 0; i < s.length; i++){
@@ -2640,37 +2751,62 @@ var Calc = {
     return { ctx: cv.getContext("2d"), w: w, h: h, dpr: dpr };
   }
 
-  /* ================= 板块一：二维函数图像 ================= */
-  var P2 = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, node2: null, src: "", readout: null };
+  /* ================= 板块一：二维函数图像（函数 + 方程） ================= */
+  var P2 = {
+    xmin: -6, xmax: 6, ymin: -3, ymax: 3,
+    curves: [],        // 显函数：[{ node, src, implicit:false }]
+    eqs: [],           // 隐式方程：[{ node, src, implicit:true, raw }]
+    src: "", readout: null, box: null, eq: 0, curveCount: 0
+  };
+  var F_DEFAULT = {
+    empty: "请先输入一个函数或方程，例如 sin(x)/x 或 x^2+y^2=4"
+  };
 
   function read2D(){
     var f = el("fx").value, g = el("gx").value;
-    var rf = null, rg = null;
+    var rf, rg;
     var bf = checkBrackets(f), bg = checkBrackets(g);
-    if (!f.trim()) rf = { err: "请先输入一个函数，例如 sin(x)/x" };
+    if (!f.trim()) rf = { err: F_DEFAULT.empty };
     else if (bf) rf = { err: bf };
-    else if (f.trim()) rf = parseExpr(f);
+    else rf = parseEq(f);
     if (g.trim()){
       if (bg) rg = { err: bg };
-      else rg = parseExpr(g);
-    }
-    P2.node = rf && rf.node ? rf.node : null;
-    P2.node2 = rg && rg.node ? rg.node : null;
+      else rg = parseEq(g);
+    } else rg = null;
+    P2.curves = []; P2.eqs = [];
+    [[rf, 0], [rg, 1]].forEach(function(pair){
+      var r = pair[0];
+      if (!r || r.err) return;
+      var rec = { node: r.node, src: "", implicit: !!r.implicit, raw: r.raw || "", idx: pair[1] };
+      if (r.implicit) P2.eqs.push(rec); else P2.curves.push(rec);
+    });
     P2.src = f;
 
-    var msg = "";
-    if (rf && rf.err) msg += errHTML("f(x)：" + rf.err);
-    if (rg && rg.err) msg += (msg ? "<br>" : "") + errHTML("g(x)：" + rg.err);
-    if (!msg) msg = '<span style="color:var(--fg-dim)">已画好，拖动或缩放可以看局部。</span>';
+    // 输入框下面各自的红色提示
+    var fe = el("fxErr"), ge = el("gxErr");
+    if (fe) fe.innerHTML = (rf && rf.err) ? errHTML(rf.err) : "";
+    if (ge) ge.innerHTML = (rg && rg.err) ? errHTML(rg.err) : "";
+
+    var msg = "", nb = 0;
+    if (rf && rf.err){ msg += errHTML("f：" + rf.err); nb++; }
+    if (rg && rg.err){ msg += (msg ? "<br>" : "") + errHTML("g：" + rg.err); nb++; }
+    if (!msg){
+      var line = (P2.eqs.length && !P2.curves.length)
+        ? "方程模式下画的是 F(x,y) = 0 这条线（F = 左边 − 右边）；光标读数里显示 F(x,y) 的值。"
+        : "已画好，拖动或缩放可以看局部。";
+      msg = '<span style="color:var(--fg-dim)">' + line + "</span>";
+    }
     el("plotinfo").innerHTML = msg;
-    renderLegend(rf && rf.node, rg && rg.node);
-    return !!(rf && rf.err) || !!(rg && rg.err);
+    renderLegend(rf, rg);
+    return nb > 0;
   }
-  function renderLegend(n1, n2){
+  function renderLegend(rf, rg){
     var h = "";
-    if (n1) h += '<span><i style="background:' + cssColor("--f1", "#0a84ff") + '"></i>f(x) = ' + prettyExpr(C.str(n1)) + "</span>";
-    if (n2) h += '<span><i style="background:' + cssColor("--f2", "#e8590c") + '"></i>g(x) = ' + prettyExpr(C.str(n2)) + "</span>";
-    if (!n1 && !n2) h = '<span>两条曲线都还没画</span>';
+    if (rf && rf.err) h += '<span>f：' + errHTML(rf.err) + "</span>";
+    else if (rf && rf.node) h += '<span><i style="background:' + cssColor("--f1", "#0a84ff") + '"></i>' + legendLabel("f", rf) + "</span>";
+    if (rg && rg.err) h += '<span>g：' + errHTML(rg.err) + "</span>";
+    else if (rg && rg.node) h += '<span><i style="background:' + cssColor("--f2", "#e8590c") + '"></i>' + legendLabel("g", rg) + "</span>";
+    if (!h) h = "<span>两条曲线都还没画</span>";
     el("legend2d").innerHTML = h;
   }
 
@@ -2679,8 +2815,10 @@ var Calc = {
     var n = 600;
     for (i = 0; i <= n; i++){
       var x = P2.xmin + (P2.xmax - P2.xmin) * i / n;
-      if (P2.node){ v = safeEval(P2.node, x, "x"); if (isFinite(v)) vals.push(v); }
-      if (P2.node2){ v = safeEval(P2.node2, x, "x"); if (isFinite(v)) vals.push(v); }
+      for (var c = 0; c < P2.curves.length; c++){
+        v = safeEval(P2.curves[c].node, x, "x");
+        if (isFinite(v)) vals.push(v);
+      }
     }
     if (vals.length < 12){ P2.ymin = -3; P2.ymax = 3; return; }
     vals.sort(function(a, b){ return a - b; });
@@ -2693,6 +2831,118 @@ var Calc = {
     var span = Math.min(hi - lo, 1e7), mid = (hi + lo) / 2;
     P2.ymin = mid - span * 0.62;
     P2.ymax = mid + span * 0.62;
+  }
+
+  /* ---------- 隐式方程：把 F(x,y) 画成零等值线（marching squares） ---------- */
+  // 像素步长 2 起步：手机上一帧百来个格子、约一万次求值，够快；太慢再退到 3。
+  var MS_STEP = 2;
+  function msCount(w, h){
+    var n = w / MS_STEP;
+    if (n > 260) n = 260; else if (n < 24) n = 24;
+    var m = Math.round(n * h / w);
+    if (m > 220) m = 220; else if (m < 16) m = 16;
+    return [Math.round(n), m];
+  }
+  function msMedian(a){
+    if (!a.length) return 1;
+    var b = a.slice().sort(function(p, q){ return p - q; });
+    return b[b.length >> 1] || 1;
+  }
+  // 格子角点取值；NaN / 无穷大换成带符号的巨大值，让等值线在那儿断开而不是乱连
+  var MS_BIG = 1e12;
+  function msSample(node, x, y, ivals, avals){
+    var v = evalXY(node, x, y);
+    if (typeof v !== "number" || isNaN(v)){ ivals.push(0); avals.push(MS_BIG); return MS_BIG; }
+    if (!isFinite(v)){ var s = v > 0 ? MS_BIG : -MS_BIG; ivals.push(s); avals.push(MS_BIG); return s; }
+    ivals.push(v); avals.push(Math.abs(v));
+    return v;
+  }
+  // 一个格子：四个角两条边求交，连成一条线段
+  function msCell(path, vals, i, j, mx, gx, gy, skip){
+    var a = vals[j * mx + i], b = vals[j * mx + i + 1];
+    var c = vals[(j + 1) * mx + i + 1], d = vals[(j + 1) * mx + i];
+    if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return 0;
+    var pa = a >= 0, pb = b >= 0, pc = c >= 0, pd = d >= 0;
+    var k = (pa ? 1 : 0) | (pb ? 2 : 0) | (pc ? 4 : 0) | (pd ? 8 : 0);
+    if (k === 0 || k === 15) return 0;
+    var gx0 = gx + i * MS_STEP, gx1 = gx0 + MS_STEP;
+    var gy0 = gy + j * MS_STEP, gy1 = gy0 + MS_STEP;
+    function cross(v0, v1, x0, y0, x1, y1){
+      var t = v0 / (v0 - v1);
+      if (!isFinite(t)) t = 0.5;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+      return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
+    }
+    var pts = [];
+    if (pa !== pb) pts.push([1, 2, cross(a, b, gx0, gy0, gx1, gy0)]);
+    if (pb !== pc) pts.push([2, 4, cross(b, c, gx1, gy0, gx1, gy1)]);
+    if (pc !== pd) pts.push([4, 8, cross(c, d, gx1, gy1, gx0, gy1)]);
+    if (pd !== pa) pts.push([8, 1, cross(d, a, gx0, gy1, gx0, gy0)]);
+    // 不连对角：找一条真正相邻的边对（两个角都跟交点同号）
+    var cb = [pa ? 1 : 0, pb ? 2 : 0, pc ? 4 : 0, pd ? 8 : 0];
+    var order = [ [1, 4, 2], [1, 2, 3], [2, 8, 4], [1, 8, 4], [1, 4, 3], [2, 8, 3] ];
+    var pick = null, oi, oj, o;
+    for (oi = 0; oi < order.length && !pick; oi++){
+      for (oj = 0; oj < pts.length; oj++){
+        if (pts[oj][0] !== order[oi][0]) continue;
+        for (o = 0; o < pts.length; o++){
+          if (o !== oj && pts[o][0] === order[oi][1] && cb[order[oi][2] - 1]){ pick = [pts[oj], pts[o]]; break; }
+        }
+        if (pick) break;
+      }
+    }
+    if (!pick) return 0;
+    // 四个角都远超典型量级的格子：里面是极点，不是零水平集，别画成横贯屏幕的假线
+    if (Math.abs(a) > skip && Math.abs(b) > skip && Math.abs(c) > skip && Math.abs(d) > skip) return 0;
+    var p0 = pick[0][2], p1 = pick[1][2];
+    path.moveTo(p0[0], p0[1]);
+    path.lineTo(p1[0], p1[1]);
+    return 1;
+  }
+  // 只画零等值线：F(x,y) = 0
+  function marchingSquares(ctx, node, color){
+    var w = P2.w, h = P2.h;
+    if (!node || !(w > 0) || !(h > 0)) return 0;
+    var dims = msCount(w, h), mx = dims[0] + 1, my = dims[1] + 1;
+    var gx = P2.box ? P2.box.X(P2.xmin) : 0;
+    var gy = P2.box ? P2.box.Y(P2.ymax) : 0;
+    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+    var vals = new Array(mx * my), ivals = [], avals = [], i, j;
+    for (j = 0; j < my; j++){
+      var y = P2.ymax - spanY * j / dims[1];
+      for (i = 0; i < mx; i++){
+        vals[j * mx + i] = msSample(node, P2.xmin + spanX * i / dims[0], y, ivals, avals);
+      }
+    }
+    // 典型量级：四个角都远超它的格子，里面是极点而不是零水平集
+    var skip = msMedian(avals) * 64;
+    if (skip > 1e7) skip = 1e7;
+    if (skip < 1e3) skip = 1e3;
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 2.3; ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath();
+    var segs = 0;
+    for (j = 0; j < dims[1]; j++)
+      for (i = 0; i < dims[0]; i++) segs += msCell(ctx, vals, i, j, mx, gx, gy, skip);
+    if (segs) ctx.stroke();
+    ctx.restore();
+    return segs;
+  }
+  function drawEq(ctx, rec, color){
+    if (!rec || !rec.node) return 0;
+    if (!rec.implicit) return 0;
+    return marchingSquares(ctx, rec.node, color);
+  }
+  // 隐式方程没有 y 范围可言：把比例调成 1:1，圆才不会被压成椭圆
+  function aspectFit(){
+    if (!P2.eqs.length || !P2.w || !P2.h) return;
+    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+    if (!(spanX > 0) || !(spanY > 0)) return;
+    var mx = (P2.xmin + P2.xmax) / 2, my = (P2.ymin + P2.ymax) / 2;
+    var k = (P2.h * spanX) / (P2.w * spanY);   // 想等于 1
+    if (k > 0.98 && k < 1.02) return;
+    var ns = spanY / k;
+    P2.ymin = my - ns / 2; P2.ymax = my + ns / 2;
   }
 
   function plotDraw(){
@@ -2709,6 +2959,7 @@ var Calc = {
     var X = function(x){ return (x - P2.xmin) / spanX * w; };
     var Y = function(y){ return h - (y - P2.ymin) / spanY * h; };
     var ux = w / spanX, uy = h / spanY;        // 每单位多少像素
+    P2.w = w; P2.h = h; P2.box = { X: X, Y: Y };
 
     /* 网格 */
     var stepX = tickStep(spanX / 8), stepY = tickStep(spanY / 5);
@@ -2761,7 +3012,7 @@ var Calc = {
     }
     ctx.restore();
 
-    /* 曲线：断开处不连线 */
+    /* 曲线：显函数逐点连线，隐式方程画零等值线 */
     function curve(node, color){
       if (!node) return;
       ctx.save();
@@ -2784,18 +3035,27 @@ var Calc = {
       ctx.stroke();
       ctx.restore();
     }
-    curve(P2.node2, cssColor("--f2", "#e8590c"));
-    curve(P2.node, cssColor("--f1", "#0a84ff"));
+    var ci, nCurve = 0, nEq = 0;
+    function slot(idx){ return idx === 1 ? { c: "--f2", fb: "#e8590c" } : { c: "--f1", fb: "#0a84ff" }; }
+    P2.curves.forEach(function(rec){
+      curve(rec.node, cssColor(slot(rec.idx).c, slot(rec.idx).fb));
+      nCurve++;
+    });
+    P2.eqs.forEach(function(rec){
+      var seg = drawEq(ctx, rec, cssColor(slot(rec.idx).c, slot(rec.idx).fb));
+      rec.segs = seg;
+      if (seg) nEq++;
+    });
+    P2.curveCount = nCurve; P2.eq = nEq;
 
-    /* 光标读数点 */
+    /* 光标读数点：显函数标在曲线上，方程没法给单点，只在读数行里报 F(x,y) */
     if (P2.readout){
       var ro = P2.readout;
-      [ [P2.node, cssColor("--f1", "#0a84ff")], [P2.node2, cssColor("--f2", "#e8590c")] ].forEach(function(pair){
-        if (!pair[0]) return;
-        var vy = safeEval(pair[0], ro.x, "x");
+      P2.curves.forEach(function(rec){
+        var vy = safeEval(rec.node, ro.x, "x");
         if (!isFinite(vy) || vy < P2.ymin || vy > P2.ymax) return;
         ctx.save();
-        ctx.fillStyle = pair[1];
+        ctx.fillStyle = cssColor(slot(rec.idx).c, slot(rec.idx).fb);
         ctx.beginPath(); ctx.arc(X(ro.x), Y(vy), 3.6, 0, 6.2832); ctx.fill();
         ctx.restore();
       });
@@ -2803,15 +3063,19 @@ var Calc = {
 
     /* 读数那一行（只写一次，别覆盖报错信息） */
     if (P2.readout){
-      var rx = P2.readout.x, parts = ["x = " + unary(sig6(rx))];
-      if (P2.node){
-        var v1 = safeEval(P2.node, rx, "x");
-        parts.push("f(x) = " + (isFinite(v1) ? unary(sig6(v1)) : "不存在"));
-      }
-      if (P2.node2){
-        var v2 = safeEval(P2.node2, rx, "x");
-        parts.push("g(x) = " + (isFinite(v2) ? unary(sig6(v2)) : "不存在"));
-      }
+      var rx = P2.readout.x, ry = P2.readout.y, parts = ["x = " + unary(sig6(rx))];
+      if (isFinite(ry)) parts.push("y = " + unary(sig6(ry)));
+      P2.curves.forEach(function(rec){
+        var v = safeEval(rec.node, rx, "x");
+        parts.push((rec.idx === 1 ? "g" : "f") + "(x) = " + (isFinite(v) ? unary(sig6(v)) : "不存在"));
+      });
+      P2.eqs.forEach(function(rec){
+        var fv = evalXY(rec.node, rx, ry);
+        var ch = rec.idx === 1 ? "g" : "f";
+        if (!isFinite(fv)) parts.push(ch + "：F(x,y) 不存在");
+        else if (rec.raw) parts.push(ch + "：" + prettyExpr(rec.raw) + " 的 F(x,y) = " + unary(sig6(fv)));
+        else parts.push(ch + "：F(x,y) = " + unary(sig6(fv)));
+      });
       el("plotinfo").innerHTML = '<b>' + parts.join("　·　") + "</b>";
     }
   }
@@ -2835,7 +3099,9 @@ var Calc = {
     });
     cv2.addEventListener("pointermove", function(e){
       var r = cv2.getBoundingClientRect();
-      P2.readout = { x: P2.xmin + ((e.clientX - r.left) / r.width) * (P2.xmax - P2.xmin) };
+      var rx = P2.xmin + ((e.clientX - r.left) / r.width) * (P2.xmax - P2.xmin);
+      var ry = P2.ymax - ((e.clientY - r.top) / r.height) * (P2.ymax - P2.ymin);
+      P2.readout = { x: rx, y: ry };
       if (d2){
         var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
         P2.xmin -= (e.clientX - lx2) / r.width * spanX;
@@ -2923,7 +3189,7 @@ var Calc = {
     el("syms").appendChild(b);
   });
 
-  /* ---------- 二维例子：按钮上显示好看的写法 ---------- */
+  /* ---------- 二维例子：函数与方程混排，按钮上显示好看的写法 ---------- */
   var EX2D = [
     { src: "sin(x)/x",    label: "sin x / x" },
     { src: "sin(x)",      label: "sin x" },
@@ -2937,31 +3203,40 @@ var Calc = {
     { src: "sqrt(x)",     label: "√x" },
     { src: "1/(1+x^2)",   label: "1/(1+x<sup>2</sup>)" }
   ];
-  EX2D.forEach(function(s){
+  // 方程例子：隐式方程画零等值线；y=x^2 这种右边只有 y 的会走显函数（更快更顺）
+  var EX2EQ = [
+    { src: "x^2+y^2=4",    label: "x<sup>2</sup>+y<sup>2</sup>=4（圆）" },
+    { src: "x*y=1",        label: "xy=1（双曲线）" },
+    { src: "y=x^2",        label: "y=x<sup>2</sup>（方程写法）" },
+    { src: "sin(x)=cos(y)", label: "sin x=cos y（花纹）" }
+  ];
+  function addChip(host, s, id){
     var b = document.createElement("button");
     b.className = "chip"; b.innerHTML = s.label; b.title = s.src;
     b.addEventListener("click", function(){
-      el("fx").value = s.src;
-      markActive("fx");
-      autoY(); refresh2D(false);
+      el(id).value = s.src;
+      markActive(id);
+      autoY();
+      if (id === "fx" || P2.eqs.length) aspectFit();
+      refresh2D(false);
     });
-    el("examples2d").appendChild(b);
-  });
+    host.appendChild(b);
+  }
+  EX2D.forEach(function(s){ addChip(el("examples2d"), s, "fx"); });
+  EX2EQ.forEach(function(s){ addChip(el("examples2d"), s, "fx"); });
+
   var EX2G = [
     { src: "cos(x)",    label: "g = cos x" },
     { src: "-sin(x)",   label: "g = −sin x" },
     { src: "x^2/8",     label: "g = x<sup>2</sup>/8" }
   ];
-  EX2G.forEach(function(s){
-    var b = document.createElement("button");
-    b.className = "chip"; b.innerHTML = s.label; b.title = s.src;
-    b.addEventListener("click", function(){
-      el("gx").value = s.src;
-      markActive("gx");
-      autoY(); refresh2D(false);
-    });
-    el("examples2d").appendChild(b);
-  });
+  // g 这一组也能写方程
+  var EX2GEQ = [
+    { src: "x^2+y^2=9", label: "g: x<sup>2</sup>+y<sup>2</sup>=9（圆）" },
+    { src: "y^2=x",     label: "g: y<sup>2</sup>=x（抛物线）" }
+  ];
+  EX2G.forEach(function(s){ addChip(el("examples2d"), s, "gx"); });
+  EX2GEQ.forEach(function(s){ addChip(el("examples2d"), s, "gx"); });
 
   function refresh2D(keepWindow){
     var bad = read2D();
@@ -2972,15 +3247,26 @@ var Calc = {
   el("plotFit").addEventListener("click", function(){
     read2D();
     autoY();
+    aspectFit();
     plotDraw();
   });
   el("plotReset").addEventListener("click", function(){
     P2.xmin = -6; P2.xmax = 6;
     read2D();
-    if (!P2.node && !P2.node2){ P2.ymin = -3; P2.ymax = 3; }
-    else autoY();
+    if (!P2.curves.length && !P2.eqs.length){ P2.ymin = -3; P2.ymax = 3; }
+    else { autoY(); aspectFit(); }
     P2.readout = null;
     plotDraw();
+  });
+  /* 清空：只清输入与画面，坐标范围与缩放保留 */
+  el("graphClear").addEventListener("click", function(){
+    el("fx").value = "";
+    el("gx").value = "";
+    P2.readout = null;
+    read2D();
+    plotDraw();
+    refresh3D(true);
+    try { el("fx").focus(); } catch (e) {}
   });
 
   /* ================= 板块二：三维曲面 ================= */
@@ -3387,6 +3673,10 @@ var Calc = {
   try { read2D(); autoY(); } catch (e){ showFatal("plotinfo", e); }
   applySkin(saved);
   try { refresh3D(true); } catch (e){ showFatal("geoinfo3d", e); }
+  try {
+    plotDraw();          // 先画一次，量出画布尺寸
+    aspectFit();         // 方程要 1:1 的比例，圆才不会被压扁
+  } catch (e){ showFatal("plotinfo", e); }
   try { plotDraw(); } catch (e){ showFatal("plotinfo", e); }
   try { paint3D(); } catch (e){ showFatal("geoinfo3d", e); }
   window.__graphReady = true;

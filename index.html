@@ -34,6 +34,50 @@
   --chip-on-bg:#ffd23f; --chip-on-fg:#141414;
   --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none;
 }
+/* ==================== 新增皮肤：方舟 / 霓虹 / 终端 ==================== */
+/* 方舟：深黑底、直角、1px 细亮边、亮黄点缀、轻微斜纹（军事科技感） */
+:root[data-skin="ark"]{
+  --bg:#0b0b0c; --bg-image:repeating-linear-gradient(135deg, rgba(255,255,255,.016) 0 10px, transparent 10px 20px);
+  --fg:#f2f2f2; --fg-dim:#8d8d92;
+  --card:#141416; --card-border:#3b3b40; --card-bw:1px; --radius:3px; --skin-bw:1px;
+  --shadow:0 2px 0 rgba(0,0,0,.5); --track:#0f0f11;
+  --chip:#1b1b1e; --chip-border:#42424a;
+  --chip-on-bg:#f5e400; --chip-on-fg:#0b0b0c;
+  --mark:#f5e400; --mark-fg:#0b0b0c; --logo-shadow:none;
+}
+/* 霓虹：深紫黑底 + 青/品红辉光 */
+:root[data-skin="neon"]{
+  --bg:#07060f;
+  --bg-image:radial-gradient(1100px 560px at 18% -8%, rgba(0,229,255,.12), transparent 62%), radial-gradient(900px 500px at 100% 0%, rgba(255,62,165,.10), transparent 58%);
+  --fg:#eaf7ff; --fg-dim:#8ea6c8;
+  --card:rgba(18,13,34,.86); --card-border:#312a63; --card-bw:1px; --radius:16px; --skin-bw:1px;
+  --shadow:0 0 26px rgba(0,229,255,.10); --track:#0d0a1c;
+  --chip:rgba(24,18,44,.85); --chip-border:#3a3170;
+  --chip-on-bg:#00e5ff; --chip-on-fg:#04060f;
+  --mark:#00e5ff; --mark-fg:#04060f; --logo-shadow:0 0 18px rgba(0,229,255,.45);
+}
+/* 终端：纯黑 + 绿字 + 等宽 + 扫描线 */
+:root[data-skin="mono"]{
+  --bg:#000000; --bg-image:repeating-linear-gradient(0deg, rgba(57,255,138,.05) 0 1px, transparent 1px 3px);
+  --fg:#39ff8a; --fg-dim:#1f8a4c;
+  --card:#050805; --card-border:#1f6b3d; --card-bw:1px; --radius:0px; --skin-bw:1px;
+  --shadow:none; --track:#020402;
+  --chip:#040a06; --chip-border:#1f6b3d;
+  --chip-on-bg:#39ff8a; --chip-on-fg:#000000;
+  --mark:#39ff8a; --mark-fg:#000000; --logo-shadow:none;
+}
+.skins{flex-wrap:wrap;justify-content:flex-end}
+/* 方舟的直角卡片：左侧亮条 + 右上角标 */
+:root[data-skin="ark"] .card{position:relative;overflow:hidden}
+:root[data-skin="ark"] .card::before{content:"";position:absolute;left:0;top:10px;width:3px;height:20px;background:var(--mark)}
+:root[data-skin="ark"] .chip.on,:root[data-skin="ark"] .tabs .on{box-shadow:none;font-weight:700;letter-spacing:.02em}
+:root[data-skin="ark"] .tabs .tag{color:#0b0b0c;background:var(--mark);border-radius:2px;padding:1px 4px;opacity:1}
+/* 霓虹的发光选中态 */
+:root[data-skin="neon"] .chip.on,:root[data-skin="neon"] .tabs .on{box-shadow:0 0 16px rgba(0,229,255,.45)}
+/* 终端用等宽字体 */
+:root[data-skin="mono"] body{font-family:ui-monospace,"Cascadia Mono",Consolas,"Courier New",monospace}
+:root[data-skin="mono"] .tabs .on{box-shadow:0 0 12px rgba(57,255,138,.35)}
+
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(18px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
@@ -74,7 +118,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   <div class="hero">
     <h1 class="heroTitle">蒲瓜的计算器</h1>
     <p class="heroSub">由 Deepseek 制作</p>
-    <p class="ver">版本 <b>V2.2</b>　·　更新于 2026-10-16 18:08</p>
+    <p class="ver">版本 <b>V2.3</b>　·　更新于 2026-10-16 18:10</p>
   </div>
 
   <div class="toprow">
@@ -82,6 +126,12 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
       <button data-skin-set="glass">玻璃</button>
       <button data-skin-set="light" class="on">极简</button>
       <button data-skin-set="brutal">粗野</button>
+
+      <button data-skin-set="ark">方舟</button>
+
+      <button data-skin-set="neon">霓虹</button>
+
+      <button data-skin-set="mono">终端</button>
     </div>
   </div>
 
@@ -175,7 +225,10 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   var THEME = {
     glass: { color: "#080c18", bar: "black-translucent" },
     light: { color: "#f2f2f7", bar: "default" },
-    brutal: { color: "#fdf1dd", bar: "default" }
+    brutal: { color: "#fdf1dd", bar: "default" },
+    ark: { color: "#0b0b0c", bar: "black-translucent" },
+    neon: { color: "#07060f", bar: "black-translucent" },
+    mono: { color: "#000000", bar: "black-translucent" }
   };
   function applySkin(s){
     document.documentElement.setAttribute("data-skin", s);
@@ -192,7 +245,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
     b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
   });
-  var SKINS = ["glass", "light", "brutal"], saved = "light";
+  var SKINS = ["glass", "light", "brutal", "ark", "neon", "mono"], saved = "light";
   try {
     var q = new URLSearchParams(location.search).get("skin");
     saved = q || localStorage.getItem("la-skin-v2") || "light";
