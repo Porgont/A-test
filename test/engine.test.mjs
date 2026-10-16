@@ -186,6 +186,56 @@ console.log("== 初等行变换步骤与初等矩阵 ==");
 }
 ok("单位阵生成", ms(eyeFrac(3)), "1,0,0;0,1,0;0,0,1");
 
+console.log("== 符号矩阵（字母当数用） ==");
+{
+  const S = (t) => L.val(t);
+  const SM = (rows) => rows.map((r) => r.map(S));
+  const symMat = (m) => m.map((r) => r.map((v) => v.toString()).join(",")).join(";");
+  const symVec = (v) => v.map((x) => x.toString()).join(",");
+
+  ok("det[[a,1],[1,a]] = a^2 - 1（符号不能弄错）", symMat([[det(SM([["a", "1"], ["1", "a"]]))]]), "a^2 - 1");
+  ok("det[[a,b],[c,d]] = a*d - b*c", symMat([[det(SM([["a", "b"], ["c", "d"]]))]]), "a*d - b*c");
+  ok("det 3 阶符号：对角阵 a,b,c → a*b*c", symMat([[det(SM([["a", "0", "0"], ["0", "b", "0"], ["0", "0", "c"]]))]]), "a*b*c");
+  ok("符号加法 A+B", symMat(matAdd(SM([["a", "1"], ["0", "b"]]), SM([["1", "2"], ["3", "4"]]))), "a + 1,3;3,b + 4");
+  ok("符号乘法 A×B", symMat(matMul(SM([["a", "1"], ["0", "b"]]), SM([["1", "2"], ["3", "4"]]))), "a + 3,2*a + 4;3*b,4*b");
+  ok("符号数乘 k=a", symMat(scaleMat(SM([["1", "2"], ["3", "4"]]), S("a"))), "a,2*a;3*a,4*a");
+  ok("符号转置", symMat(transpose(SM([["a", "2"], ["3", "b"]]))), "a,3;2,b");
+  ok("符号迹", trace(SM([["a", "2"], ["3", "b"]])).toString(), "a + b");
+  ok("混合：数字与字母一起算", symMat(matMul(SM([["a", "0"], ["0", "1"]]), M([[2, 3], [4, 5]]))), "2*a,3*a;4,5");
+  {
+    let msg = "no error";
+    try { rref(SM([["a", "1"], ["1", "a"]])); } catch (e) { msg = /符号/.test(e.message) ? "中文报错" : "别的错"; }
+    ok("符号主元做 RREF 会中文报错（不猜零）", msg, "中文报错");
+  }
+  {
+    let msg = "no error";
+    try { inverse(SM([["a", "1"], ["1", "a"]])); } catch (e) { msg = /符号/.test(e.message) ? "中文报错" : "别的错"; }
+    ok("符号矩阵求逆会中文报错", msg, "中文报错");
+  }
+}
+
+console.log("== 增广矩阵求解 [A|b] ==");
+{
+  const S = (t) => L.val(t);
+  const SM = (rows) => rows.map((r) => r.map(S));
+  const r1 = L.augSolve(SM([["1", "2", "3"], ["2", "4", "6"]]));
+  ok("[[1,2,3],[2,4,6]] 无穷多解", r1.type, "infinite");
+  ok("   rankA = 1", r1.rankA, 1);
+  ok("   rank[A|b] = 1", r1.rankAug, 1);
+  ok("   自由变量 1 个", r1.free, 1);
+  const r2 = L.augSolve(SM([["1", "1", "2"], ["1", "1", "3"]]));
+  ok("[[1,1,2],[1,1,3]] 无解", r2.type, "none");
+  ok("   rankA=1 而 rank[A|b]=2", r2.rankA + "/" + r2.rankAug, "1/2");
+  const r3 = L.augSolve(SM([["2", "1", "5"], ["1", "3", "10"]]));
+  ok("[[2,1,5],[1,3,10]] 唯一解", r3.type, "unique");
+  ok("   解 = (1, 3)", r3.solution.particular.map((v) => v.toString()).join(","), "1,3");
+  {
+    let msg = "no error";
+    try { L.augSolve(SM([["1"], ["2"]])); } catch (e) { msg = /至少/.test(e.message) ? "中文报错" : "别的错"; }
+    ok("列数不足 2 时报中文错", msg, "中文报错");
+  }
+}
+
 console.log("");
 console.log(pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

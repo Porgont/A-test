@@ -86,8 +86,8 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 .skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
-.tabs{display:flex;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1;text-align:center;padding:11px 10px;border-radius:12px;font-size:13.5px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
@@ -188,7 +188,11 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <a href="index.html">首页</a>
     <span class="on">矩阵<span class="tag">当前</span></span>
     <a href="transform.html">变换</a>
-    <a href="calculus.html">微积分</a>
+    <a href="limits.html">极限</a>
+    <a href="deriv.html">微分</a>
+    <a href="integral.html">积分</a>
+    <a href="graph.html">图像</a>
+    <a href="stats.html">概率</a>
   </nav>
 
   <section class="card" id="cardA">
@@ -253,6 +257,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <div class="glabel">方程与特征</div>
     <div class="chips" id="g3">
       <button class="chip" data-op="solve">解 Ax = b<i>方程组</i></button>
+      <button class="chip" data-op="aug">增广矩阵求解<i>[A|b] 直接解</i></button>
       <button class="chip" data-op="eig">特征值 A<i>特征值</i></button>
       <button class="chip" data-op="ker">ker A<i>零空间</i></button>
       <button class="chip" data-op="col">col A<i>列空间</i></button>
@@ -288,7 +293,11 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <a href="index.html">首页</a>
     <span class="on">矩阵<span class="tag">当前</span></span>
     <a href="transform.html">变换</a>
-    <a href="calculus.html">微积分</a>
+    <a href="limits.html">极限</a>
+    <a href="deriv.html">微分</a>
+    <a href="integral.html">积分</a>
+    <a href="graph.html">图像</a>
+    <a href="stats.html">概率</a>
   </nav>
 
   <p class="foot">输入支持分数，例如 −3/4、1.25；结果默认给精确分数。<br>矩阵格里按 <b>回车</b> 跳到下一个格子（末格回到第一格），<b>Ctrl+回车</b> 直接计算。</p>
@@ -299,6 +308,1047 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 const LinAlg = (function(){
   "use strict";
   var ZERO = null, ONE = null, TWO = null;
+
+  /* ==================== 符号值层（把 Calc 包装成一个「数」） ==================== */
+  /* 一个值只有两种形态：
+       - Frac（精确有理数，和以前完全一样）
+       - Sym （符号表达式，内部是内置符号引擎 Calc 的 AST）
+     矩阵里每个格子都可以是其中一种；下面的 vAdd/vMul/... 负责两种形态的混合运算。 */
+
+  var SYM_FUNCS = ["sin", "cos", "tan", "cot", "sec", "csc", "asin", "acos", "atan",
+    "sinh", "cosh", "tanh", "ln", "log", "exp", "sqrt", "abs"];
+  var SYM_MSG_RREF = "行化简需要判断主元是否为零，暂不支持；符号行列式和四则运算是支持的。";
+  var SYM_MSG_INV = "符号矩阵不能做精确除法，所以无法求逆；符号行列式和四则运算是支持的。";
+  var SYM_MSG_NUM = "这个运算要求矩阵里全是数字；符号矩阵只支持加减、乘法、数乘、转置、迹和行列式。";
+  var SYM_MSG_DET = "符号矩阵的行列式不能做精确除法，暂不支持；符号行列式和四则运算是支持的。";
+
+  function symOf(expr){ return new Sym(expr, Calc.str(expr)); }
+  /* 符号节点的子节点只能是 AST 节点或 Sym；Frac / 数字要先变成 {t:"num"} 节点。 */
+  function sExpr(x){
+    if (isSym(x)) return x.expr;
+    if (x instanceof Frac) return Calc.num(x.n, x.d);
+    if (typeof x === "number") return Calc.num(x);
+    if (typeof x === "bigint") return Calc.num(x);
+    return val(x).expr;
+  }
+  function Sym(expr, text){ this.expr = expr; this.text = text; }
+  Sym.prototype.isZero = function(){ return this.expr.t === "num" && this.expr.v.isZero; };
+  Sym.prototype.isOne = function(){ return this.expr.t === "num" && this.expr.v.isOne; };
+  Sym.prototype.sign = function(){
+    if (this.expr.t !== "num") throw new Error("符号表达式「" + this.text + "」没有确定的正负号，" + SYM_MSG_RREF);
+    return this.expr.v.sign;
+  };
+  Sym.prototype.neg = function(){ return symOf(Calc.simplify({ t: "neg", a: this.expr })); };
+  Sym.prototype.add = function(o){ return symOf(Calc.simplify({ t: "add", a: this.expr, b: sExpr(o) })); };
+  Sym.prototype.sub = function(o){ return symOf(Calc.simplify({ t: "add", a: this.expr, b: { t: "neg", a: sExpr(o) } })); };
+  Sym.prototype.mul = function(o){ return symOf(Calc.simplify({ t: "mul", a: this.expr, b: sExpr(o) })); };
+  /* 符号除法：不真正做除法，化成乘以 -1 次幂（Calc 会把分母打印成 1/x 这类写法）。 */
+  Sym.prototype.div = function(o){
+    if (o.isZero()) throw new Error("不能除以 0");
+    return symOf(Calc.simplify({ t: "mul", a: this.expr, b: { t: "pow", a: sExpr(o), b: Calc.num(-1) } }));
+  };
+  Sym.prototype.toString = function(){ return this.text; };
+  Sym.prototype.toNumber = function(){ throw new Error("符号表达式「" + this.text + "」没有数值，" + SYM_MSG_NUM); };
+  Sym.prototype.isSym = true;   /* 标记位：注意别把 isSym() 这个函数名盖掉 */
+
+  function isSym(v){ return !!(v && v.isSym === true); }
+  function symVars(n, out){
+    out = out || [];
+    if (!n || typeof n !== "object") return out;
+    if (n.t === "var"){ if (out.indexOf(n.name) < 0) out.push(n.name); return out; }
+    if (n.t === "neg") { symVars(n.a, out); return out; }
+    if (n.t === "add" || n.t === "mul" || n.t === "pow"){ symVars(n.a, out); symVars(n.b, out); return out; }
+    if (n.t === "fn" && n.arg) symVars(n.arg, out);
+    return out;
+  }
+  function symName(v, dflt){
+    var vs = symVars(v.expr === undefined ? v : v.expr);
+    if (!vs.length) return dflt || "变量";
+    if (vs.length === 1) return vs[0];
+    return vs.slice(0, 3).join("、") + " 等 " + vs.length + " 个符号";
+  }
+  /* 还没变成「值」的原始输入（字符串、数字）→ true；已经是 Frac 或 Sym → false。 */
+  function needsVal(n){ return !(n instanceof Frac) && !isSym(n); }
+  /* 整个矩阵都是数字（没有符号）→ true；只要有一个符号就 → false。 */
+  function allNums(M){
+    for (var i = 0; i < M.length; i++){
+      for (var j = 0; j < M[i].length; j++){ if (isSym(M[i][j])) return false; }
+    }
+    return true;
+  }
+  function symGuard(M, tail){
+    for (var i = 0; i < M.length; i++){
+      for (var j = 0; j < M[i].length; j++){
+        if (isSym(M[i][j])) return "矩阵里有符号 " + symName(M[i][j]) + "，" + tail;
+      }
+    }
+    return null;
+  }
+  function guardRowMap(M){ var m = symGuard(M, SYM_MSG_RREF); if (m) throw new Error(m); return M; }
+  function guardNoDiv(M){ var m = symGuard(M, SYM_MSG_INV); if (m) throw new Error(m); return M; }
+  function guardNumOnly(M){ var m = symGuard(M, SYM_MSG_NUM); if (m) throw new Error(m); return M; }
+  function guardDet(M){ var m = symGuard(M, SYM_MSG_DET); if (m) throw new Error(m); return M; }
+
+  function symOK(n){
+    if (!n || typeof n !== "object") return false;
+    if (n.t === "num" || n.t === "var") return true;
+    if (n.t === "neg") return symOK(n.a);
+    if (n.t === "add" || n.t === "mul" || n.t === "pow") return symOK(n.a) && symOK(n.b);
+    return false;
+  }
+
+  /* ---------- 值构造：数字尽量保持 Frac，带字母的才变成 Sym ---------- */
+
+  /* 把用户输入的空格、各种减号、幂号、百分号之外的写法规范化。
+     注意：只补上「数字后面直接跟字母」的乘号（2a → 2*a），
+     并保留 Calc 本来就支持的隐式乘法（a(b+1)、ab）。 */
+  function prepSym(s){
+    var t = String(s).replace(/\s+/g, "").replace(/−/g, "-").replace(/—/g, "-")
+      .replace(/／/g, "/").replace(/×/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    t = t.replace(/([0-9])([A-Za-z(])/g, "$1*$2");
+    t = t.replace(/\)([0-9A-Za-z(])/g, ")*$1");
+    return t;
+  }
+  /* 解析成数值；不是纯数字就返回 null。 */
+  function numTry(s){
+    if (s instanceof Frac) return s;
+    if (typeof s === "bigint" || typeof s === "number") return F(s);
+    if (typeof s !== "string") return null;
+    try { return F(s); } catch (e){ return null; }
+  }
+  function buildSym(s){
+    var t = prepSym(s);
+    var node;
+    try { node = Calc.simplify(Calc.parse(t)); }
+    catch (e){ throw new Error("无法解析「" + String(s).trim() + "」：" + e.message); }
+    var bad = null;
+    (function scan(n){
+      if (bad || !n || typeof n !== "object") return;
+      if (n.t === "fn"){
+        if (n.name === "pi" || n.name === "e") bad = "常量 " + n.name + " 不是精确数";
+        else bad = "函数 " + n.name + "()";
+        return;
+      }
+      if (n.t === "neg") { scan(n.a); return; }
+      if (n.t === "add" || n.t === "mul" || n.t === "pow"){ scan(n.a); scan(n.b); }
+    })(node);
+    if (bad) throw new Error("矩阵格子里不能用" + bad + "；只支持数字、字母（a–z、A–Z，可多字母）、+ - * / ^ 和括号。");
+    if (Calc.str(node).length > 160) throw new Error("这个符号表达式太长了，暂时算不动");
+    return new Sym(node, Calc.str(node));
+  }
+  /* 用户输入的一个格子 → 值（支持 -3/4、1.25、a、2a、a+1、a*b、a^2、-k/2） */
+  function val(x){
+    if (x instanceof Frac || isSym(x)) return x;
+    if (typeof x === "bigint") return F(x);
+    if (typeof x === "number") return F(x);
+    var n = numTry(x);
+    if (n !== null) return n;
+    return buildSym(x);
+  }
+  function valMat(M){
+    shape(M);
+    return M.map(function(r){ return r.map(function(v){ return val(v); }); });
+  }
+
+  /* ---------- 两种形态之间的四则运算 ---------- */
+
+  /* 两种形态之间的四则运算：只要有一边是符号，两边都先升成符号值。 */
+  function vAdd(x, y){ return (isSym(x) || isSym(y)) ? symOf(Calc.simplify({ t: "add", a: sExpr(x), b: sExpr(y) })) : x.add(y); }
+  function vSub(x, y){ return (isSym(x) || isSym(y)) ? symOf(Calc.simplify({ t: "add", a: sExpr(x), b: { t: "neg", a: sExpr(y) } })) : x.sub(y); }
+  function vMul(x, y){ return (isSym(x) || isSym(y)) ? symOf(Calc.simplify({ t: "mul", a: sExpr(x), b: sExpr(y) })) : x.mul(y); }
+  function vNeg(x){ return isSym(x) ? x.neg() : x.neg(); }
+  function cellNeg(x){ if (x === undefined || x === null || x === ZERO) return ZERO; return vNeg(x); }
+  function vIsZero(x){ return isSym(x) ? x.isZero() : x.isZero(); }
+  function vDetZero(x){ return (x === undefined || x === null) ? true : vIsZero(x); }
+  function vStr(x){ return isSym(x) ? x.toString() : x.toString(); }
+  function isNumVal(x){ return x instanceof Frac ? x : (x.expr.t === "num" ? x.expr.v : null); }
+  function isOneVal(x){ if (x === undefined || x === null) return false; return x instanceof Frac ? (x.n === 1n && x.d === 1n) : x.isOne(); }
+
+// 蒲瓜的计算器 · 符号微积分引擎
+// 零依赖 ES module，只用 Node 内置能力（BigInt / Math），不联网、不装包。
+//
+// 导出：parse / simplify / toString / evalAt / deriv / taylor / limit /
+//       integrate / definiteIntegral / Rat (精确有理数，便于外部复用)
+//
+// AST 节点形状固定：
+//   { t:"num", v:Rat } | { t:"var", name:"x" } | { t:"neg", a } |
+//   { t:"add", a, b }  | { t:"mul", a, b }     | { t:"pow", a, b } |
+//   { t:"fn", name:"sin", arg }
+//
+// 内部约定：所有数值字面量与导数系数都用精确有理数（BigInt 分子/分母）表示，
+// 因此 d/dx(x^3/3) 精确得到 x^2，不存在浮点退化。
+
+/* ============================== 1. 精确有理数 ============================== */
+
+function bigAbs(a) { return a < 0n ? -a : a; }
+
+function bigGcd(a, b) {
+  a = bigAbs(a); b = bigAbs(b);
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+
+/** 精确有理数：BigInt 分子 / BigInt 分母，分母恒正、自动约分。 */
+class Rat {
+  constructor(n, d = 1n) {
+    n = BigInt(n); d = BigInt(d);
+    if (d === 0n) throw new Error("有理数的分母不能为 0");
+    if (d < 0n) { n = -n; d = -d; }
+    const g = bigGcd(n, d) || 1n;
+    this.n = n / g;
+    this.d = d / g;
+  }
+  add(o) { return new Rat(this.n * o.d + o.n * this.d, this.d * o.d); }
+  sub(o) { return new Rat(this.n * o.d - o.n * this.d, this.d * o.d); }
+  mul(o) { return new Rat(this.n * o.n, this.d * o.d); }
+  div(o) {
+    if (o.n === 0n) throw new Error("有理数除以 0");
+    return new Rat(this.n * o.d, this.d * o.n);
+  }
+  neg() { return new Rat(-this.n, this.d); }
+  inv() {
+    if (this.n === 0n) throw new Error("0 没有倒数");
+    return new Rat(this.d, this.n);
+  }
+  abs() { return this.n < 0n ? this.neg() : this; }
+  get isZero() { return this.n === 0n; }
+  get isOne() { return this.n === 1n && this.d === 1n; }
+  get isInt() { return this.d === 1n; }
+  get sign() { return this.n < 0n ? -1 : (this.n > 0n ? 1 : 0); }
+  eq(o) { return this.n === o.n && this.d === o.d; }
+  cmp(o) { const l = this.n * o.d, r = o.n * this.d; return l < r ? -1 : (l > r ? 1 : 0); }
+  toNumber() { return Number(this.n) / Number(this.d); }
+  /** "3"、"1/6"、"-1/6" */
+  toString() { return this.d === 1n ? this.n.toString() : this.n + "/" + this.d; }
+}
+
+const R0 = new Rat(0n);
+const R1 = new Rat(1n);
+const R2 = new Rat(2n);
+const RHALF = new Rat(1n, 2n);
+const RAT_CACHE = new Map();
+/** 由整数构造有理数（带缓存，热路径友好）。 */
+function ri(n) {
+  n = BigInt(n);
+  let v = RAT_CACHE.get(n);
+  if (!v) { v = new Rat(n, 1n); RAT_CACHE.set(n, v); }
+  return v;
+}
+function rn(n) { return new Rat(n); }
+
+/**
+ * 连分数有理重构：浮点数 x 若非常接近分母不大的有理数，就还原它。
+ * 用于「数值判定的极限恰好是 1/2 这类精确值」的场景。
+ */
+function ratApprox(x, maxDen = 100000000n, eps = 1e-9) {
+  if (!Number.isFinite(x)) return null;
+  const neg = x < 0;
+  const v = Math.abs(x);
+  if (v > 1e15) return null;
+  let h0 = 0n, h1 = 1n, k0 = 1n, k1 = 0n;
+  let frac = v;
+  for (let i = 0; i < 40; i++) {
+    const a = Math.floor(frac);
+    if (!Number.isFinite(a) || a < 0) break;
+    const ab = BigInt(a);
+    const h2 = ab * h1 + h0, k2 = ab * k1 + k0;
+    if (k2 > maxDen) break;
+    h0 = h1; h1 = h2; k0 = k1; k1 = k2;
+    const cand = Number(h1) / Number(k1);
+    if (Math.abs(cand - v) <= eps * Math.max(1, Math.abs(v))) {
+      const r = new Rat(h1, k1);
+      return neg ? r.neg() : r;
+    }
+    const next = frac - a;
+    if (next < 1e-15) break;
+    frac = 1 / next;
+  }
+  return null;
+}
+
+/* ============================== 2. 数值格式化 ============================== */
+
+/** 一般数值 → 可读文本（给 limit.value、steps 展示用）。 */
+function formatNumber(x) {
+  if (typeof x !== "number") return String(x);
+  if (Number.isNaN(x)) return "NaN";
+  if (x === Infinity) return "+inf";
+  if (x === -Infinity) return "-inf";
+  if (Number.isInteger(x)) return String(x);
+  const r = ratApprox(x, 1000000n, 1e-12);
+  if (r && !r.isInt) return r.toString();
+  return String(Number(x.toPrecision(12)));
+}
+
+/** 定积分数值的展示：只有能精确还原成简单分数时才写成分数，否则写十进制。 */
+function numericText(x) {
+  if (typeof x !== "number" || !Number.isFinite(x)) return formatNumber(x);
+  if (Number.isInteger(x)) return String(x);
+  const r = ratApprox(x, 10000n, 1e-13);
+  if (r && !r.isInt) return r.toString();
+  return String(Number(x.toPrecision(12)));
+}
+
+/* ============================== 3. AST 工具 ============================== */
+
+const num = (v) => ({ t: "num", v: (v instanceof Rat ? v : rn(v)) });
+const n0 = () => ({ t: "num", v: R0 });
+const n1 = () => ({ t: "num", v: R1 });
+const variable = (name) => ({ t: "var", name });
+const isNum = (x) => x.t === "num";
+const isZeroNode = (x) => x.t === "num" && x.v.isZero;
+const isOneNode = (x) => x.t === "num" && x.v.isOne;
+const PI_NODE = () => ({ t: "fn", name: "pi", arg: null });
+const E_NODE = () => ({ t: "fn", name: "e", arg: null });
+
+/** 是否是自然常数 e 这个节点。 */
+function isENode(n) {
+  return !!n && n.t === "fn" && n.name === "e" && n.arg === null;
+}
+
+/** 稳定结构键：结构等价的子树 → 同一字符串（用于排序/同类项合并）。 */
+function key(n) {
+  switch (n.t) {
+    case "num": return "#" + n.v.toString();
+    case "var": return "$" + n.name;
+    case "neg": return "-(" + key(n.a) + ")";
+    case "add": return "+(" + key(n.a) + "," + key(n.b) + ")";
+    case "mul": return "*(" + key(n.a) + "," + key(n.b) + ")";
+    case "pow": return "^(" + key(n.a) + "," + key(n.b) + ")";
+    case "fn": return "@" + n.name + "(" + (n.arg ? key(n.arg) : "") + ")";
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+const CMP = (a, b) => (a < b ? -1 : (a > b ? 1 : 0));
+
+/** 深拷贝。 */
+function clone(n) {
+  switch (n.t) {
+    case "num": return { t: "num", v: n.v };
+    case "var": return { t: "var", name: n.name };
+    case "neg": return { t: "neg", a: clone(n.a) };
+    case "add": return { t: "add", a: clone(n.a), b: clone(n.b) };
+    case "mul": return { t: "mul", a: clone(n.a), b: clone(n.b) };
+    case "pow": return { t: "pow", a: clone(n.a), b: clone(n.b) };
+    case "fn": return { t: "fn", name: n.name, arg: n.arg ? clone(n.arg) : null };
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+function walk(n, f) {
+  f(n);
+  if (n.t === "neg") walk(n.a, f);
+  else if (n.t === "add" || n.t === "mul" || n.t === "pow") { walk(n.a, f); walk(n.b, f); }
+  else if (n.t === "fn" && n.arg) walk(n.arg, f);
+}
+
+/* ============================== 4. 词法分析 ============================== */
+
+const FUNCS = new Set([
+  "sin", "cos", "tan", "cot", "sec", "csc",
+  "asin", "acos", "atan", "sinh", "cosh", "tanh",
+  "ln", "log", "exp", "sqrt", "abs",
+]);
+const CONSTS = new Set(["pi", "e"]);
+
+function tokenize(src) {
+  if (typeof src !== "string") throw new Error("表达式必须是字符串");
+  const s = src.replace(/\u03C0/g, " pi ").replace(/\u221E/g, " inf ").replace(/\*\*/g, "^");
+  const out = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(s[i + 1] || ""))) {
+      let j = i, seenDot = false;
+      while (j < s.length && (/[0-9]/.test(s[j]) || (s[j] === "." && !seenDot))) {
+        if (s[j] === ".") seenDot = true;
+        j++;
+      }
+      if (s[j] === "e" || s[j] === "E") {
+        let k = j + 1;
+        if (s[k] === "+" || s[k] === "-") k++;
+        if (/[0-9]/.test(s[k] || "")) { while (k < s.length && /[0-9]/.test(s[k])) k++; j = k; }
+      }
+      out.push({ k: "num", v: s.slice(i, j) });
+      i = j; continue;
+    }
+    if (/[A-Za-z_]/.test(c)) {
+      let j = i;
+      while (j < s.length && /[A-Za-z0-9_]/.test(s[j])) j++;
+      out.push({ k: "name", v: s.slice(i, j) });
+      i = j; continue;
+    }
+    if ("+-*/^(),".includes(c)) { out.push({ k: c }); i++; continue; }
+    throw new Error("无法识别的字符「" + c + "」（位置 " + i + "）");
+  }
+  out.push({ k: "eof" });
+  return out;
+}
+
+/* ============================== 5. 语法分析 ============================== */
+
+/** 把十进制字面量精确转成有理数（不用 parseFloat，避免精度丢失）。 */
+function decToRat(text) {
+  let s = String(text);
+  let exp = 0;
+  const eIdx = s.search(/[eE]/);
+  if (eIdx >= 0) {
+    exp = parseInt(s.slice(eIdx + 1), 10);
+    s = s.slice(0, eIdx);
+  }
+  let intPart = s, fracPart = "";
+  const dot = s.indexOf(".");
+  if (dot >= 0) { intPart = s.slice(0, dot); fracPart = s.slice(dot + 1); }
+  if (intPart === "") intPart = "0";
+  let n = BigInt(intPart || "0") * BigInt("1" + "0".repeat(fracPart.length)) + BigInt(fracPart || "0");
+  let d = BigInt("1" + "0".repeat(fracPart.length));
+  if (exp > 0) n *= BigInt("10") ** BigInt(exp);
+  else if (exp < 0) d *= BigInt("10") ** BigInt(-exp);
+  return new Rat(n, d);
+}
+
+/**
+ * 解析字符串 → AST。
+ * 支持隐式乘法（2x、3sin(x)、x(x+1)、2(x+1)）、^ 右结合、一元负号、括号。
+ * 出错时 throw new Error(中文错误信息)。
+ */
+function parse(src) {
+  const toks = tokenize(src);
+  let pos = 0;
+  const peek = () => toks[pos];
+  const next = () => toks[pos++];
+  const at = (k) => toks[pos].k === k;
+
+  function expect(k, msg) {
+    if (!at(k)) throw new Error("语法错误：" + msg + "，但读到" + describe(peek()));
+    return next();
+  }
+  function describe(t) {
+    if (!t || t.k === "eof") return "表达式结尾";
+    if (t.k === "num") return "数字「" + t.v + "」";
+    if (t.k === "name") return "「" + t.v + "」";
+    return "「" + t.k + "」";
+  }
+
+  function parseExpr() {
+    let left = parseMul();
+    while (at("+") || at("-")) {
+      const op = next().k;
+      const right = parseMul();
+      left = op === "+" ? { t: "add", a: left, b: right } : { t: "add", a: left, b: { t: "neg", a: right } };
+    }
+    return left;
+  }
+
+  // 乘法层：连续的「因子」自动视为相乘（隐式乘法）
+  function parseMul() {
+    let left = parseUnary();
+    for (;;) {
+      const t = peek();
+      if (t.k === "num" || t.k === "name" || t.k === "(") {
+        const right = parseUnary();
+        left = { t: "mul", a: left, b: right };
+      } else if (t.k === "*" || t.k === "/") {
+        next();
+        const right = parseUnary();
+        left = t.k === "*"
+          ? { t: "mul", a: left, b: right }
+          : { t: "mul", a: left, b: { t: "pow", a: right, b: num(ri(-1)) } };
+      } else break;
+    }
+    return left;
+  }
+
+  // 一元层：-x、+x，然后进入幂层
+  function parseUnary() {
+    if (at("-")) { next(); return { t: "neg", a: parseUnary() }; }
+    if (at("+")) { next(); return parseUnary(); }
+    return parsePower();
+  }
+
+  // 幂层：右结合，指数本身可以带一元负号（x^-1）
+  function parsePower() {
+    const base = parseAtom();
+    if (at("^")) {
+      next();
+      const exp = parseUnary();
+      return { t: "pow", a: base, b: exp };
+    }
+    return base;
+  }
+
+  function parseAtom() {
+    const t = peek();
+    if (t.k === "num") { next(); return { t: "num", v: decToRat(t.v) }; }
+    if (t.k === "name") {
+      next();
+      const name = t.v;
+      // 已登记的函数名后面跟括号 → 函数调用；其它名字后面跟括号 → 隐式乘法 x(x+1)
+      if (FUNCS.has(name) && at("(")) {
+        next();
+        const arg = parseExpr();
+        expect(")", "函数 " + name + " 缺少右括号「)」");
+        return { t: "fn", name, arg };
+      }
+      if (CONSTS.has(name)) return name === "pi" ? PI_NODE() : E_NODE();
+      if (FUNCS.has(name)) throw new Error("函数「" + name + "」缺少参数括号，请写成 " + name + "(x)");
+      // 单字母名字后面跟括号 → 隐式乘法 x(x+1)；多字母名字 → 当作未知函数调用
+      if (at("(") && name.length > 1) throw new Error("未知函数「" + name + "」");
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return variable(name);
+      throw new Error("无法识别的名称「" + name + "」");
+    }
+    if (t.k === "(") {
+      next();
+      const inner = parseExpr();
+      if (!at(")")) throw new Error("括号没有闭合：缺少右括号「)」");
+      next();
+      return inner;
+    }
+    if (t.k === "eof") throw new Error("表达式不完整：结尾缺少内容");
+    if (t.k === ")") throw new Error("表达式里出现了多余的右括号「)」");
+    throw new Error("语法错误：这里不该出现" + describe(t));
+  }
+
+  const root = parseExpr();
+  if (!at("eof")) throw new Error("表达式在" + describe(peek()) + "之后还有多余内容，请检查运算符是否写漏");
+  return root;
+}
+
+/* ============================== 6. 化简 ============================== */
+
+/** 把和式摊平成项列表。 */
+function flattenSum(n, out = []) {
+  if (n.t === "add") { flattenSum(n.a, out); flattenSum(n.b, out); return out; }
+  out.push(n);
+  return out;
+}
+
+/** 把积式摊平成因子列表（neg 也算系数 -1）。 */
+function flattenProd(n, out = []) {
+  if (n.t === "mul") { flattenProd(n.a, out); flattenProd(n.b, out); return out; }
+  if (n.t === "neg") { flattenProd(n.a, out); out.unshift(num(ri(-1))); return out; }
+  out.push(n);
+  return out;
+}
+
+/** 取出项的数值系数与其余部分：2*x → {c:2, base:x}；-x → {c:-1, base:x}；5 → {c:5, base:null} */
+function coeffOf(n) {
+  const factors = flattenProd(n);
+  let c = R1;
+  const rest = [];
+  for (const f of factors) {
+    if (isNum(f)) c = c.mul(f.v);
+    else rest.push(f);
+  }
+  if (rest.length === 0) return { c, base: null };
+  let base = rest[0];
+  for (let i = 1; i < rest.length; i++) base = { t: "mul", a: base, b: rest[i] };
+  return { c, base };
+}
+
+const factKey = (b) => (b === null ? "#1" : key(b));
+
+/** 单项乘积的规范化：合并数值系数、合并同底数幂、稳定排序。 */
+function makeProd(factors) {
+  let c = R1;
+  const powers = []; // { base, exp: Rat | node | null }
+  for (const f of factors) {
+    if (isNum(f)) { c = c.mul(f.v); continue; }
+    let base = f, exp = null;
+    if (f.t === "pow") { base = f.a; exp = f.b; }
+    if (base.t === "neg") { c = c.neg(); base = base.a; }
+    // 只有「数字底数 + 数字指数」才能折进系数；2^x 这种指数是变量的必须保留
+    if (base.t === "num" && exp !== null && isNum(exp)) {
+      const folded = powRat(base.v, exp);
+      if (folded) { c = c.mul(folded); continue; }
+    }
+    if (exp && isNum(exp) && exp.v.isZero) continue;
+    if (exp && isNum(exp) && exp.v.isOne) exp = null;
+    let merged = false;
+    if (exp === null) {
+      for (const p of powers) {
+        if (key(p.base) !== key(base)) continue;
+        if (p.exp === null) p.exp = ri(2);
+        else if (p.exp instanceof Rat) p.exp = p.exp.add(R1);
+        else continue;
+        merged = true; break;
+      }
+    } else if (isNum(exp)) {
+      for (const p of powers) {
+        if (key(p.base) !== key(base)) continue;
+        if (p.exp === null) p.exp = exp.v.add(R1);
+        else if (p.exp instanceof Rat) p.exp = p.exp.add(exp.v);
+        else continue;
+        merged = true; break;
+      }
+    }
+    if (!merged) powers.push({ base, exp: exp === null ? null : (isNum(exp) ? exp.v : exp) });
+  }
+  if (c.isZero) return n0();
+  const list = [];
+  for (const p of powers) {
+    if (p.exp === null) list.push(p.base);
+    else if (p.exp instanceof Rat) {
+      if (p.exp.isZero) continue;
+      if (p.exp.isOne) list.push(p.base);
+      else list.push({ t: "pow", a: p.base, b: num(p.exp) });
+    } else list.push({ t: "pow", a: p.base, b: p.exp });
+  }
+  for (const f of list) if (isNum(f) && f.v.isZero) return n0();
+  list.sort(factorCmp);
+  if (list.length === 0) return num(c);
+  if (c.isOne) return list.length === 1 ? list[0] : buildMulList(list);
+  if (c.eq(ri(-1))) {
+    const body = list.length === 1 ? list[0] : buildMulList(list);
+    return body.t === "num" ? num(c.mul(body.v)) : { t: "neg", a: body };
+  }
+  return buildMulList([num(c), ...list]);
+}
+
+function buildMulList(list) {
+  let acc = list[0];
+  for (let i = 1; i < list.length; i++) acc = { t: "mul", a: acc, b: list[i] };
+  return acc;
+}
+
+/** 因子排序：数字 → 变量 → 幂 → 函数，同类按键排序，保证输出稳定。 */
+function factorCmp(x, y) {
+  const rank = (n) => {
+    if (n.t === "num") return 0;
+    if (n.t === "var") return 1;
+    if (n.t === "pow") return 2;
+    if (n.t === "fn") return 3;
+    return 4;
+  };
+  const rx = rank(x), ry = rank(y);
+  if (rx !== ry) return rx - ry;
+  return CMP(key(x), key(y));
+}
+
+/** 项的排序（和式稳定输出）：按次数降序，再按键。 */
+function termSortCmp(a, b) {
+  const da = sortDeg(a), db = sortDeg(b);
+  if (da !== db) return db - da;
+  return CMP(key(a), key(b));
+}
+function sortDeg(n) {
+  if (n.t === "pow" && isNum(n.b)) return Number(n.b.v.toNumber());
+  if (n.t === "var") return 1;
+  if (n.t === "num") return -1e9;
+  if (n.t === "neg") return sortDeg(n.a);
+  if (n.t === "mul") return Math.max(sortDeg(n.a), sortDeg(n.b));
+  return 0;
+}
+
+/** 有理数底数的整数次幂（保持精确）。 */
+function powRat(base, expNode) {
+  if (!isNum(expNode)) return null;
+  const e = expNode.v;
+  if (e.isInt) {
+    const k = e.n;
+    if (k >= 0n) {
+      if (k > 4096n) return null;
+      return new Rat(base.n ** k, base.d ** k);
+    }
+    const kk = -k;
+    if (kk > 4096n) return null;
+    if (base.isZero) return null;
+    return new Rat(base.d ** kk, base.n ** kk);
+  }
+  return null;
+}
+
+/**
+ * 化简（含常数折叠、恒等式、合并同类项）。
+ * 输出稳定：同样输入永远得到结构相同的输出。
+ */
+function simplify(node) {
+  return simp(node, new Map());
+}
+
+function simp(n, cache) {
+  if (!n || typeof n !== "object") throw new Error("simplify 收到非法节点");
+  const k = key(n);
+  if (cache.has(k)) return cache.get(k);
+  const r = simpInner(n, cache);
+  cache.set(k, r);
+  return r;
+}
+
+function simpInner(n, cache) {
+  switch (n.t) {
+    case "num": return num(n.v);
+    case "var": return variable(n.name);
+    case "fn":
+      if (n.arg === null) return { t: "fn", name: n.name, arg: null };
+      return { t: "fn", name: n.name, arg: simp(n.arg, cache) };
+    case "neg": {
+      const a = simp(n.a, cache);
+      if (isNum(a)) return num(a.v.neg());
+      if (a.t === "neg") return a.a;
+      return makeProd([num(ri(-1)), a]);
+    }
+    case "add": return simplifySum(flattenSum(n).map((t) => simp(t, cache)));
+    case "mul": return makeProd(flattenProd(n).map((f) => simp(f, cache)));
+    case "pow": {
+      const a = simp(n.a, cache), b = simp(n.b, cache);
+      return simpPow(a, b);
+    }
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+function simpPow(a, b) {
+  if (isNum(b)) {
+    if (b.v.isZero) return n1();
+    if (b.v.isOne) return a;
+    if (isNum(a)) {
+      const r = powRat(a.v, b);
+      if (r) return num(r);
+    }
+  }
+  // e^x 与 exp(x) 统一成 exp(x)，两种写法行为完全一致
+  if (isENode(a)) return { t: "fn", name: "exp", arg: b };
+  if (isNum(a) && a.v.isZero) return b.t === "num" && b.v.sign > 0 ? n0() : { t: "pow", a, b };
+  if (isNum(a) && a.v.isOne) return n1();
+  if (b.t === "num" && b.v.eq(ri(-1))) return { t: "pow", a, b };
+  if (a.t === "pow" && isNum(a.b) && isNum(b)) {
+    const e = a.b.v.mul(b.v);
+    if (e.isOne) return a.a;
+    if (e.isZero) return n1();
+    return { t: "pow", a: a.a, b: num(e) };
+  }
+  return { t: "pow", a, b };
+}
+
+/** 和式化简：合并同类项 + 常数折叠 + 稳定排序。 */
+function simplifySum(terms) {
+  const groups = new Map();
+  for (const t of terms) {
+    const { c, base } = coeffOf(t);
+    if (c.isZero) continue;
+    const bk = factKey(base);
+    const g = groups.get(bk);
+    if (g) g.c = g.c.add(c);
+    else groups.set(bk, { c, base });
+  }
+  const out = [];
+  for (const g of [...groups.values()]) {
+    if (g.c.isZero) continue;
+    if (g.base === null) { out.push(num(g.c)); continue; }
+    out.push(makeProd([num(g.c), g.base]));
+  }
+  if (out.length === 0) return n0();
+  if (out.length === 1) return out[0];
+  const nums = out.filter(isNum);
+  const rest = out.filter((x) => !isNum(x));
+  rest.sort(termSortCmp);
+  const all = [...rest, ...nums]; // 常数项放最后，符合书写习惯
+  let acc = all[0];
+  for (let i = 1; i < all.length; i++) acc = { t: "add", a: acc, b: all[i] };
+  return acc;
+}
+
+/* ============================== 7. 打印 ============================== */
+
+const PREC_ADD = 1, PREC_MUL = 2, PREC_NEG = 3, PREC_POW = 4, PREC_ATOM = 5;
+
+function prec(n) {
+  switch (n.t) {
+    case "add": return PREC_ADD;
+    case "mul": return PREC_MUL;
+    case "neg": return PREC_NEG;
+    case "pow": return PREC_POW;
+    default: return PREC_ATOM;
+  }
+}
+
+/** 原子形状（数字/变量/函数调用/幂），打印时不需要额外括号。 */
+function isAtomish(n) {
+  return n.t === "num" || n.t === "var" || n.t === "fn" || n.t === "pow";
+}
+
+/** 负系数拆分：用于 a - b 的打印。返回其相反数（正系数形式），无负号则 null。 */
+function negSplit(n) {
+  if (n.t === "neg") return n.a;
+  if (isNum(n) && n.v.sign < 0) return num(n.v.neg());
+  if (n.t === "mul") {
+    const { c, base } = coeffOf(n);
+    if (base !== null && c.sign < 0) return makeProd([num(c.neg()), base]);
+  }
+  return null;
+}
+
+function fmt(n, parentPrec) {
+  const p = prec(n);
+  let s;
+  switch (n.t) {
+    case "num": s = n.v.toString(); break;
+    case "var": s = n.name; break;
+    case "fn": s = n.arg === null ? n.name : n.name + "(" + fmt(n.arg, 0) + ")"; break;
+    case "neg": {
+      s = prec(n.a) < PREC_MUL ? "-(" + fmt(n.a, 0) + ")" : "-" + fmt(n.a, PREC_NEG);
+      break;
+    }
+    case "pow": {
+      const basePrec = isAtomish(n.a) ? PREC_ATOM : PREC_MUL;
+      let base = fmt(n.a, basePrec);
+      if (isNum(n.a) && n.a.v.sign < 0) base = "(" + n.a.v.toString() + ")";
+      // 负整数指数打印成分式，避免出现 x^2^-1 这种令人困惑的写法
+      if (isNum(n.b) && n.b.v.isInt && n.b.v.sign < 0) {
+        const m = n.b.v.neg();
+        const denom = m.isOne ? base : base + "^" + m.toString();
+        s = "1/" + (isAtomish(n.a) ? denom : "(" + denom + ")");
+        break;
+      }
+      s = base + "^" + fmt(n.b, PREC_POW);
+      break;
+    }
+    case "mul": s = fmtProduct(n); break;
+    case "add": s = fmtSum(n); break;
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+  if (p < parentPrec) s = "(" + s + ")";
+  return s;
+}
+
+function fmtSum(n) {
+  const terms = flattenSum(n);
+  let out = "";
+  for (let i = 0; i < terms.length; i++) {
+    const t = terms[i];
+    if (i === 0) {
+      out += fmtProduct(t);
+    } else {
+      const pos = negSplit(t);
+      if (pos !== null) out += " - " + fmtProduct(pos);
+      else out += " + " + fmtProduct(t);
+    }
+  }
+  return out;
+}
+
+function fmtProduct(n) {
+  if (n.t === "neg") return "-" + fmtProduct(n.a);
+  if (n.t !== "mul") return fmt(n, PREC_MUL);
+  const factors = flattenProd(n);
+  let c = R1;
+  const rest = [];
+  for (const f of factors) {
+    if (isNum(f)) c = c.mul(f.v);
+    else rest.push(f);
+  }
+  if (rest.length === 0) return c.toString();
+  rest.sort(factorCmp);
+  const sign = c.sign < 0 ? "-" : "";
+  const absC = c.abs();
+  let head = "";
+  if (absC.isOne) head = "";
+  else if (absC.n === 1n && absC.d !== 1n) head = "";
+  else head = absC.toString() + "*";
+  let body = rest.map((f) => fmt(f, PREC_MUL)).join("*");
+  if (head === "" && absC.n === 1n && absC.d !== 1n) body = body + "/" + absC.d.toString();
+  return sign + head + body;
+}
+
+/**
+ * 把 AST 打印成中缀字符串，优先级正确、括号最少。
+ * 只使用 ASCII：* / ^ -，函数写成 sin(x) 这样。
+ */
+function toString(node) {
+  if (!node || typeof node !== "object") throw new Error("toString 收到非法节点");
+  return fmt(node, 0);
+}
+
+/* ============================== 8. 求值 ============================== */
+
+const FN_EVAL = {
+  sin: Math.sin, cos: Math.cos, tan: Math.tan,
+  asin: Math.asin, acos: Math.acos, atan: Math.atan,
+  sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
+  sech: (x) => 1 / Math.cosh(x),
+  coth: (x) => Math.cosh(x) / Math.sinh(x),
+  ln: (x) => (x === 0 ? -Infinity : (x < 0 ? NaN : Math.log(x))),
+  log: (x) => (x === 0 ? -Infinity : (x < 0 ? NaN : Math.log(x))),
+  exp: Math.exp, sqrt: Math.sqrt, abs: Math.abs,
+};
+
+/** 代入数值：返回 number（可能 Infinity / NaN，不抛错）。 */
+function evalAt(node, x, varName = "x") {
+  return ev(node, { x, varName });
+}
+
+function ev(n, env) {
+  switch (n.t) {
+    case "num": return n.v.toNumber();
+    case "var": return n.name === env.varName ? env.x : NaN;
+    case "neg": return -ev(n.a, env);
+    case "add": return ev(n.a, env) + ev(n.b, env);
+    case "mul": return ev(n.a, env) * ev(n.b, env);
+    case "pow": {
+      const b = ev(n.a, env), e = ev(n.b, env);
+      if (b === 0 && e === 0) return NaN;
+      if (b < 0 && !Number.isInteger(e)) return NaN;
+      return Math.pow(b, e);
+    }
+    case "fn": {
+      if (n.arg === null) return n.name === "pi" ? Math.PI : Math.E;
+      const a = ev(n.arg, env);
+      if (n.name === "cot") return Math.cos(a) / Math.sin(a);
+      if (n.name === "sec") return 1 / Math.cos(a);
+      if (n.name === "csc") return 1 / Math.sin(a);
+      const f = FN_EVAL[n.name];
+      if (!f) throw new Error("未知函数：" + n.name);
+      return f(a);
+    }
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+/** 纯有理数求值：全部用 Rat 计算，除不尽（如 sin、sqrt）返回 null。 */
+function evalRat(n, x, varName = "x") {
+  switch (n.t) {
+    case "num": return n.v;
+    case "var": return n.name === varName ? x : null;
+    case "neg": { const a = evalRat(n.a, x, varName); return a === null ? null : a.neg(); }
+    case "add": {
+      const a = evalRat(n.a, x, varName), b = evalRat(n.b, x, varName);
+      return (a === null || b === null) ? null : a.add(b);
+    }
+    case "mul": {
+      const a = evalRat(n.a, x, varName), b = evalRat(n.b, x, varName);
+      return (a === null || b === null) ? null : a.mul(b);
+    }
+    case "pow": {
+      const a = evalRat(n.a, x, varName), b = evalRat(n.b, x, varName);
+      if (a === null || b === null || !b.isInt) return null;
+      const k = b.n;
+      if (k >= 0n) return new Rat(a.n ** k, a.d ** k);
+      if (a.isZero) return null;
+      const kk = -k;
+      return new Rat(a.d ** kk, a.n ** kk);
+    }
+    default: return null;
+  }
+}
+
+/* ============================== 9. 求导 ============================== */
+
+const DERIV_FN = {
+  sin: (a) => ({ t: "fn", name: "cos", arg: a }),
+  cos: (a) => ({ t: "neg", a: { t: "fn", name: "sin", arg: a } }),
+  tan: (a) => ({ t: "pow", a: { t: "fn", name: "sec", arg: a }, b: num(ri(2)) }),
+  cot: (a) => ({ t: "neg", a: { t: "pow", a: { t: "fn", name: "csc", arg: a }, b: num(ri(2)) } }),
+  sec: (a) => ({ t: "mul", a: { t: "fn", name: "sec", arg: a }, b: { t: "fn", name: "tan", arg: a } }),
+  csc: (a) => ({ t: "neg", a: { t: "mul", a: { t: "fn", name: "csc", arg: a }, b: { t: "fn", name: "cot", arg: a } } }),
+  asin: (a) => ({ t: "pow", a: { t: "add", a: n1(), b: { t: "neg", a: { t: "pow", a, b: num(R2) } } }, b: num(new Rat(-1n, 2n)) }),
+  acos: (a) => ({ t: "neg", a: { t: "pow", a: { t: "add", a: n1(), b: { t: "neg", a: { t: "pow", a, b: num(R2) } } }, b: num(new Rat(-1n, 2n)) } }),
+  atan: (a) => ({ t: "pow", a: { t: "add", a: n1(), b: { t: "pow", a, b: num(R2) } }, b: num(ri(-1)) }),
+  sinh: (a) => ({ t: "fn", name: "cosh", arg: a }),
+  cosh: (a) => ({ t: "fn", name: "sinh", arg: a }),
+  tanh: (a) => ({ t: "pow", a: { t: "fn", name: "sech", arg: a }, b: num(R2) }),
+  ln: (a) => ({ t: "pow", a, b: num(ri(-1)) }),
+  log: (a) => ({ t: "pow", a, b: num(ri(-1)) }),
+  exp: (a) => ({ t: "fn", name: "exp", arg: a }),
+  sqrt: (a) => ({ t: "mul", a: num(RHALF), b: { t: "pow", a, b: num(new Rat(-1n, 2n)) } }),
+  abs: (a) => ({ t: "mul", a: { t: "fn", name: "abs", arg: a }, b: { t: "pow", a, b: num(ri(-1)) } }),
+};
+
+/**
+ * 求导（结果已 simplify）。
+ * 规则齐全：幂、积、商、链式、以及 a^b 的一般式（对数求导）。
+ */
+function deriv(node, varName = "x") {
+  return d(node, varName);
+}
+
+function d(n, v) {
+  switch (n.t) {
+    case "num": return n0();
+    case "var": return n.name === v ? n1() : n0();
+    case "neg": return { t: "neg", a: d(n.a, v) };
+    case "add": return smooth({ t: "add", a: d(n.a, v), b: d(n.b, v) });
+    case "mul": {
+      // 积法则：(uv)' = u'v + uv'
+      const a = d(n.a, v), b = d(n.b, v);
+      return smooth({
+        t: "add",
+        a: { t: "mul", a, b: clone(n.b) },
+        b: { t: "mul", a: clone(n.a), b },
+      });
+    }
+    case "pow": {
+      const base = n.a, exp = n.b;
+      if (isNum(exp)) {
+        // 幂法则（含链式）：n * base^(n-1) * base'
+        const k = exp.v;
+        const newExp = k.sub(R1);
+        const p = newExp.isZero ? clone(base) : { t: "pow", a: clone(base), b: num(newExp) };
+        return smooth({ t: "mul", a: num(k), b: { t: "mul", a: p, b: d(base, v) } });
+      }
+      if (isNum(base) || isENode(base)) {
+        // 指数法则：(a^u)' = a^u * ln(a) * u'（a = e 时 ln(a) = 1）
+        const lnA = isENode(base) ? n1() : { t: "fn", name: "ln", arg: num(base.v) };
+        return smooth({ t: "mul", a: { t: "mul", a: clone(n), b: lnA }, b: d(exp, v) });
+      }
+      // 一般式（对数求导）：(u^w)' = u^w * (w' * ln u + w * u'/u)
+      const u = clone(base), w = clone(exp);
+      const term1 = { t: "mul", a: d(exp, v), b: { t: "fn", name: "ln", arg: u } };
+      const term2 = { t: "mul", a: w, b: { t: "mul", a: d(base, v), b: { t: "pow", a: clone(base), b: num(ri(-1)) } } };
+      return smooth({ t: "mul", a: clone(n), b: { t: "add", a: term1, b: term2 } });
+    }
+    case "fn": {
+      if (n.arg === null) return n0();
+      const rule = DERIV_FN[n.name];
+      if (!rule) throw new Error("不支持对函数 " + n.name + " 求导");
+      const outer = rule(clone(n.arg));
+      const inner = d(n.arg, v);
+      if (isOneNode(inner)) return smooth(outer);
+      return smooth({ t: "mul", a: outer, b: inner });
+    }
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+const smooth = (n) => simplify(n);
+
+  /* ==================== 增广矩阵求解 [A|b] ==================== */
+  /* 最后一列当 b，其余列是系数矩阵；行数任意，列数至少 2。 */
+  function augSolve(M){
+    var s = shape(M);
+    if (s[1] < 2) throw new Error("增广矩阵至少要有 2 列：最后一列当 b，前面是系数矩阵。现在只有 " + s[1] + " 列。");
+    var rows = s[0], cols = s[1], n = cols - 1;
+    var A = [], b = [], i, j;
+    for (i = 0; i < rows; i++){
+      var row = [];
+      for (j = 0; j < n; j++) row.push(val(M[i][j]));
+      A.push(row);
+      b.push([val(M[i][n])]);
+    }
+    var red = rref(valMat(M));
+    var rankA = rref(A).rank;
+    var r = solve(A, b);
+    var g = r.type === "none" ? { type: "none" } : generalSolution(A, b);
+    return {
+      RREF: red.R, m: rows, n: n, cols: cols,
+      rankA: rankA, rankAug: red.rank, unknown: n,
+      type: r.type, free: r.type === "infinite" ? r.free : 0,
+      particular: r.type === "none" ? null : r.x,
+      basis: g.basis || [],
+      solution: g
+    };
+  }
+
+/* ===== 符号引擎（从 src/calc-core.mjs 内联，微积分三页用的是同一份） ===== */
+/* 上面这些函数（parse / simplify / toString / evalAt / Rat / powRat / makeProd ...）
+   和后面的线代引擎在同一个闭包里；下面的 Calc 只是给符号值层一个统一入口。 */
+var Calc = {
+  parse: parse, simplify: simplify, str: toString, evalAt: evalAt,
+  num: function(n, d){ return { t: "num", v: (d === undefined ? new Rat(BigInt(n)) : new Rat(BigInt(n), BigInt(d))) }; },
+  makeProd: makeProd, ratOne: R1, ratZero: R0
+};
 
   function bigAbs(x){ return x < 0n ? -x : x; }
   function bigGcd(a, b){ a = bigAbs(a); b = bigAbs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
@@ -372,6 +1422,9 @@ const LinAlg = (function(){
   Frac.prototype.eq = function(o){ o = F(o); return this.n === o.n && this.d === o.d; };
   Frac.prototype.toNumber = function(){ return Number(this.n) / Number(this.d); };
   Frac.prototype.toString = function(){ return this.d === 1n ? String(this.n) : (this.n + "/" + this.d); };
+  /* 符号值层要用到的两个小判断（对矩阵运算完全没有影响） */
+  Frac.prototype.isBigint = function(){ return false; };
+  Frac.prototype.isSym = false;
 
   ZERO = new Frac(0n); ONE = new Frac(1n); TWO = new Frac(2n);
 
@@ -390,12 +1443,12 @@ const LinAlg = (function(){
   function matAdd(A, B){
     var sa = shape(A), sb = shape(B);
     if (!sameShape(sa, sb)) throw new Error("尺寸不同：" + sizeStr(sa) + " 与 " + sizeStr(sb));
-    return A.map(function(r, i){ return r.map(function(v, j){ return v.add(B[i][j]); }); });
+    return A.map(function(r, i){ return r.map(function(v, j){ return vAdd(v, B[i][j]); }); });
   }
   function matSub(A, B){
     var sa = shape(A), sb = shape(B);
     if (!sameShape(sa, sb)) throw new Error("尺寸不同：" + sizeStr(sa) + " 与 " + sizeStr(sb));
-    return A.map(function(r, i){ return r.map(function(v, j){ return v.sub(B[i][j]); }); });
+    return A.map(function(r, i){ return r.map(function(v, j){ return vSub(v, B[i][j]); }); });
   }
   function matMul(A, B){
     var sa = shape(A), sb = shape(B);
@@ -405,14 +1458,14 @@ const LinAlg = (function(){
       var row = [];
       for (var j = 0; j < sb[1]; j++){
         var s = ZERO;
-        for (var k = 0; k < sa[1]; k++) s = s.add(A[i][k].mul(B[k][j]));
+        for (var k = 0; k < sa[1]; k++) s = vAdd(s, vMul(A[i][k], B[k][j]));
         row.push(s);
       }
       R.push(row);
     }
     return R;
   }
-  function scaleMat(A, k){ k = F(k); return A.map(function(r){ return r.map(function(v){ return v.mul(k); }); }); }
+  function scaleMat(A, k){ k = val(k); return A.map(function(r){ return r.map(function(v){ return vMul(v, k); }); }); }
   function transpose(A){
     var s = shape(A), R = [];
     for (var j = 0; j < s[1]; j++){
@@ -426,13 +1479,16 @@ const LinAlg = (function(){
     var s = shape(A);
     if (s[0] !== s[1]) throw new Error("迹要求方阵");
     var t = ZERO;
-    for (var i = 0; i < s[0]; i++) t = t.add(A[i][i]);
+    for (var i = 0; i < s[0]; i++) t = vAdd(t, A[i][i]);
     return t;
   }
   function det(M){
     var s = shape(M), n = s[0];
     if (n !== s[1]) throw new Error("行列式要求方阵");
     if (n === 1) return M[0][0];
+    /* 带符号的行列式：代数余子式逐项精确展开（不除法）。
+       5×5 以内足够快；纯数字矩阵仍然走下面那套精确消元，结果一字不变。 */
+    if (!allNums(M)) return detExpand(M, n);
     var A = clone(M), sign = 1n, prev = ONE;
     for (var k = 0; k < n - 1; k++){
       if (A[k][k].isZero()){
@@ -452,7 +1508,32 @@ const LinAlg = (function(){
     var d = A[n - 1][n - 1];
     return sign < 0n ? d.neg() : d;
   }
+  /* 符号行列式：沿第一行做代数余子式展开，逐项精确展开，不做任何除法。 */
+  function detExpand(M, n){
+    if (n === 1) return val(M[0][0]);
+    if (n === 0) return ONE;
+    var k = 0, i, j, t, acc = null;
+    for (i = 0; i < n; i++) if (!needsVal(M[0][i]) && !vDetZero(M[0][i])) { k = i; break; }
+    for (i = 0; i < n; i++){
+      t = M[0][i];
+      if (needsVal(t)) t = val(t);
+      if (vDetZero(t)) continue;
+      var minor = [], r;
+      for (r = 1; r < n; r++){
+        var row = [];
+        for (j = 0; j < n; j++){ if (j !== i) row.push(M[r][j]); }
+        minor.push(row);
+      }
+      var term = vMul(t, detExpand(minor, n - 1));
+      /* 代数余子式符号一律是 (−1)^i（对每个 i 都一样）。
+         之前这里把「参考列 k」之外的项符号取反了，导致 a*d 变成 a*d + b*c。 */
+      if ((i % 2) === 1) term = vNeg(term);
+      acc = (acc === null) ? term : vAdd(acc, term);
+    }
+    return acc === null ? ZERO : acc;
+  }
   function rref(M){
+    guardRowMap(M);
     var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
     var r = 0, pivots = [];
     for (var c = 0; c < cols && r < rows; c++){
@@ -474,6 +1555,7 @@ const LinAlg = (function(){
     return { R: A, rank: r, pivots: pivots };
   }
   function ref(M){
+    guardRowMap(M);
     var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
     var r = 0, pivots = [];
     for (var c = 0; c < cols && r < rows; c++){
@@ -523,6 +1605,7 @@ const LinAlg = (function(){
     return M;
   }
   function rowSteps(M){
+    guardRowMap(M);
     var A = clone(M), s = shape(A), rows = s[0], cols = s[1];
     var E = eyeFrac(rows), steps = [], r = 0, i, j, c;
     function snap(kind, info, Ei){
@@ -561,6 +1644,7 @@ const LinAlg = (function(){
   function inverse(M){
     var s = shape(M), n = s[0];
     if (n !== s[1]) throw new Error("求逆要求方阵");
+    guardNoDiv(M);
     var A = clone(M), I = [];
     for (var i = 0; i < n; i++){
       var row = [];
@@ -592,6 +1676,8 @@ const LinAlg = (function(){
   function solve(A, b){
     var s = shape(A);
     shape(b);
+    guardRowMap(A);
+    guardRowMap(b);
     if (b[0].length !== 1) throw new Error("b 要是一列（列数 1）");
     if (b.length !== s[0]) throw new Error("b 的行数要等于 A 的行数（" + s[0] + "）");
     var cols = s[1];
@@ -600,20 +1686,21 @@ const LinAlg = (function(){
     for (var i = 0; i < R.length; i++){
       var zero = true;
       for (var j = 0; j < cols; j++) if (!R[i][j].isZero()) { zero = false; break; }
-      if (zero && !R[i][cols].isZero()) return { type: "none" };
+      if (zero && !R[i][cols].isZero()) return { type: "none", rankA: rref(A).rank, rankAug: rk };
     }
     var x = [];
     for (var j2 = 0; j2 < cols; j2++) x.push(ZERO);
     piv.forEach(function(c, idx){ x[c] = R[idx][cols]; });
-    if (rk < cols) return { type: "infinite", free: cols - rk, x: x };
-    return { type: "unique", x: x };
+    var rankA = rref(A).rank;
+    if (rk < cols) return { type: "infinite", free: cols - rk, x: x, rankA: rankA, rankAug: rk };
+    return { type: "unique", x: x, rankA: rankA, rankAug: rk };
   }
   function generalSolution(A, b){
     var r = solve(A, b);
-    if (r.type === "none") return { type: "none" };
-    if (r.type === "unique") return { type: "unique", particular: r.x, basis: [], free: 0 };
+    if (r.type === "none") return { type: "none", rankA: r.rankA, rankAug: r.rankAug };
+    if (r.type === "unique") return { type: "unique", particular: r.x, basis: [], free: 0, rankA: r.rankA, rankAug: r.rankAug };
     var ns = nullspaceBasis(A);
-    return { type: "infinite", particular: r.x, basis: ns.basis, free: r.free };
+    return { type: "infinite", particular: r.x, basis: ns.basis, free: r.free, rankA: r.rankA, rankAug: r.rankAug };
   }
 
   function numMat(A){ return A.map(function(r){ return r.map(function(v){ return v.toNumber(); }); }); }
@@ -690,6 +1777,7 @@ const LinAlg = (function(){
   function eigen(A){
     var s = shape(A), n = s[0];
     if (n !== s[1]) throw new Error("特征值要求方阵");
+    guardNumOnly(A);
     if (n === 1) return [{ re: A[0][0].toNumber(), im: 0, exact: A[0][0] }];
     if (n === 2){
       var a = A[0][0], b = A[0][1], c = A[1][0], d = A[1][1];
@@ -720,7 +1808,9 @@ const LinAlg = (function(){
     transpose: transpose, trace: trace, det: det, rref: rref, ref: ref, rank: rank,
     inverse: inverse, solve: solve, eigen: eigen,
     nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
-    generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac
+    generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac,
+    /* 符号矩阵（字母当数用）与增广矩阵求解的新接口 */
+    V: val, val: val, valMat: valMat, isSym: isSym, Sym: Sym, calc: Calc, augSolve: augSolve
   };
 })();
 /* ==== ENGINE END ==== */
@@ -745,6 +1835,7 @@ const LinAlg = (function(){
     rref:  { label: "RREF A", needB: false, hint: "行最简形：主元归一为 1，主元上下都清零" },
     steps: { label: "RREF 化简步骤", needB: false, hint: "一步一步做初等行变换，一路化到行最简形（RREF）；每步附上该步的初等矩阵 E" },
     solve: { label: "Ax = b 的解", needB: true, hint: "把 B 做成只有 1 列，当作 b 向量" },
+    aug:   { label: "增广矩阵求解", needB: false, hint: "把 A 填成增广矩阵 [A|b]：最后一列当作 b，前面是系数矩阵（列数至少 2）" },
     eig:   { label: "A 的特征值", needB: false, hint: "要求方阵；2 阶给精确解，3–4 阶为数值解" },
     ker:   { label: "ker A 的基", needB: false, hint: "零空间：被 A 压成零向量的那些方向" },
     col:   { label: "col A 的基", needB: false, hint: "列空间：A 的列向量张成的空间" }
@@ -823,7 +1914,7 @@ const LinAlg = (function(){
     var s = S[k], list = ins(k), M = [], i = 0;
     for (var y = 0; y < s.r; y++){
       var row = [];
-      for (var x = 0; x < s.c; x++){ var node = list[i]; i++; row.push(F(node ? node.value : "")); }
+      for (var x = 0; x < s.c; x++){ var node = list[i]; i++; row.push(L.val(node ? node.value : "")); }
       M.push(row);
     }
     return M;
@@ -842,7 +1933,19 @@ const LinAlg = (function(){
     var neg = f.n < 0n, n = neg ? -f.n : f.n;
     return (neg ? "−" : "") + '<span class="frac"><span class="fn">' + n + '</span><span class="fd">' + f.d + "</span></span>";
   }
-  function cellHTML(f){ return S.dec ? fmtNum(f.toNumber()) : fracHTML(f); }
+  /* 符号表达式的显示美化：· 代乘号、真上标、π */
+  function renderSym(t){
+    return String(t)
+      .replace(/\s*\*\s*/g, "·")
+      .replace(/\^\(([^()]*)\)/g, function(m, d){ return "<sup>" + d.replace(/-/g, "−") + "</sup>"; })
+      .replace(/\^([0-9]+)/g, function(m, d){ return "<sup>" + d + "</sup>"; })
+      .replace(/pi/g, "π")
+      .replace(/-/g, "−");
+  }
+  function cellHTML(f){
+    if (L.isSym(f)) return renderSym(f.toString());
+    return S.dec ? fmtNum(f.toNumber()) : fracHTML(f);
+  }
   var SUBS = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇"];
   var SUPS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
   function rn(n){ return "R" + String(n).split("").map(function(ch){ return SUPS[+ch] || ch; }).join(""); }
@@ -852,7 +1955,7 @@ const LinAlg = (function(){
     return h + "</div>";
   }
   function tupleHTML(v){
-    return "(" + v.map(function(f){ return S.dec ? fmtNum(f.toNumber()) : fracHTML(f); }).join(", ") + ")";
+    return "(" + v.map(function(f){ return L.isSym(f) ? renderSym(f.toString()) : (S.dec ? fmtNum(f.toNumber()) : fracHTML(f)); }).join(", ") + ")";
   }
   function kName(j){ return "k" + SUBS[j + 1]; }
   function coordExpr(i, p, basis){
@@ -983,7 +2086,7 @@ const LinAlg = (function(){
       else if (op === "sub") res = { label: "A − B", blocks: [{ type: "matrix", data: L.matSub(A, B) }] };
       else if (op === "mul") res = { label: "A × B", blocks: [{ type: "matrix", data: L.matMul(A, B) }] };
       else if (op === "kA"){
-        var k = F(el("kval").value);
+        var k = L.val(el("kval").value);
         res = { label: k.toString() + " · A", blocks: [{ type: "matrix", data: L.scaleMat(A, k) }] };
       }
       else if (op === "trans") res = { label: "Aᵀ", blocks: [{ type: "matrix", data: L.transpose(A) }] };
@@ -1021,6 +2124,24 @@ const LinAlg = (function(){
           { type: "text", text: "<b>坐标形式</b>：<br>" + coordLines(r.particular, r.basis) },
           { type: "text", text: "<b>解集</b>（集合写法，x ∈ " + rn(nv) + "）：<br>" + setHTML(r.particular, r.basis) + "<br>其中 " + kListHTML(r.basis) }
         ] };
+      }
+      else if (op === "aug"){
+        var au = L.augSolve(A);
+        var ab = [
+          { type: "text", text: "增广矩阵 [A|b] 的行最简形：" },
+          { type: "matrix", data: au.RREF },
+          { type: "text", text: "未知数 " + au.unknown + " 个；<b>rank A = " + au.rankA + "</b>，<b>rank [A|b] = " + au.rankAug + "</b>。" }
+        ];
+        if (au.type === "none") ab.push({ type: "text", text: "<b>无解</b>：rank A &lt; rank [A|b]，方程互相矛盾。", danger: true });
+        else if (au.type === "unique") ab.push({ type: "text", text: "<b>唯一解</b>：rank A = rank [A|b] = 未知数个数 " + au.unknown + "。" });
+        else ab.push({ type: "text", text: "<b>无穷多解</b>：rank A = rank [A|b] &lt; 未知数个数，自由变量 " + au.free + " 个。" });
+        if (au.type !== "none" && au.solution){
+          ab.push({ type: "gensol", data: au.solution });
+          ab.push({ type: "text", text: "<b>坐标形式</b>：<br>" + coordLines(au.solution.particular, au.solution.basis) });
+          ab.push({ type: "text", text: "<b>解集</b>：<br>" + setHTML(au.solution.particular, au.solution.basis) +
+            (au.solution.basis.length ? "<br>其中 " + kListHTML(au.solution.basis) : "") });
+        }
+        res = { label: "增广矩阵求解 [A|b]", blocks: ab };
       }
       else if (op === "eig") res = { label: "A 的特征值", blocks: [{ type: "roots", data: L.eigen(A) }] };
       else if (op === "ker"){
@@ -1106,7 +2227,7 @@ const LinAlg = (function(){
     try {
       for (i = 0; i < n; i++){
         var row = [];
-        for (j = 0; j < n; j++) row.push(F(list[i * n + j].value).toNumber());
+        for (j = 0; j < n; j++) row.push(L.val(list[i * n + j].value).toNumber());
         M.push(row);
       }
     } catch (e){ return null; }

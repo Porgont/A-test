@@ -132,7 +132,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
   <section class="card">
     <div class="chead">
       <span class="mtag">f</span>
-      <span class="note">输入函数，支持 sin cos tan ln exp sqrt abs 和 pi、e，可以写 2x 这种隐式乘法</span>
+      <span class="note">输入函数：sin cos tan csc sec cot、asin acos atan、sinh cosh tanh、ln exp sqrt abs，以及 pi、e；可以写 2x 这种隐式乘法</span>
       <div class="tools"><button id="fxClear">清空</button></div>
     </div>
     <input id="fx" class="fxin" value="sin(x)/x" autocomplete="off" spellcheck="false" inputmode="text">
@@ -159,6 +159,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
       <div class="tools">
         <button id="plotFit">自动取景</button>
         <button id="plotA">以 a 为中心</button>
+        <button id="plotDeriv">导数曲线</button>
       </div>
     </div>
     <canvas id="plot" class="geo"></canvas>
@@ -209,7 +210,9 @@ __CALC_ENGINE__
     { id: "transform", label: "变换", href: "transform.html" },
     { id: "limits", label: "极限", href: "limits.html" },
     { id: "deriv", label: "微分", href: "deriv.html" },
-    { id: "integral", label: "积分", href: "integral.html" }
+    { id: "integral", label: "积分", href: "integral.html" },
+    { id: "graph", label: "图像", href: "graph.html" },
+    { id: "stats", label: "概率", href: "stats.html" }
   ];
   var OPDEF = {
     limBoth:   { label: "极限", hint: "求 lim f(x)（x → a）。两侧不一致时会分别写出左极限与右极限。" },
@@ -341,21 +344,39 @@ __CALC_ENGINE__
   }
 
   /* ---------- 极限 ---------- */
+  /* 把一个输入框（a、积分上下限）变成「引擎能吃的东西」：
+     数字、inf / -inf，或者含 pi、e 的表达式（引擎的 limit / definiteIntegral 直接接受表达式字符串）。
+     返回 { a: 给引擎的值, num: 数值（画图用）, text: 显示文字 } 或 { bad: 中文提示 }。 */
+  function readPoint(box, label){
+    var raw = box ? String(box.value).trim() : "0";
+    if (raw === "") raw = "0";
+    if (/^(inf|infinity|\+inf|\+∞|∞)$/i.test(raw)) return { a: "inf", num: Infinity, text: "+∞" };
+    if (/^(-inf|-infinity|-∞)$/i.test(raw)) return { a: "-inf", num: -Infinity, text: "−∞" };
+    var v = num(raw);
+    if (!isNaN(v)) return { a: v, num: v, text: fmt(v, 8) };
+    try {
+      if (/x/.test(raw)) throw new Error("含 x");
+      var vv = C.evalAt(C.parse(raw.replace(/π/g, "pi")), 0);
+      if (typeof vv === "number" && isFinite(vv)) return { a: raw.replace(/π/g, "pi"), num: vv, text: pretty(raw.replace(/π/g, "pi")) };
+      throw new Error("算不出有限值");
+    } catch (e){
+      return { bad: (label || "这个值") + "要填数字、inf，或含 pi / e 的表达式（例如 pi/2、2*pi、1/3）" };
+    }
+  }
   function readA(){
-    var aRaw = el("limA") ? el("limA").value.trim() : "0";
-    if (/^(inf|infinity|\+inf|\+∞|∞)$/i.test(aRaw)) return "inf";
-    if (/^(-inf|-infinity|-∞)$/i.test(aRaw)) return "-inf";
-    return num(aRaw);
+    var p = readPoint(el("limA"), "a");
+    return p.bad ? NaN : p.a;
   }
   function runLimit(side){
     var node = preview(); if (!node) return;
-    var a = readA();
-    if (typeof a === "number" && isNaN(a)){ show('<p class="msgerr">a 要是数字，或者写 inf / -inf</p>'); return; }
+    var pt = readPoint(el("limA"), "a");
+    if (pt.bad){ show('<p class="msgerr">' + pt.bad + "</p>"); return; }
+    var a = pt.a;
     var r;
     try { r = C.limit(node, a, { side: side || "both" }); }
     catch (e){ show('<p class="msgerr">' + (e.message || e) + "</p>"); return; }
 
-    var aText = a === "inf" ? "+∞" : a === "-inf" ? "−∞" : fmt(a, 8);
+    var aText = pt.text;
     var h = "";
     if (side === "left" || side === "right"){
       var one = side === "left" ? r.left : r.right;
@@ -385,9 +406,9 @@ __CALC_ENGINE__
     lastReport = "lim x→" + aText + " f(x)：" + (r.exists ? (r.exact || fmt(r.value)) : "不存在");
     PLOT.overlay = { type: "limit", a: typeof a === "number" ? a : (a === "inf" ? 20 : -20), L: r.exists ? r.value : null };
     PLOT.label = "lim<sub>x→" + aText + "</sub> f(x)" + (r.exists ? " = " + (r.exact || fmt(r.value)) : " 不存在");
-    if (typeof a === "number") plotWindowAround(a);
-    else if (a === "inf"){ PLOT.xmin = -2; PLOT.xmax = 20; autoY(); }
-    else { PLOT.xmin = -20; PLOT.xmax = 2; autoY(); }
+    if (a === "inf"){ PLOT.xmin = -2; PLOT.xmax = 20; autoY(); }
+    else if (a === "-inf"){ PLOT.xmin = -20; PLOT.xmax = 2; autoY(); }
+    else plotWindowAround(isFinite(pt.num) ? pt.num : 0);
     plotDraw();
   }
 
@@ -402,7 +423,8 @@ __CALC_ENGINE__
     var h = boxHTML("f(x)", pretty(C.str(node)));
     h += boxHTML(order === 2 ? "二阶导 f″(x)" : "一阶导 f′(x)", pretty(C.str(order === 2 ? d2 : d1)));
     if (order === 2) h += boxHTML("（顺带）一阶导 f′(x)", pretty(C.str(d1)));
-    var a = el("limA") ? num(el("limA").value) : NaN;
+    var ptd = readPoint(el("limA"), "a");
+    var a = ptd.bad ? NaN : ptd.num;
     if (!isNaN(a)){
       var s1 = safeEval(node, a), s2 = safeEval(d1, a);
       h += '<p class="res">在 x = ' + fmt(a, 6) + " 处：f = <b>" + fmt(s1) + "</b>，切线斜率 f′ = <b>" + fmt(s2) + "</b></p>";
@@ -419,7 +441,8 @@ __CALC_ENGINE__
   /* ---------- 泰勒 ---------- */
   function runTaylor(){
     var node = preview(); if (!node) return;
-    var a = el("limA") ? num(el("limA").value) : 0; if (isNaN(a)) a = 0;
+    var ptt = readPoint(el("limA"), "a");
+    var a = ptt.bad ? 0 : ptt.num;
     var order = Math.max(1, Math.min(12, Math.round(num(el("order") ? el("order").value : 5) || 5)));
     var t;
     try { t = C.taylor(node, a, order); }
@@ -453,24 +476,25 @@ __CALC_ENGINE__
   }
   function runDefint(){
     var node = preview(); if (!node) return;
-    var a = num(el("intA") ? el("intA").value : 0), b = num(el("intB") ? el("intB").value : 1);
-    if (isNaN(a) || isNaN(b)){ show('<p class="msgerr">定积分的上下限要是数字</p>'); return; }
-    var r = C.definiteIntegral(node, a, b);
-    var h = boxHTML("积分区间", "从 " + fmt(a, 6) + " 到 " + fmt(b, 6));
-    h += '<p class="res">∫<sub>' + fmt(a, 4) + "</sub><sup>" + fmt(b, 4) + "</sup> f(x) dx = <b class=\"bigval\">" + (r.exact ? r.exact : fmt(r.numeric)) + "</b>" + (r.exact ? "　（精确值）" : "　（数值积分）") + "</p>";
+    var pa = readPoint(el("intA"), "积分下限"), pb = readPoint(el("intB"), "积分上限");
+    if (pa.bad || pb.bad){ show('<p class="msgerr">' + (pa.bad || pb.bad) + "</p>"); return; }
+    var r = C.definiteIntegral(node, pa.a, pb.a);
+    var an = pa.num, bn = pb.num;
+    var h = boxHTML("积分区间", "从 " + pa.text + " 到 " + pb.text);
+    h += '<p class="res">∫<sub>' + pa.text + "</sub><sup>" + pb.text + "</sup> f(x) dx = <b class=\"bigval\">" + (r.exact ? pretty(r.exact) : fmt(r.numeric)) + "</b>" + (r.exact ? "　（精确值）" : "　（数值积分）") + "</p>";
     if (r.exact) h += '<p class="res">数值核对：' + r.approxText + "</p>";
     show(h);
-    lastReport = "∫ from " + a + " to " + b + " = " + (r.exact || r.numeric);
-    PLOT.overlay = { type: "area", a: a, b: b, node: node };
-    PLOT.label = "阴影面积 = " + (r.exact || fmt(r.numeric));
-    var lo = Math.min(a, b), hi = Math.max(a, b), pad = Math.max((hi - lo) * 0.8, 1);
+    lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || r.numeric);
+    PLOT.overlay = { type: "area", a: an, b: bn, node: node };
+    PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : fmt(r.numeric));
+    var lo = Math.min(an, bn), hi = Math.max(an, bn), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();
     plotDraw();
   }
 
   /* ---------- 画图 ---------- */
-  var PLOT = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, overlay: null, label: "" };
+  var PLOT = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, overlay: null, label: "", showDeriv: false };
   function plotWindowAround(a){ PLOT.xmin = a - 6; PLOT.xmax = a + 6; autoY(); }
   function autoY(){
     if (!PLOT.node) return;
@@ -549,6 +573,25 @@ __CALC_ENGINE__
       g.stroke(); g.restore();
     }
 
+    /* 导数曲线（开关打开时叠加，粉色） */
+    if (PLOT.showDeriv && PLOT.node){
+      var dn = null;
+      try { dn = C.deriv(PLOT.node); } catch (e){ dn = null; }
+      if (dn){
+        g.save();
+        g.strokeStyle = "#f06595"; g.lineWidth = 2; g.lineJoin = "round";
+        g.beginPath();
+        var st2 = false, i4, x4, v4, qx, qy, span2 = PLOT.ymax - PLOT.ymin;
+        for (i4 = 0; i4 <= 900; i4++){
+          x4 = PLOT.xmin + (PLOT.xmax - PLOT.xmin) * i4 / 900;
+          v4 = safeEval(dn, x4);
+          if (!isFinite(v4) || v4 < PLOT.ymin - span2 || v4 > PLOT.ymax + span2){ st2 = false; continue; }
+          qx = X(x4); qy = Y(v4);
+          if (!st2){ g.moveTo(qx, qy); st2 = true; } else g.lineTo(qx, qy);
+        }
+        g.stroke(); g.restore();
+      }
+    }
     if (PLOT.overlay && PLOT.overlay.type === "tangent" && isFinite(PLOT.overlay.k)){
       var o = PLOT.overlay;
       g.save(); g.strokeStyle = "#f06595"; g.lineWidth = 2; g.setLineDash([6, 5]);
@@ -572,7 +615,8 @@ __CALC_ENGINE__
       g.restore();
     }
 
-    el("plotinfo").innerHTML = PLOT.label || "算完之后，这里会标出极限点 / 切线 / 面积。";
+    el("plotinfo").innerHTML = (PLOT.label || "算完之后，这里会标出极限点 / 切线 / 面积。")
+      + (PLOT.showDeriv ? '<br><span style="color:#f06595">粉色曲线是 f′(x)</span>' : "");
   }
 
   /* ---------- 运算选择：先选，再按「计算」 ---------- */
@@ -612,6 +656,8 @@ __CALC_ENGINE__
     { t: "^", v: "^" }, { t: "(", v: "(" }, { t: ")", v: ")" }, { t: "x²", v: "^2" },
     { t: "π", v: "pi" }, { t: "e", v: "e" }, { t: "e^x", v: "e^" },
     { t: "sin", v: "sin(", fn: true }, { t: "cos", v: "cos(", fn: true }, { t: "tan", v: "tan(", fn: true },
+    { t: "csc", v: "csc(", fn: true }, { t: "sec", v: "sec(", fn: true }, { t: "cot", v: "cot(", fn: true },
+    { t: "arcsin", v: "asin(", fn: true }, { t: "arccos", v: "acos(", fn: true }, { t: "arctan", v: "atan(", fn: true },
     { t: "ln", v: "ln(", fn: true }, { t: "√", v: "sqrt(", fn: true }, { t: "|x|", v: "abs(", fn: true }
   ];
   SYMS.forEach(function(s){
@@ -647,7 +693,7 @@ __CALC_ENGINE__
     { src: "e^(-x^2)",        label: "e<sup>−x<sup>2</sup></sup>" },
     { src: "1/(1+x^2)",       label: "1/(1+x<sup>2</sup>)" },
     { src: "ln(x)",           label: "ln x" },
-    { src: "tan(x)",          label: "tan x" }
+    { src: "x*cot(x)",        label: "x·cot x" }
   ];
   EXAMPLES.forEach(function(s){
     var b = document.createElement("button");
@@ -679,7 +725,13 @@ __CALC_ENGINE__
   });
 
   el("plotFit").addEventListener("click", function(){ PLOT.xmin = -6; PLOT.xmax = 6; autoY(); plotDraw(); });
-  el("plotA").addEventListener("click", function(){ var a = el("limA") ? num(el("limA").value) : NaN; if (isNaN(a)) a = 0; plotWindowAround(a); plotDraw(); });
+  el("plotDeriv").addEventListener("click", function(){
+    PLOT.showDeriv = !PLOT.showDeriv;
+    this.textContent = PLOT.showDeriv ? "导数曲线：开" : "导数曲线";
+    this.style.fontWeight = PLOT.showDeriv ? "600" : "";
+    plotDraw();
+  });
+  el("plotA").addEventListener("click", function(){ var p = readPoint(el("limA"), "a"); plotWindowAround(p.bad || !isFinite(p.num) ? 0 : p.num); plotDraw(); });
   el("copy").addEventListener("click", function(){
     var txt = lastReport || (el("out").textContent || "").trim();
     if (navigator.clipboard && navigator.clipboard.writeText){

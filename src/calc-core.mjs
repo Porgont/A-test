@@ -74,7 +74,7 @@ function rn(n) { return new Rat(n); }
  * 连分数有理重构：浮点数 x 若非常接近分母不大的有理数，就还原它。
  * 用于「数值判定的极限恰好是 1/2 这类精确值」的场景。
  */
-function ratApprox(x, maxDen = 100000000n, eps = 1e-9) {
+function ratApprox(x, maxDen = 10000n, eps = 1e-9) {
   if (!Number.isFinite(x)) return null;
   const neg = x < 0;
   const v = Math.abs(x);
@@ -109,7 +109,7 @@ function formatNumber(x) {
   if (x === Infinity) return "+inf";
   if (x === -Infinity) return "-inf";
   if (Number.isInteger(x)) return String(x);
-  const r = ratApprox(x, 1000000n, 1e-12);
+  const r = ratApprox(x, 10000n, 1e-12);
   if (r && !r.isInt) return r.toString();
   return String(Number(x.toPrecision(12)));
 }
@@ -852,14 +852,15 @@ const smooth = (n) => simplify(n);
 
 /**
  * 在点 a 处把表达式展开到 order 阶。
+ * 展开点支持纯数字，也支持含 pi / e 的表达式（"pi/2"、"2*pi"、"1/3"）。
  * 返回 { terms: [{ coefText, power }], text }，text 形如 "x - x^3/6 + ..."。
  */
 export function taylor(node, a, order, varName = "x") {
   const N = Number(order);
   if (!Number.isFinite(N) || N < 0) throw new Error("泰勒展开的阶数必须是非负整数");
-  const aNum = typeof a === "number" ? a : Number(a);
-  if (!Number.isFinite(aNum)) throw new Error("泰勒展开的展开点必须是有限数值");
-  const aPoint = ratApprox(aNum, 1000000n, 1e-12) || new Rat(aNum);
+  const pt = constPoint(a, "泰勒展开的展开点");
+  const aNum = pt.num;
+  const aPoint = ratApprox(aNum, 1000000n, 1e-12); // a = pi/2 这类点不是有理数，这里会是 null
   const terms = [];
   let cur = simplify(clone(node));
   let fact = R1;
@@ -868,38 +869,41 @@ export function taylor(node, a, order, varName = "x") {
       cur = deriv(cur, varName);
       fact = fact.mul(ri(k));
     }
-    let fk = evalRat(cur, aPoint, varName);
+    let fk = null;   // 精确有理系数
+    let fnum = null; // 拿不到精确有理数时的数值系数
+    // 先把展开点符号代入再归约：a = pi/2 这类点也能拿到精确的有理系数
+    const red = reduceConst(substConst(cur, varName, pt.node));
+    if (red !== null && isNum(red)) fk = red.v;
+    if (fk === null) fk = evalRat(cur, aPoint, varName);
     if (fk === null) {
-      const numeric = ev(cur, { x: aPoint.toNumber(), varName });
-      fk = ratApprox(numeric, 1000000n, 1e-12);
+      fnum = ev(cur, { x: aNum, varName });
+      // 只收「好看」的有理近似（分母 ≤ 1000），否则老实写小数，
+      // 免得 e^(pi/2) 这种无理系数被写成 2328247/483995 这种没法看的东西
+      if (Number.isFinite(fnum)) fk = ratApprox(fnum, 1000n, 1e-12);
     }
-    if (fk === null) break;
-    const coef = fk.div(fact);
-    if (coef.isZero) continue;
+    if (fk === null && !Number.isFinite(fnum)) break;
+    // 系数：优先精确有理数，只有数值时写成小数
+    let coef = null, cnum = 0;
+    if (fk !== null) { coef = fk.div(fact); cnum = coef.toNumber(); }
+    else { cnum = fnum / fact.toNumber(); coef = ratApprox(cnum, 1000000n, 1e-12); }
+    if (coef ? coef.isZero : cnum === 0) continue;
     // (x - a)^k
-    const base = aPoint.isZero
+    const base = isZeroNode(pt.node)
       ? variable(varName)
-      : simplify({ t: "add", a: variable(varName), b: num(aPoint.neg()) });
-    terms.push({ coefText: coef.toString(), power: k, coef, baseText: toString(base) });
+      : simplify({ t: "add", a: variable(varName), b: { t: "neg", a: clone(pt.node) } });
+    terms.push({
+      coefText: coef ? coef.toString() : decimalText(cnum),
+      power: k,
+      coef,
+      sign: (coef ? coef.sign : (cnum < 0 ? -1 : 1)),
+      mag: taylorMagText(k, toString(base), coef, cnum),
+    });
   }
   terms.sort((x, y) => x.power - y.power);
   let text;
   if (terms.length === 0) text = "0";
   else {
-    const parts = [];
-    for (const t of terms) {
-      const cAbs = t.coef.abs();
-      let mag;
-      if (t.power === 0) {
-        mag = cAbs.isOne ? "1" : cAbs.toString();
-      } else {
-        const p = t.power === 1 ? t.baseText : t.baseText + "^" + t.power;
-        if (cAbs.isOne) mag = p;
-        else if (cAbs.n === 1n) mag = p + "/" + cAbs.d.toString();
-        else mag = cAbs.toString() + "*" + p;
-      }
-      parts.push({ sign: t.coef.sign < 0 ? "-" : "+", mag });
-    }
+    const parts = terms.map((t) => ({ sign: t.sign < 0 ? "-" : "+", mag: t.mag }));
     text = (parts[0].sign === "-" ? "-" : "") + parts[0].mag;
     for (let i = 1; i < parts.length; i++) text += " " + (parts[i].sign === "-" ? "-" : "+") + " " + parts[i].mag;
     text += " + ...";
@@ -908,6 +912,32 @@ export function taylor(node, a, order, varName = "x") {
     terms: terms.map((t) => ({ coefText: t.coefText, power: t.power })),
     text,
   };
+}
+
+/** 近似系数的小数写法（10 位有效数字）。 */
+function decimalText(x) {
+  return String(Number(x.toPrecision(10)));
+}
+
+/** 泰勒一项的「系数 × 幂」文字；有理系数写成分数，数值系数写成小数。 */
+function taylorMagText(power, baseText, coef, cnum) {
+  const plain = /^[A-Za-z0-9_]+$/.test(baseText);
+  const close = plain ? baseText : "(" + baseText + ")";
+  if (power === 0) {
+    if (coef) return coef.abs().isOne ? "1" : coef.abs().toString();
+    const a0 = Math.abs(cnum);
+    return Math.abs(a0 - 1) < 1e-12 ? "1" : decimalText(a0);
+  }
+  const p = power === 1 ? close : close + "^" + power;
+  if (coef) {
+    const cAbs = coef.abs();
+    if (cAbs.isOne) return p;
+    if (cAbs.n === 1n) return p + "/" + cAbs.d.toString();
+    return cAbs.toString() + "*" + p;
+  }
+  const a = Math.abs(cnum);
+  if (Math.abs(a - 1) < 1e-12) return p;
+  return decimalText(a) + "*" + p;
 }
 
 /* ============================== 11. 极限 ============================== */
@@ -1113,7 +1143,8 @@ function rationalInfinityLimit(n, v) {
 
 /**
  * 极限。
- * a: number | "inf" | "-inf"（也接受 "+inf"）
+ * a: number | "inf" | "-inf"（也接受 "+inf"、"∞"）
+ *    也可以是含 pi / e 的表达式字符串："pi/2"、"2*pi"、"1/3"。
  * opts: { side: "both" | "left" | "right", varName }
  * 返回 { exists, value, exact, kind, left, right, steps, method }
  *
@@ -1127,9 +1158,10 @@ export function limit(node, a, opts = {}) {
   const expr = simplify(clone(node));
   const exprText = toString(expr);
 
-  const toInf = (s) => s === "inf" || s === "+inf" || s === "Infinity" || s === "+Infinity";
-  const toNegInf = (s) => s === "-inf" || s === "-Infinity";
-  let aKind = "finite", aNum = null;
+  const toInf = (s) => s === "inf" || s === "+inf" || s === "∞" || s === "+∞" ||
+    s === "Infinity" || s === "+Infinity";
+  const toNegInf = (s) => s === "-inf" || s === "-∞" || s === "−∞" || s === "-Infinity";
+  let aKind = "finite", aNum = null, aLabel = null;
   if (typeof a === "number") {
     if (Number.isNaN(a)) throw new Error("极限点不能是 NaN");
     aNum = a;
@@ -1140,16 +1172,16 @@ export function limit(node, a, opts = {}) {
     if (toInf(s)) aKind = "inf";
     else if (toNegInf(s)) aKind = "neginf";
     else {
-      const p = Number(s);
-      if (!Number.isFinite(p)) throw new Error("无法识别的极限点：" + a);
-      aNum = p;
+      const pt = constPoint(a, "极限点 a"); // 支持 pi/2、2*pi、1/3 这类表达式
+      aNum = pt.num;
+      aLabel = pt.text;
     }
   } else {
-    throw new Error("极限点必须是数值或 \"inf\" / \"-inf\"");
+    throw new Error("极限点必须是数值、含 pi / e 的表达式，或 \"inf\" / \"-inf\"");
   }
 
   const f = (x) => ev(expr, { x, varName });
-  const targetText = aKind === "inf" ? "+inf" : (aKind === "neginf" ? "-inf" : formatNumber(aNum));
+  const targetText = aKind === "inf" ? "+inf" : (aKind === "neginf" ? "-inf" : (aLabel || formatNumber(aNum)));
 
   /* ---- 有限点 ---- */
   if (aKind === "finite") {
@@ -1172,7 +1204,7 @@ export function limit(node, a, opts = {}) {
         sideText(lp) + "，右极限 " + sideText(rp) + "。",
     });
     // 0/0 或 inf/inf → 洛必达（含 |x| 这类不可导点时跳过，避免无意义迭代）
-    const lh = hasAbs(expr) ? null : tryLhopital(expr, aNum, varName, steps);
+    const lh = hasAbs(expr) ? null : tryLhopital(expr, aNum, varName, steps, targetText);
     if (lh !== null) {
       const one = { value: lh.value, kind: "finite" };
       if (side === "both") return finish("finite", lh.value, lh.rat, one, one, steps, "lhopital");
@@ -1248,9 +1280,10 @@ function finish(kind, value, rat, left, right, steps, method) {
 }
 
 /** 洛必达：0/0 或 inf/inf 时对分子分母分别求导，最多 6 轮。 */
-function tryLhopital(expr, a, varName, steps) {
+function tryLhopital(expr, a, varName, steps, aLabel) {
   const split = splitQuotient(expr);
   if (!split) return null;
+  const aText = aLabel || formatNumber(a);
   let u = split.num, w = split.den;
   for (let i = 1; i <= MAX_LHOPITAL; i++) {
     const uv = ev(u, { x: a, varName });
@@ -1258,7 +1291,7 @@ function tryLhopital(expr, a, varName, steps) {
     const form = classifyForm(uv, wv);
     if (!form) break;
     steps.push({
-      desc: "第 " + i + " 次洛必达：分子分母在 " + varName + " = " + formatNumber(a) + " 处构成 " + form +
+      desc: "第 " + i + " 次洛必达：分子分母在 " + varName + " = " + aText + " 处构成 " + form +
         " 型不定式，对分子分母分别求导。",
       expr: "(" + toString(u) + ")' / (" + toString(w) + ")'",
     });
@@ -1488,6 +1521,10 @@ function intTerm(node, v, depth) {
   const as = matchAsin(n, v);
   if (as) return as;
 
+  // 三角配对：sec^2、csc^2、sec·tan、csc·cot
+  const tp = matchTrigPair(n, v);
+  if (tp) return tp;
+
   // 除法换元：p(x)/q(x) 且 p 是 q 的常数倍 → k·ln|q|
   const ql = matchQuotientLog(n, v);
   if (ql) return ql;
@@ -1558,6 +1595,40 @@ function matchAsin(n, v) {
   const lin = linearOf(negSq.a.a, v);
   if (!lin || !lin.a.eq(R1) || !lin.b.isZero) return null;
   return { t: "fn", name: "asin", arg: variable(v) };
+}
+
+/**
+ * 三角配对积分（内层为线性 ax+b）：
+ *   ∫sec²(u) = tan(u)、∫csc²(u) = -cot(u)、∫sec(u)tan(u) = sec(u)、∫csc(u)cot(u) = -csc(u)。
+ * 内层 u = ax+b 时整体再除以 a（因为 d/du 的链式因子是 a）。
+ */
+function matchTrigPair(n, v) {
+  let kind = null, fnNode = null;
+  if (n.t === "pow" && isNum(n.b) && n.b.v.eq(R2) && n.a.t === "fn" &&
+      (n.a.name === "sec" || n.a.name === "csc")) {
+    kind = n.a.name === "sec" ? "tan" : "ncot"; // ∫sec² = tan，∫csc² = -cot
+    fnNode = n.a;
+  } else if (n.t === "mul") {
+    const fs = flattenProd(n);
+    if (fs.length === 2 && fs[0].t === "fn" && fs[1].t === "fn" && fs[0].arg && fs[1].arg &&
+        key(fs[0].arg) === key(fs[1].arg)) {
+      const names = [fs[0].name, fs[1].name].sort().join("+");
+      if (names === "sec+tan") { kind = "sec"; fnNode = fs[0].name === "sec" ? fs[0] : fs[1]; }
+      else if (names === "cot+csc") { kind = "ncsc"; fnNode = fs[0].name === "csc" ? fs[0] : fs[1]; }
+    }
+  }
+  if (!kind) return null;
+  const lin = linearOf(fnNode.arg, v);
+  if (!lin) return null;
+  const u = lin.b.isZero
+    ? variable(v)
+    : simplify({ t: "add", a: makeProd([num(lin.a), variable(v)]), b: num(lin.b) });
+  let base;
+  if (kind === "tan") base = { t: "fn", name: "tan", arg: u };
+  else if (kind === "ncot") base = { t: "neg", a: { t: "fn", name: "cot", arg: u } };
+  else if (kind === "sec") base = { t: "fn", name: "sec", arg: u };
+  else base = { t: "neg", a: { t: "fn", name: "csc", arg: u } };
+  return lin.a.isOne ? base : makeProd([num(lin.a.inv()), base]);
 }
 
 /** 匹配 u^k（u 是 x 或线性 ax+b）。sqrt(u) 也按 u^(1/2) 处理。 */
@@ -1729,6 +1800,340 @@ function classifyForParts(n, v) {
   return polyCoeffs(n, v) ? "poly" : "other";
 }
 
+/* ============================== 12.5 精确常数归约 ============================== */
+
+// 三角函数在 π 的有理倍数处的精确值：值 = (分子/分母) × atom，atom 取 "" / "sqrt2" / "sqrt3"。
+// 表里只列 k ≥ 0 的项：odd 的函数在 k < 0 时取相反数，even 的函数直接用 |k|。
+const PI_TRIG_EXACT = {
+  sin: { odd: true, map: { "0": [0, 1, ""], "1/6": [1, 2, ""], "1/4": [1, 2, "sqrt2"], "1/3": [1, 2, "sqrt3"], "1/2": [1, 1, ""], "1": [0, 1, ""], "3/2": [-1, 1, ""], "2": [0, 1, ""] } },
+  cos: { even: true, map: { "0": [1, 1, ""], "1/6": [1, 2, "sqrt3"], "1/4": [1, 2, "sqrt2"], "1/3": [1, 2, ""], "1/2": [0, 1, ""], "1": [-1, 1, ""], "3/2": [0, 1, ""], "2": [1, 1, ""] } },
+  tan: { odd: true, map: { "0": [0, 1, ""], "1/6": [1, 3, "sqrt3"], "1/4": [1, 1, ""], "1/3": [1, 1, "sqrt3"], "1": [0, 1, ""] } },
+  cot: { odd: true, map: { "1/6": [1, 1, "sqrt3"], "1/4": [1, 1, ""], "1/3": [1, 3, "sqrt3"], "1/2": [0, 1, ""] } },
+  sec: { even: true, map: { "0": [1, 1, ""], "1/3": [2, 1, ""], "2/3": [-2, 1, ""], "1": [-1, 1, ""] } },
+  csc: { odd: true, map: { "1/6": [2, 1, ""], "1/2": [1, 1, ""], "5/6": [2, 1, ""], "3/2": [-1, 1, ""] } },
+};
+
+// 反三角在特殊点上的精确值：值 = k·π。
+const INV_TRIG_EXACT = {
+  asin: { "0": [0, 1], "1": [1, 2], "-1": [-1, 2], "1/2": [1, 6], "-1/2": [-1, 6] },
+  acos: { "1": [0, 1], "0": [1, 2], "-1": [1, 1], "1/2": [1, 3], "-1/2": [2, 3] },
+  atan: { "0": [0, 1], "1": [1, 4], "-1": [-1, 4] },
+};
+
+/** 整数平方根；不是完全平方返回 null。 */
+function bigSqrt(v) {
+  if (v < 0n) return null;
+  if (v < 2n) return v;
+  let x = v, y = (x + 1n) / 2n;
+  while (y < x) { x = y; y = (x + v / x) / 2n; }
+  return x * x === v ? x : null;
+}
+
+/** 整数的 q 次方根（q = 2..8）；不是完全方幂返回 null。 */
+function bigRoot(v, q) {
+  if (v < 0n || q < 2) return null;
+  if (v < 2n) return v;
+  const guess = BigInt(Math.floor(Math.pow(Number(v), 1 / q)));
+  for (let d = -2n; d <= 2n; d++) {
+    const c = guess + d;
+    if (c >= 0n && c ** BigInt(q) === v) return c;
+  }
+  return null;
+}
+
+/** 有理数的精确平方根；不是完全平方返回 null。 */
+function perfectSqrt(r) {
+  const n = bigSqrt(r.n), d = bigSqrt(r.d);
+  return (n !== null && d !== null) ? new Rat(n, d) : null;
+}
+
+/** 常数节点是否正好落在 k·π 上（k 为有理数）；返回 k 或 null。 */
+function piMultiple(n) {
+  if (!n) return null;
+  if (isNum(n)) return n.v.isZero ? R0 : null;
+  if (n.t === "neg") { const k = piMultiple(n.a); return k === null ? null : k.neg(); }
+  if (n.t === "fn" && n.name === "pi" && n.arg === null) return R1;
+  if (n.t === "mul") {
+    const fs = flattenProd(n);
+    if (fs.length !== 2) return null;
+    const c = fs.find(isNum);
+    const p = fs.find((f) => f.t === "fn" && f.name === "pi" && f.arg === null);
+    return (c && p) ? c.v : null;
+  }
+  return null;
+}
+
+/** 由 [分子, 分母, atom] 造精确值节点：atom 为空 → 有理数，sqrt2 / sqrt3 → 带根号的闭式。 */
+function exactFromSpec(e, neg) {
+  let c = new Rat(BigInt(e[0]), BigInt(e[1]));
+  if (neg) c = c.neg();
+  if (e[2] === "") return num(c);
+  const base = { t: "fn", name: "sqrt", arg: num(e[2] === "sqrt2" ? R2 : ri(3)) };
+  if (c.isZero) return n0();
+  if (c.isOne) return base;
+  if (c.eq(ri(-1))) return { t: "neg", a: base };
+  return { t: "mul", a: num(c), b: base };
+}
+
+/** 三角函数在 k·π 处的精确值；没有闭式（含无定义）返回 null。 */
+function trigAtPi(name, k) {
+  const spec = PI_TRIG_EXACT[name];
+  if (!spec) return null;
+  const neg = k.sign < 0;
+  const e = spec.map[(neg ? k.neg() : k).toString()];
+  if (!e) return null;
+  return exactFromSpec(e, neg && spec.odd);
+}
+
+/** 反三角特殊值：值 = k·π。 */
+function invTrigExact(name, arg) {
+  const e = INV_TRIG_EXACT[name][arg.toString()];
+  if (!e) return null;
+  const k = new Rat(BigInt(e[0]), BigInt(e[1]));
+  if (k.isZero) return n0();
+  if (k.isOne) return PI_NODE();
+  if (k.eq(ri(-1))) return { t: "neg", a: PI_NODE() };
+  return { t: "mul", a: num(k), b: PI_NODE() };
+}
+
+/** 有理数底数的整数次幂展开（含 (c·u)^n 分配律），保证 π^2/8 这种结果不会写成 (pi/2)^2/2。 */
+function expandPowInt(a, n) {
+  if (n === 0) return n1();
+  if (n > 64) return null;
+  if (isNum(a)) {
+    const r = powRat(a.v, num(ri(n)));
+    return r ? num(r) : null;
+  }
+  if (a.t === "neg") {
+    const inner = expandPowInt(a.a, n);
+    if (inner === null) return null;
+    return n % 2 === 1 ? simplify({ t: "neg", a: inner }) : inner;
+  }
+  if (a.t === "mul") {
+    let acc = n1();
+    for (const f of flattenProd(a)) {
+      const r = expandPowInt(f, n);
+      if (r === null) return null;
+      acc = simplify({ t: "mul", a: acc, b: r });
+    }
+    return acc;
+  }
+  if (a.t === "pow" && isNum(a.b) && a.b.v.isInt) return reducePow(a.a, num(a.b.v.mul(ri(n))));
+  if (a.t === "fn" && a.name === "sqrt" && isNum(a.arg) && a.arg.v.sign >= 0) {
+    // (√q)^n = q^(n/2)：偶数次是有理数，奇数次 = q^((n-1)/2)·√q
+    const coef = powRat(a.arg.v, num(ri(Math.floor(n / 2))));
+    if (coef === null) return null;
+    if (n % 2 === 0) return num(coef);
+    const base = { t: "fn", name: "sqrt", arg: num(a.arg.v) };
+    if (coef.isZero) return n0();
+    if (coef.isOne) return base;
+    return { t: "mul", a: num(coef), b: base };
+  }
+  return { t: "pow", a, b: num(ri(n)) };
+}
+
+/** 幂的精确归约：整数指数走展开，有理数的分数次幂折成闭式或根式。 */
+function reducePow(a, b) {
+  if (!isNum(b)) return null;
+  if (b.v.isInt) {
+    const k = b.v.n;
+    if (k === 0n) return n1();
+    if (k > 0n) return Number(k) > 64 ? null : expandPowInt(a, Number(k));
+    const pos = expandPowInt(a, Number(-k));
+    if (pos === null) return null;
+    if (isNum(pos)) return pos.v.isZero ? null : num(pos.v.inv());
+    return { t: "pow", a: pos, b: num(ri(-1)) };
+  }
+  if (isNum(a) && a.v.sign < 0) return null; // 负数底数的非整数次幂不在实数范围内
+  if (isNum(a)) {
+    if (a.v.isZero) return b.v.sign > 0 ? n0() : null;
+    const q = b.v.d; // 指数 = p/q（q ≥ 2）
+    if (q > 8n) return null;
+    const rn = bigRoot(a.v.n, Number(q)), rd = bigRoot(a.v.d, Number(q));
+    if (rn !== null && rd !== null) {
+      // 底数是完全 q 次方幂：a^(p/q) = (a^(1/q))^p，直接折成有理数
+      const r = powRat(new Rat(rn, rd), num(b.v.mul(new Rat(q))));
+      if (r) return num(r);
+    }
+    if (q === 2n) {
+      // 半整数指数：写成 有理数·√a（a^(p/2) = a^((p-1)/2)·√a）
+      const p = b.v.mul(R2);
+      const coef = powRat(a.v, num(p.sub(R1).div(R2)));
+      if (coef === null) return null;
+      const base = { t: "fn", name: "sqrt", arg: num(a.v) };
+      if (coef.isZero) return n0();
+      if (coef.isOne) return base;
+      if (coef.eq(ri(-1))) return { t: "neg", a: base };
+      return { t: "mul", a: num(coef), b: base };
+    }
+    return null; // 2^(1/3) 这类没有好看的闭式写法，交给数值路径
+  }
+  return { t: "pow", a, b }; // π^(1/2) 这类保留幂形式（仍是闭式）
+}
+
+/** 具体函数的精确值归约：只认能写死的恒等式，认不出就返回 null（交给数值路径）。 */
+function reduceFn(name, a) {
+  if (name === "abs") {
+    if (isNum(a)) return num(a.v.abs());
+    if (a.t === "neg") return a.a;
+    if (a.t === "fn" && (a.name === "pi" || a.name === "e" || a.name === "sqrt")) return a;
+    if (a.t === "mul" && isNum(a.a) && a.a.v.sign < 0) {
+      return makeProd([num(a.a.v.abs()), a.b]);
+    }
+    return null;
+  }
+  if (name === "ln" || name === "log") {
+    if (isNum(a)) return a.v.isOne ? n0() : null;
+    if (isENode(a)) return n1();
+    if (a.t === "fn" && a.name === "exp" && isNum(a.arg)) return num(a.arg.v);
+    if (a.t === "pow" && isENode(a.a) && isNum(a.b)) return num(a.b.v);
+    return null;
+  }
+  if (name === "exp") {
+    if (isNum(a)) {
+      if (a.v.isZero) return n1();
+      if (a.v.isOne) return E_NODE();
+      return { t: "fn", name: "exp", arg: num(a.v) }; // e^r 本身就是闭式
+    }
+    if (a.t === "fn" && (a.name === "ln" || a.name === "log")) return a.arg; // e^(ln u) = u
+    const fs = a.t === "mul" ? flattenProd(a) : [];
+    if (fs.length === 2 && isNum(fs[0]) && fs[1].t === "fn" && fs[1].name === "ln" &&
+        isNum(fs[1].arg) && fs[1].arg.v.sign > 0) {
+      const r = powRat(fs[1].arg.v, num(fs[0].v)); // 只处理整数倍：e^(k·ln c) = c^k
+      if (r) return num(r);
+    }
+    return null;
+  }
+  if (name === "sqrt") {
+    if (!isNum(a) || a.v.sign < 0) return null;
+    const sq = perfectSqrt(a.v);
+    return sq ? num(sq) : { t: "fn", name: "sqrt", arg: num(a.v) }; // √2 这类无理数原子
+  }
+  if (PI_TRIG_EXACT[name]) {
+    const k = piMultiple(a);
+    return k === null ? null : trigAtPi(name, k);
+  }
+  if (INV_TRIG_EXACT[name]) return isNum(a) ? invTrigExact(name, a.v) : null;
+  if (name === "sinh" || name === "tanh") return (isNum(a) && a.v.isZero) ? n0() : null;
+  if (name === "cosh") return (isNum(a) && a.v.isZero) ? n1() : null;
+  return null;
+}
+
+/**
+ * 把「只含数字 / pi / e 的常数表达式」按精确恒等式归约成闭式；归约不出来返回 null。
+ * 用于定积分的符号代入 F(b) - F(a)：能归约出闭式才给 exact，否则如实走数值。
+ */
+function reduceConst(n) {
+  if (!n || typeof n !== "object") return null;
+  switch (n.t) {
+    case "num": return num(n.v);
+    case "var": return null;
+    case "neg": {
+      const a = reduceConst(n.a);
+      return a === null ? null : simplify({ t: "neg", a });
+    }
+    case "add": {
+      const a = reduceConst(n.a), b = reduceConst(n.b);
+      return (a === null || b === null) ? null : simplify({ t: "add", a, b });
+    }
+    case "mul": {
+      const a = reduceConst(n.a), b = reduceConst(n.b);
+      return (a === null || b === null) ? null : simplify({ t: "mul", a, b });
+    }
+    case "pow": {
+      const a = reduceConst(n.a), b = reduceConst(n.b);
+      return (a === null || b === null) ? null : reducePow(a, b);
+    }
+    case "fn": {
+      if (n.arg === null) return (n.name === "pi" || n.name === "e") ? { t: "fn", name: n.name, arg: null } : null;
+      const a = reduceConst(n.arg);
+      return a === null ? null : reduceFn(n.name, a);
+    }
+    default: return null;
+  }
+}
+
+/** 闭式白名单：结果只能由有理数、pi、e、√(正有理数)、e^有理数 及其四则/整数幂组成。 */
+function isClosedConst(n) {
+  switch (n.t) {
+    case "num": return true;
+    case "neg": return isClosedConst(n.a);
+    case "add":
+    case "mul": return isClosedConst(n.a) && isClosedConst(n.b);
+    case "pow": return isClosedConst(n.a) && isNum(n.b);
+    case "fn":
+      if (n.arg === null) return n.name === "pi" || n.name === "e";
+      if (n.name === "sqrt") return isNum(n.arg) && n.arg.v.sign >= 0;
+      if (n.name === "exp") return isNum(n.arg);
+      return false;
+    default: return false;
+  }
+}
+
+/** 打印前的整理：exp(有理数) 写成 e^有理数，页面上显示成 e² 更好读。 */
+function tidyConst(n) {
+  if (n.t === "fn") {
+    const arg = n.arg ? tidyConst(n.arg) : null;
+    if (n.name === "exp" && arg && isNum(arg)) return { t: "pow", a: E_NODE(), b: arg };
+    return { t: "fn", name: n.name, arg };
+  }
+  if (n.t === "neg") return { t: "neg", a: tidyConst(n.a) };
+  if (n.t === "add") return { t: "add", a: tidyConst(n.a), b: tidyConst(n.b) };
+  if (n.t === "mul") return { t: "mul", a: tidyConst(n.a), b: tidyConst(n.b) };
+  if (n.t === "pow") return { t: "pow", a: tidyConst(n.a), b: tidyConst(n.b) };
+  return n;
+}
+
+/** 把表达式里的变量 v 整体换成常量节点 sub。 */
+function substConst(n, v, sub) {
+  switch (n.t) {
+    case "num": return n;
+    case "var": return n.name === v ? clone(sub) : n;
+    case "neg": return { t: "neg", a: substConst(n.a, v, sub) };
+    case "add": return { t: "add", a: substConst(n.a, v, sub), b: substConst(n.b, v, sub) };
+    case "mul": return { t: "mul", a: substConst(n.a, v, sub), b: substConst(n.b, v, sub) };
+    case "pow": return { t: "pow", a: substConst(n.a, v, sub), b: substConst(n.b, v, sub) };
+    case "fn": return { t: "fn", name: n.name, arg: n.arg ? substConst(n.arg, v, sub) : null };
+    default: throw new Error("未知的 AST 节点类型：" + n.t);
+  }
+}
+
+/** 浮点数端点 → 精确节点：整数原样，短十进制还原成分数，其余按十进制精确展开。 */
+function numberNode(x) {
+  if (Number.isInteger(x)) return num(ri(x));
+  const r = ratApprox(x, 1000000n, 1e-12);
+  return num(r || decToRat(String(x)));
+}
+
+/**
+ * 点值解析：接受 number，或含 pi / e 的表达式字符串（"pi/2"、"2*pi"、"1/3"）。
+ * 返回 { node, num, text }；text 是规范化后的 ASCII 表达式，可写进判定过程。
+ * 出错时抛中文错误。
+ */
+function constPoint(t, what) {
+  if (typeof t === "number") {
+    if (!Number.isFinite(t)) throw new Error(what + "必须是有限数值");
+    return { node: numberNode(t), num: t, text: formatNumber(t) };
+  }
+  if (typeof t === "string") {
+    const s = t.trim();
+    if (!s) throw new Error(what + "不能为空");
+    let node;
+    try { node = simplify(parse(s)); }
+    catch (e) {
+      throw new Error(what + "看不懂：" + (e && e.message ? e.message : String(e)) +
+        "。可以写数字，或含 pi / e 的表达式，例如 pi/2、2*pi、1/3");
+    }
+    let hasVar = false;
+    walk(node, (k) => { if (k.t === "var") hasVar = true; });
+    if (hasVar) throw new Error(what + "不能含变量，只能写数字或含 pi / e 的表达式，例如 pi/2、2*pi、1/3");
+    const v = ev(node, { x: NaN, varName: "__none__" });
+    if (!Number.isFinite(v)) throw new Error(what + "算不出有限数值：" + s);
+    return { node, num: v, text: toString(node) };
+  }
+  throw new Error(what + "必须是数字或表达式");
+}
+
 /* ============================== 13. 定积分 ============================== */
 
 function simpson(f, a, b, n) {
@@ -1764,53 +2169,66 @@ function adaptiveSimpson(f, a, b, eps = 1e-10, maxDepth = 20) {
   return total;
 }
 
-/** 端点解析：接受 number，或 "pi" / "-pi" / "e" / 数值字符串。 */
-function endpointValue(t) {
-  if (typeof t === "number") {
-    if (!Number.isFinite(t)) throw new Error("定积分的端点必须是有限数值");
-    return t;
-  }
-  if (typeof t === "string") {
-    const s = t.trim().toLowerCase();
-    if (s === "pi") return Math.PI;
-    if (s === "-pi") return -Math.PI;
-    if (s === "e") return Math.E;
-    const v = Number(s);
-    if (Number.isFinite(v)) return v;
-    throw new Error("无法识别的积分端点：" + t + "（端点只接受数字，例如 3.141592653589793）");
-  }
-  throw new Error("定积分的端点必须是数字");
-}
-
 /**
- * 定积分。有原函数时用 F(b)-F(a) 给精确值；没有时用自适应 Simpson 给数值。
- * 返回 { numeric, exact, approxText }。
+ * 定积分。
+ * 端点 a、b 可以是数字，也可以是含 pi / e 的表达式（"pi"、"pi/2"、"2*pi"、"1/3"）。
+ * 有初等原函数时先做符号代入 F(b) - F(a) 并归约出精确表达式；归约不出闭式、
+ * 或区间内被积函数无界（反常积分）、或与数值积分对不上时，都只给数值结果。
+ * 返回 { numeric, exact, approxText, aNum, bNum, bounds, note }。
  */
 export function definiteIntegral(node, a, b, varName = "x") {
-  const A = endpointValue(a), B = endpointValue(b);
+  const pa = constPoint(a, "定积分的下限");
+  const pb = constPoint(b, "定积分的上限");
+  const A = pa.num, B = pb.num;
   const expr = simplify(clone(node));
+  const f = (x) => ev(expr, { x, varName });
   const parts = integrate(expr, varName);
-  let exact = null;
-  let numeric = null;
+
+  let exact = null, numeric = null, note = null;
   if (parts.ok && parts.F) {
-    const rA = ratApprox(A, 1000000n, 1e-12) || new Rat(A);
-    const rB = ratApprox(B, 1000000n, 1e-12) || new Rat(B);
-    const FA = evalRat(parts.F, rA, varName);
-    const FB = evalRat(parts.F, rB, varName);
-    if (FA !== null && FB !== null) {
-      const diff = FB.sub(FA);
-      exact = diff.toString();
-      numeric = diff.toNumber();
-    } else {
+    // 符号代入：把变量换成端点表达式（可能是 pi/2 这种），再化简、再归约
+    const diff = simplify({
+      t: "add",
+      a: substConst(parts.F, varName, pb.node),
+      b: { t: "neg", a: substConst(parts.F, varName, pa.node) },
+    });
+    const closed = reduceConst(diff); // 归约不出闭式就返回 null，交给数值路径
+    if (closed !== null && isClosedConst(closed)) {
+      const v = ev(closed, { x: NaN, varName: "__none__" });
+      if (Number.isFinite(v)) { exact = toString(tidyConst(closed)); numeric = v; }
+    }
+    if (numeric === null) {
       const fa = ev(parts.F, { x: A, varName });
       const fb = ev(parts.F, { x: B, varName });
       if (Number.isFinite(fa) && Number.isFinite(fb)) numeric = fb - fa;
     }
   }
-  if (numeric === null || !Number.isFinite(numeric)) {
-    numeric = adaptiveSimpson((x) => ev(expr, { x, varName }), A, B, 1e-11, 20);
+
+  // 候选精确值要用自适应 Simpson 交叉验证：对不上就撤掉 exact，只留数值
+  if (exact !== null) {
+    const check = adaptiveSimpson(f, A, B, 1e-9, 18);
+    if (!Number.isFinite(check)) {
+      exact = null;
+      note = "区间内有被积函数无界的点（反常积分），只给数值结果。";
+    } else if (Math.abs(check - numeric) > 1e-6 * Math.max(1, Math.abs(numeric))) {
+      exact = null;
+      numeric = check;
+      note = "符号代入的结果与数值积分对不上，只给数值结果。";
+    }
   }
-  return { numeric, exact, approxText: numericText(numeric) };
+  if (numeric === null || !Number.isFinite(numeric)) {
+    numeric = adaptiveSimpson(f, A, B, 1e-11, 20);
+    if (note === null && parts.ok && parts.F) note = "原函数在端点上取不到有限值，改用数值积分。";
+  }
+  return {
+    numeric,
+    exact,
+    approxText: numericText(numeric),
+    aNum: A,
+    bNum: B,
+    bounds: { a: pa.text, b: pb.text },
+    note,
+  };
 }
 
 /* ============================== 14. 便捷入口 ============================== */

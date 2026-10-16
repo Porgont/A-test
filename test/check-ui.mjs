@@ -26,9 +26,12 @@ try { new Function(ui); check("UI 脚本语法", true); }
 catch (e) { check("UI 脚本语法", false, e.message); }
 
 const chipOps = [...html.matchAll(/data-op="([A-Za-z]+)"/g)].map((m) => m[1]);
-check("运算按钮数量", chipOps.length === 16, chipOps.join(","));
-check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 16,
+check("运算按钮数量", chipOps.length === 17, chipOps.join(","));
+check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 17,
   "带中文名的有 " + (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length + " 个");
+check("有增广矩阵求解按钮", html.indexOf('data-op="aug"') >= 0 && ui.indexOf("augSolve") >= 0);
+check("格子解析支持符号（用 L.val）", ui.indexOf("L.val(") >= 0 && ui.indexOf("isSym(f)") >= 0);
+check("符号渲染有上标样式", html.indexOf("renderSym") >= 0);
 check("REF/RREF 在运算卡片里、基本运算之上",
   html.indexOf('id="g0"') >= 0 &&
   html.indexOf('data-op="ref"') < html.indexOf('id="g1"') &&
@@ -57,7 +60,10 @@ check("皮肤参数校验", ui.indexOf("SKINS.indexOf(saved)") >= 0);
 check("默认皮肤是极简", html.indexOf('data-skin="light"') >= 0 && ui.indexOf('|| "light"') >= 0);
 check("大标题与署名", html.indexOf("蒲瓜的计算器") >= 0 && html.indexOf("由 Deepseek 制作") >= 0);
 check("切换皮肤会同步主题色", ui.indexOf("theme-color") >= 0);
-check("主页面有微积分页入口（顶+底各一条）", (html.match(/href="calculus\.html"/g) || []).length === 2);
+check("八项导航齐全（顶+底各一条）",
+  ["index.html", "transform.html", "limits.html", "deriv.html", "integral.html", "graph.html", "stats.html"]
+    .every((h) => (html.match(new RegExp('href="' + h.replace(/\./g, "\\.") + '"', "g")) || []).length === 2) &&
+  html.indexOf('<span class="on">矩阵') >= 0);
 check("视口 meta", html.indexOf('name="viewport"') >= 0);
 
 console.log("");

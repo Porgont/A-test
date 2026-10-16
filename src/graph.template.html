@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>函数图像 · 蒲瓜的计算器</title>
+<style>
+:root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
+:root[data-skin="glass"]{
+  --bg:#080c18;
+  --bg-image:radial-gradient(880px 520px at 10% -10%, rgba(94,234,212,.20), transparent 62%), radial-gradient(820px 520px at 102% 2%, rgba(129,140,248,.26), transparent 64%), radial-gradient(700px 460px at 50% 112%, rgba(236,72,153,.14), transparent 62%);
+  --fg:#e9efff; --fg-dim:rgba(233,239,255,.52);
+  --card:rgba(255,255,255,.055); --card-border:rgba(255,255,255,.13);
+  --blur:blur(18px); --shadow:0 12px 34px rgba(0,0,0,.34);
+  --input-bg:rgba(255,255,255,.06); --input-border:rgba(255,255,255,.12);
+  --chip:rgba(255,255,255,.06); --chip-border:rgba(255,255,255,.12);
+  --chip-on-bg:linear-gradient(135deg,#5eead4,#818cf8); --chip-on-fg:#08101f; --chip-on-shadow:0 6px 18px rgba(129,140,248,.35);
+  --accent-line:rgba(129,140,248,.85); --focus-ring:rgba(129,140,248,.22);
+  --btn-bg:linear-gradient(135deg,#5eead4,#818cf8); --btn-fg:#07101d; --btn-shadow:0 10px 26px rgba(129,140,248,.32);
+  --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+  --ok:#5eead4; --f1:#5eead4; --f2:#f472b6;
+}
+:root[data-skin="light"]{
+  --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
+  --card:#ffffff; --card-border:rgba(0,0,0,.06); --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  --track:#e6e6ec; --input-bg:#f5f5f8; --input-border:rgba(0,0,0,.07);
+  --chip:#ececf1; --chip-border:transparent; --chip-on-bg:#0a84ff; --chip-on-fg:#ffffff; --chip-on-shadow:0 6px 16px rgba(10,132,255,.30);
+  --accent-line:#0a84ff; --focus-ring:rgba(10,132,255,.16);
+  --btn-bg:linear-gradient(135deg,#0a84ff,#0060df); --btn-fg:#ffffff; --btn-shadow:0 10px 24px rgba(10,132,255,.28);
+  --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30); --danger:#e5484d;
+  --ok:#0a84ff; --f1:#0a84ff; --f2:#e8590c;
+}
+:root[data-skin="brutal"]{
+  --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
+  --card:#fffdf8; --card-border:#141414; --card-bw:2px; --input-bw:2px; --radius:14px; --skin-bw:2px;
+  --shadow:6px 6px 0 #141414; --track:#fffdf8; --input-bg:#ffffff; --input-border:#141414;
+  --chip:#ffffff; --chip-border:#141414; --chip-on-bg:#ffd23f; --chip-on-fg:#141414; --chip-on-shadow:3px 3px 0 #141414;
+  --accent-line:#141414; --focus-ring:rgba(255,210,63,.55);
+  --btn-bg:#ff5c4d; --btn-fg:#141414; --btn-shadow:4px 4px 0 #141414;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22; --ok:#141414;
+  --f1:#0b5fff; --f2:#c22f22;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(16px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow);font-style:italic}
+.brandName{font-size:12.5px;color:var(--fg-dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
+.skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
+.skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a:hover{color:var(--fg)}
+.tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
+.tabs .tag{font-size:10.5px;opacity:.75;margin-left:3px}
+.hero{text-align:center;padding:4px 2px 0}
+.heroTitle{margin:0;font-size:23px;font-weight:800;letter-spacing:.005em;line-height:1.32}
+.heroSub{margin:7px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
+.card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
+.chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 auto;font-style:italic}
+.rtitle{font-size:13px;font-weight:600}
+.note{font-size:11.5px;color:var(--fg-dim)}
+.tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tools button{border:1px solid var(--input-border);background:var(--chip);color:var(--fg);font:inherit;font-size:12px;padding:5px 9px;border-radius:8px;cursor:pointer}
+.tools button:active{transform:translateY(1px)}
+.fxin{width:100%;padding:13px 12px;font:inherit;font-size:17px;font-variant-numeric:tabular-nums;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:12px;outline:none;transition:.16s}
+.fxin:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.fxin.on{border-color:var(--accent-line)}
+.glabel{font-size:11px;color:var(--fg-dim);letter-spacing:.12em;margin:12px 0 7px}
+.glabel:first-child{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
+.chip sup{font-size:.68em;vertical-align:super;line-height:0;letter-spacing:.02em}
+.kbox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-dim)}
+.kbox input{width:74px;padding:8px 9px;font:inherit;font-size:13.5px;text-align:center;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:9px;outline:none;font-variant-numeric:tabular-nums}
+.kbox input:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.syms{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.syms button{min-width:42px;border:1px solid var(--input-border);background:var(--chip);color:var(--fg);font:inherit;font-size:14.5px;padding:8px 10px;border-radius:10px;cursor:pointer;font-variant-numeric:tabular-nums}
+.syms button:active{transform:translateY(1px)}
+.syms button.fn{font-size:13px;padding:8px 11px}
+.geo{display:block;width:100%;height:300px;border-radius:12px;background:var(--input-bg);border:var(--input-bw) solid var(--input-border);touch-action:none}
+#geo3d{cursor:grab}
+#geo3d.dragging{cursor:grabbing}
+.geoinfo{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;line-height:1.85}
+.geoinfo b{color:var(--fg)}
+.msgerr{font-size:13px;color:var(--danger);margin:8px 0;line-height:1.55}
+.hint{font-size:11.5px;color:var(--fg-dim);margin:8px 0 0;line-height:1.7}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--fg-dim);margin-top:10px}
+sup{font-size:.7em;vertical-align:super;line-height:0}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:4px 0 0;line-height:1.7}
+.foot a{color:var(--accent-line)}
+@media (max-width:420px){.card{padding:11px}.geo{height:270px}.fxin{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1 class="heroTitle">蒲瓜的计算器</h1>
+    <p class="heroSub">由 Deepseek 制作</p>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">ƒ</span>
+      <span class="brandName">二维曲线 · 三维曲面</span>
+    </div>
+    <div class="skins" id="skins">
+      <button data-skin-set="glass">玻璃</button>
+      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="brutal">粗野</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="nav" aria-label="页面切换"></nav>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">f</span>
+      <span class="note">输入函数，支持 sin cos tan ln exp sqrt abs 和 pi、e，可以写 2x 这种隐式乘法</span>
+    </div>
+
+    <div class="glabel">第一条曲线 f(x)</div>
+    <input id="fx" class="fxin" value="sin(x)/x" autocomplete="off" spellcheck="false" inputmode="text">
+
+    <div class="glabel">第二条曲线 g(x)（留空就只画 f）</div>
+    <input id="gx" class="fxin" value="" placeholder="留空不画" autocomplete="off" spellcheck="false" inputmode="text">
+
+    <div class="syms" id="syms"></div>
+    <p class="hint" id="symHint">符号插到当前光标所在的输入框（默认是 f(x)）。</p>
+
+    <div class="chips" style="margin-top:10px" id="examples2d"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="rtitle">二维函数图像</span>
+      <div class="tools">
+        <button id="plotFit">自动取景</button>
+        <button id="plotReset">重置</button>
+      </div>
+    </div>
+    <canvas id="plot" class="geo"></canvas>
+    <div class="legend" id="legend2d"></div>
+    <p class="geoinfo" id="plotinfo"></p>
+    <p class="hint">拖动平移 · 滚轮或双指捏合缩放（以光标为中心）· 把鼠标或手指放在画布上会显示该处坐标。</p>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">z</span>
+      <span class="note">输入 z = f(x, y)，可写 x、y 两个变量</span>
+    </div>
+    <input id="fxy" class="fxin" value="sin(x)*cos(y)" autocomplete="off" spellcheck="false" inputmode="text">
+
+    <div class="glabel">x、y 取值范围与网格密度</div>
+    <div class="chips">
+      <label class="kbox">x 从 <input id="x0" value="-3" autocomplete="off"></label>
+      <label class="kbox">到 <input id="x1" value="3" autocomplete="off"></label>
+      <label class="kbox">y 从 <input id="y0" value="-3" autocomplete="off"></label>
+      <label class="kbox">到 <input id="y1" value="3" autocomplete="off"></label>
+      <label class="kbox">密度 <input id="dens" value="40" autocomplete="off"></label>
+    </div>
+
+    <div class="chips" style="margin-top:10px" id="examples3d"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead">
+      <span class="rtitle">三维曲面</span>
+      <div class="tools">
+        <button id="geoMode">实体面</button>
+        <button id="geoSpin">自动旋转</button>
+        <button id="geoReset">重置视角</button>
+      </div>
+    </div>
+    <canvas id="geo3d" class="geo"></canvas>
+    <p class="geoinfo" id="geoinfo3d"></p>
+    <p class="hint">拖动旋转 · 滚轮缩放 · 双击画布也能切换线框／实体。</p>
+  </section>
+
+  <nav class="tabs" id="nav2" aria-label="页面切换"></nav>
+
+  <p class="foot">全部计算在本机浏览器完成，不上传数据。</p>
+</div>
+
+<script>
+/* ==== CALC ENGINE START ==== */
+__CALC_ENGINE__
+/* ==== CALC ENGINE END ==== */
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var C = Calc;
+
+  /* ---------- 导航（八项，顺序固定，每行三个） ---------- */
+  var NAV = [
+    { id: "home", label: "首页", href: "index.html" },
+    { id: "algebra", label: "矩阵", href: "algebra.html" },
+    { id: "transform", label: "变换", href: "transform.html" },
+    { id: "limits", label: "极限", href: "limits.html" },
+    { id: "deriv", label: "微分", href: "deriv.html" },
+    { id: "integral", label: "积分", href: "integral.html" },
+    { id: "graph", label: "图像", href: "graph.html" },
+    { id: "stats", label: "概率", href: "stats.html" }
+  ];
+  var PAGE_ID = "graph";
+  function navHTML(){
+    var h = "";
+    NAV.forEach(function(n){
+      h += (n.id === PAGE_ID)
+        ? '<span class="on">' + n.label + '<span class="tag">当前</span></span>'
+        : '<a href="' + n.href + '">' + n.label + "</a>";
+    });
+    return h;
+  }
+  function el(id){ return document.getElementById(id); }
+  el("nav").innerHTML = navHTML();
+  el("nav2").innerHTML = navHTML();
+
+  /* ---------- 数字格式化：6 位有效数字 + 去尾零 ---------- */
+  function sig6(x){
+    if (typeof x !== "number" || !isFinite(x)) return "—";
+    if (x === 0) return "0";
+    var a = Math.abs(x);
+    if (a >= 1e6 || a < 1e-4) return String(Number(x.toPrecision(6)));
+    return String(Number(x.toFixed(6)));
+  }
+  function unary(s){ return String(s).replace(/-/g, "−"); }
+  // 表达式专用美化：· 代乘号、真上标、√、|x|、π（数值请不要用这个）
+  function supHTML(d){ return "<sup>" + String(d).replace(/-/g, "−") + "</sup>"; }
+  function prettyExpr(s){
+    return String(s)
+      .replace(/\s*\*\s*/g, "·")
+      .replace(/\^\(([^()]*)\)/g, function(m, d){ return supHTML(d); })
+      .replace(/\^([0-9]+)/g, function(m, d){ return supHTML(d); })
+      .replace(/sqrt\(/g, "√(")
+      .replace(/abs\(([^()]*)\)/g, "|$1|")
+      .replace(/pi/g, "π")
+      .replace(/-/g, "−");
+  }
+  function numOf(v){
+    var n = parseFloat(String(v).replace(/，/g, ","));
+    return isFinite(n) ? n : NaN;
+  }
+
+  /* ---------- 解析输入：把中文报错拆开显示 ---------- */
+  function parseExpr(src){
+    try { return { node: C.simplify(C.parse(src)) }; }
+    catch (e){ return { err: e && e.message ? e.message : String(e) }; }
+  }
+  function errHTML(msg){ return '<span style="color:var(--danger)">' + msg + "</span>"; }
+  function checkBrackets(s){
+    var d = 0, i;
+    for (i = 0; i < s.length; i++){
+      if (s.charAt(i) === "(") d++;
+      else if (s.charAt(i) === ")"){ d--; if (d < 0) return "括号不匹配：多了一个右括号「)」"; }
+    }
+    return d > 0 ? "括号不匹配：还有 " + d + " 个左括号没有闭合" : null;
+  }
+  // 把某个变量的数值代入常量化：引擎的 evalAt 一次只认一个变量，这里先把另一个变量换掉
+  function substVar(node, name, value){
+    switch (node.t){
+      case "num": return node;
+      case "var": return node.name === name ? C.parse("(" + String(value) + ")") : node;
+      case "neg": return { t: "neg", a: substVar(node.a, name, value) };
+      case "add": return { t: "add", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
+      case "mul": return { t: "mul", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
+      case "pow": return { t: "pow", a: substVar(node.a, name, value), b: substVar(node.b, name, value) };
+      case "fn": return node.arg ? { t: "fn", name: node.name, arg: substVar(node.arg, name, value) } : node;
+      default: return node;
+    }
+  }
+  function safeEval(node, x, varName){
+    try {
+      var v = C.evalAt(node, x, varName || "x");
+      return typeof v === "number" && isFinite(v) ? v : NaN;
+    } catch (e){ return NaN; }
+  }
+  function tickStep(raw){
+    var p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+  }
+  function cssVar(name, fb){
+    var v = (getComputedStyle(document.documentElement).getPropertyValue(name) || "").trim();
+    return v || fb;
+  }
+  function cssColor(name, fb){
+    var v = cssVar(name, "");
+    if (!v) return fb;
+    if (/gradient|url\(/i.test(v)) return fb;
+    return v;
+  }
+  function fitCanvas(cv, cssH){
+    var w = cv.clientWidth || 600, h = cv.clientHeight || cssH || 300;
+    var dpr = window.devicePixelRatio || 1;
+    var W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(h * dpr));
+    if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+    return { ctx: cv.getContext("2d"), w: w, h: h, dpr: dpr };
+  }
+
+  /* ================= 板块一：二维函数图像 ================= */
+  var P2 = { xmin: -6, xmax: 6, ymin: -3, ymax: 3, node: null, node2: null, src: "", readout: null };
+
+  function read2D(){
+    var f = el("fx").value, g = el("gx").value;
+    var rf = null, rg = null;
+    var bf = checkBrackets(f), bg = checkBrackets(g);
+    if (!f.trim()) rf = { err: "请先输入一个函数，例如 sin(x)/x" };
+    else if (bf) rf = { err: bf };
+    else if (f.trim()) rf = parseExpr(f);
+    if (g.trim()){
+      if (bg) rg = { err: bg };
+      else rg = parseExpr(g);
+    }
+    P2.node = rf && rf.node ? rf.node : null;
+    P2.node2 = rg && rg.node ? rg.node : null;
+    P2.src = f;
+
+    var msg = "";
+    if (rf && rf.err) msg += errHTML("f(x)：" + rf.err);
+    if (rg && rg.err) msg += (msg ? "<br>" : "") + errHTML("g(x)：" + rg.err);
+    if (!msg) msg = '<span style="color:var(--fg-dim)">已画好，拖动或缩放可以看局部。</span>';
+    el("plotinfo").innerHTML = msg;
+    renderLegend(rf && rf.node, rg && rg.node);
+    return !!(rf && rf.err) || !!(rg && rg.err);
+  }
+  function renderLegend(n1, n2){
+    var h = "";
+    if (n1) h += '<span><i style="background:' + cssColor("--f1", "#0a84ff") + '"></i>f(x) = ' + prettyExpr(C.str(n1)) + "</span>";
+    if (n2) h += '<span><i style="background:' + cssColor("--f2", "#e8590c") + '"></i>g(x) = ' + prettyExpr(C.str(n2)) + "</span>";
+    if (!n1 && !n2) h = '<span>两条曲线都还没画</span>';
+    el("legend2d").innerHTML = h;
+  }
+
+  function autoY(){
+    var vals = [], i, v;
+    var n = 600;
+    for (i = 0; i <= n; i++){
+      var x = P2.xmin + (P2.xmax - P2.xmin) * i / n;
+      if (P2.node){ v = safeEval(P2.node, x, "x"); if (isFinite(v)) vals.push(v); }
+      if (P2.node2){ v = safeEval(P2.node2, x, "x"); if (isFinite(v)) vals.push(v); }
+    }
+    if (vals.length < 12){ P2.ymin = -3; P2.ymax = 3; return; }
+    vals.sort(function(a, b){ return a - b; });
+    var lo = vals[Math.floor((vals.length - 1) * 0.02)];
+    var hi = vals[Math.floor((vals.length - 1) * 0.98)];
+    if (!isFinite(lo) || !isFinite(hi) || hi - lo < 1e-12){
+      lo = vals[0]; hi = vals[vals.length - 1];
+    }
+    if (hi - lo < 1e-12){ lo -= 1; hi += 1; }
+    var span = Math.min(hi - lo, 1e7), mid = (hi + lo) / 2;
+    P2.ymin = mid - span * 0.62;
+    P2.ymax = mid + span * 0.62;
+  }
+
+  function plotDraw(){
+    var cv = el("plot");
+    if (!cv) return;
+    var g = fitCanvas(cv, 300);
+    var ctx = g.ctx, w = g.w, h = g.h;
+    var dim = cssVar("--fg-dim", "#8a8a92");
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+    if (!(spanX > 0) || !(spanY > 0)) return;
+    var X = function(x){ return (x - P2.xmin) / spanX * w; };
+    var Y = function(y){ return h - (y - P2.ymin) / spanY * h; };
+    var ux = w / spanX, uy = h / spanY;        // 每单位多少像素
+
+    /* 网格 */
+    var stepX = tickStep(spanX / 8), stepY = tickStep(spanY / 5);
+    var i, t;
+    ctx.save();
+    ctx.strokeStyle = dim; ctx.globalAlpha = 0.16; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (t = Math.ceil(P2.xmin / stepX) * stepX; t <= P2.xmax; t += stepX){
+      var gx = Math.round(X(t)) + 0.5;
+      ctx.moveTo(gx, 0); ctx.lineTo(gx, h);
+    }
+    for (t = Math.ceil(P2.ymin / stepY) * stepY; t <= P2.ymax; t += stepY){
+      var gy = Math.round(Y(t)) + 0.5;
+      ctx.moveTo(0, gy); ctx.lineTo(w, gy);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    /* 零轴加粗 */
+    var ax = (P2.xmin <= 0 && P2.xmax >= 0) ? X(0) : null;
+    var ay = (P2.ymin <= 0 && P2.ymax >= 0) ? Y(0) : null;
+    ctx.save();
+    ctx.strokeStyle = dim; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.8;
+    if (ay !== null){ ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(w, ay); ctx.stroke(); }
+    if (ax !== null){ ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, h); ctx.stroke(); }
+    ctx.restore();
+
+    /* 刻度数字 */
+    ctx.save();
+    ctx.fillStyle = dim; ctx.font = "10.5px system-ui,-apple-system,sans-serif";
+    var lb, lx, ly;
+    for (t = Math.ceil(P2.xmin / stepX) * stepX; t <= P2.xmax; t += stepX){
+      if (Math.abs(t) < stepX * 1e-6) continue;
+      lb = unary(sig6(t)); lx = X(t);
+      if (lx < 12 || lx > w - 12) continue;
+      ly = (ay !== null && ay < h - 16) ? ay + 12 : h - 6;
+      ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.fillText(lb, lx, ly);
+    }
+    for (t = Math.ceil(P2.ymin / stepY) * stepY; t <= P2.ymax; t += stepY){
+      if (Math.abs(t) < stepY * 1e-6) continue;
+      lb = unary(sig6(t)); ly = Y(t);
+      if (ly < 12 || ly > h - 4) continue;
+      if (ax !== null && ax > 26 && ax < w - 6){ ctx.textAlign = "right"; ctx.fillText(lb, ax - 5, ly + 4); }
+      else { ctx.textAlign = "left"; ctx.fillText(lb, 4, ly + 4); }
+    }
+    if (ax !== null && ay !== null){
+      ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillText("O", ax - 4, ay + 3);
+    }
+    ctx.restore();
+
+    /* 曲线：断开处不连线 */
+    function curve(node, color){
+      if (!node) return;
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = 2.3; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.beginPath();
+      var n = 900, started = false, prevPy = null, k, x, v, px, py;
+      var limitY = h * 3;
+      for (k = 0; k <= n; k++){
+        x = P2.xmin + spanX * k / n;
+        v = safeEval(node, x, "x");
+        if (!isFinite(v)){ started = false; prevPy = null; continue; }
+        py = Y(v);
+        if (py < -limitY || py > h + limitY){ started = false; prevPy = null; continue; }
+        px = X(x);
+        if (!started){ ctx.moveTo(px, py); started = true; }
+        else if (prevPy !== null && Math.abs(py - prevPy) > h * 1.5){ ctx.moveTo(px, py); }
+        else ctx.lineTo(px, py);
+        prevPy = py;
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    curve(P2.node2, cssColor("--f2", "#e8590c"));
+    curve(P2.node, cssColor("--f1", "#0a84ff"));
+
+    /* 光标读数点 */
+    if (P2.readout){
+      var ro = P2.readout;
+      [ [P2.node, cssColor("--f1", "#0a84ff")], [P2.node2, cssColor("--f2", "#e8590c")] ].forEach(function(pair){
+        if (!pair[0]) return;
+        var vy = safeEval(pair[0], ro.x, "x");
+        if (!isFinite(vy) || vy < P2.ymin || vy > P2.ymax) return;
+        ctx.save();
+        ctx.fillStyle = pair[1];
+        ctx.beginPath(); ctx.arc(X(ro.x), Y(vy), 3.6, 0, 6.2832); ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    /* 读数那一行（只写一次，别覆盖报错信息） */
+    if (P2.readout){
+      var rx = P2.readout.x, parts = ["x = " + unary(sig6(rx))];
+      if (P2.node){
+        var v1 = safeEval(P2.node, rx, "x");
+        parts.push("f(x) = " + (isFinite(v1) ? unary(sig6(v1)) : "不存在"));
+      }
+      if (P2.node2){
+        var v2 = safeEval(P2.node2, rx, "x");
+        parts.push("g(x) = " + (isFinite(v2) ? unary(sig6(v2)) : "不存在"));
+      }
+      el("plotinfo").innerHTML = '<b>' + parts.join("　·　") + "</b>";
+    }
+  }
+
+  /* ---------- 二维交互：拖动平移、滚轮/双指缩放 ---------- */
+  var cv2 = el("plot");
+  function zoom2D(cx, cy, factor){
+    var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+    var x = P2.xmin + (cx / cv2.clientWidth) * spanX;
+    var y = P2.ymin + ((cv2.clientHeight - cy) / cv2.clientHeight) * spanY;
+    var nsx = spanX * factor, nsy = spanY * factor;
+    if (!(nsx > 1e-9) || nsx > 1e9) return;
+    P2.xmin = x - (x - P2.xmin) * factor; P2.xmax = P2.xmin + nsx;
+    P2.ymin = y - (y - P2.ymin) * factor; P2.ymax = P2.ymin + nsy;
+  }
+  if (cv2){
+    var d2 = false, lx2 = 0, ly2 = 0;
+    cv2.addEventListener("pointerdown", function(e){
+      d2 = true; lx2 = e.clientX; ly2 = e.clientY;
+      try { cv2.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    cv2.addEventListener("pointermove", function(e){
+      var r = cv2.getBoundingClientRect();
+      P2.readout = { x: P2.xmin + ((e.clientX - r.left) / r.width) * (P2.xmax - P2.xmin) };
+      if (d2){
+        var spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+        P2.xmin -= (e.clientX - lx2) / r.width * spanX;
+        P2.xmax = P2.xmin + spanX;
+        P2.ymin += (e.clientY - ly2) / r.height * spanY;
+        P2.ymax = P2.ymin + spanY;
+        lx2 = e.clientX; ly2 = e.clientY;
+      }
+      plotDraw();
+    });
+    function stop2(e){
+      d2 = false;
+      if (e && e.pointerType === "mouse"){ P2.readout = null; plotDraw(); }
+    }
+    cv2.addEventListener("pointerup", stop2);
+    cv2.addEventListener("pointercancel", stop2);
+    cv2.addEventListener("pointerleave", function(){ if (!d2){ P2.readout = null; plotDraw(); } });
+    cv2.addEventListener("wheel", function(e){
+      e.preventDefault();
+      var r = cv2.getBoundingClientRect();
+      zoom2D(e.clientX - r.left, e.clientY - r.top, e.deltaY > 0 ? 1.1 : 1 / 1.1);
+      plotDraw();
+    }, { passive: false });
+    var pinch = 0, mid = null;
+    cv2.addEventListener("touchstart", function(e){
+      if (e.touches.length === 2){
+        pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        mid = [ (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2 ];
+      }
+    }, { passive: true });
+    cv2.addEventListener("touchmove", function(e){
+      if (e.touches.length === 2 && pinch > 0){
+        e.preventDefault();
+        var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        var r = cv2.getBoundingClientRect();
+        zoom2D(mid[0] - r.left, mid[1] - r.top, pinch / Math.max(dist, 1));
+        pinch = dist;
+        P2.readout = null;
+        plotDraw();
+      }
+    }, { passive: false });
+    cv2.addEventListener("touchend", function(){ pinch = 0; });
+  }
+
+  /* ---------- 符号面板（两个输入框共用，插到光标处） ---------- */
+  var SYMS = [
+    { t: "x", v: "x" }, { t: "y", v: "y" }, { t: "+", v: "+" }, { t: "−", v: "-" }, { t: "×", v: "*" },
+    { t: "÷", v: "/" }, { t: "^", v: "^" }, { t: "(", v: "(" }, { t: ")", v: ")" }, { t: "x²", v: "^2" },
+    { t: "π", v: "pi" }, { t: "e", v: "e" }, { t: "e^x", v: "e^" },
+    { t: "sin", v: "sin(", fn: true }, { t: "cos", v: "cos(", fn: true }, { t: "tan", v: "tan(", fn: true },
+    { t: "csc", v: "csc(", fn: true }, { t: "sec", v: "sec(", fn: true }, { t: "cot", v: "cot(", fn: true },
+    { t: "ln", v: "ln(", fn: true }, { t: "√", v: "sqrt(", fn: true }, { t: "|x|", v: "abs(", fn: true }
+  ];
+  var activeInput = "fx";
+  function markActive(id){
+    activeInput = id;
+    el("fx").classList.toggle("on", id === "fx");
+    el("gx").classList.toggle("on", id === "gx");
+    el("symHint").textContent = "符号插到「" + (id === "fx" ? "f(x)" : "g(x)") + "」的光标处。";
+  }
+  ["fx", "gx"].forEach(function(id){
+    el(id).addEventListener("focus", function(){ markActive(id); });
+    el(id).addEventListener("input", function(){ refresh2D(false); });
+    el(id).addEventListener("keydown", function(e){
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      autoY(); plotDraw();
+    });
+  });
+  function insertSym(v){
+    var inp = el(activeInput), s = inp.selectionStart, e = inp.selectionEnd, val = inp.value;
+    if (typeof s !== "number"){ inp.value = val + v; s = val.length; }
+    else inp.value = val.slice(0, s) + v + val.slice(e);
+    var caret = s + v.length;
+    inp.focus();
+    try { inp.setSelectionRange(caret, caret); } catch (err) {}
+    refresh2D(false);
+  }
+  SYMS.forEach(function(s){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = s.t;
+    if (s.fn) b.className = "fn";
+    b.addEventListener("click", function(){ insertSym(s.v); });
+    el("syms").appendChild(b);
+  });
+
+  /* ---------- 二维例子：按钮上显示好看的写法 ---------- */
+  var EX2D = [
+    { src: "sin(x)/x",    label: "sin x / x" },
+    { src: "sin(x)",      label: "sin x" },
+    { src: "x^2",         label: "x<sup>2</sup>" },
+    { src: "x^3-3*x",     label: "x<sup>3</sup>−3x" },
+    { src: "1/x",         label: "1/x" },
+    { src: "e^(-x^2)",    label: "e<sup>−x<sup>2</sup></sup>" },
+    { src: "ln(x)",       label: "ln x" },
+    { src: "tan(x)",      label: "tan x" },
+    { src: "abs(x)",      label: "|x|" },
+    { src: "sqrt(x)",     label: "√x" },
+    { src: "1/(1+x^2)",   label: "1/(1+x<sup>2</sup>)" }
+  ];
+  EX2D.forEach(function(s){
+    var b = document.createElement("button");
+    b.className = "chip"; b.innerHTML = s.label; b.title = s.src;
+    b.addEventListener("click", function(){
+      el("fx").value = s.src;
+      markActive("fx");
+      autoY(); refresh2D(false);
+    });
+    el("examples2d").appendChild(b);
+  });
+  var EX2G = [
+    { src: "cos(x)",    label: "g = cos x" },
+    { src: "-sin(x)",   label: "g = −sin x" },
+    { src: "x^2/8",     label: "g = x<sup>2</sup>/8" }
+  ];
+  EX2G.forEach(function(s){
+    var b = document.createElement("button");
+    b.className = "chip"; b.innerHTML = s.label; b.title = s.src;
+    b.addEventListener("click", function(){
+      el("gx").value = s.src;
+      markActive("gx");
+      autoY(); refresh2D(false);
+    });
+    el("examples2d").appendChild(b);
+  });
+
+  function refresh2D(keepWindow){
+    var bad = read2D();
+    void keepWindow;   // 输入时窗口保持不动，只有「自动取景」才重算 y 范围
+    plotDraw();
+    return bad;
+  }
+  el("plotFit").addEventListener("click", function(){
+    read2D();
+    autoY();
+    plotDraw();
+  });
+  el("plotReset").addEventListener("click", function(){
+    P2.xmin = -6; P2.xmax = 6;
+    read2D();
+    if (!P2.node && !P2.node2){ P2.ymin = -3; P2.ymax = 3; }
+    else autoY();
+    P2.readout = null;
+    plotDraw();
+  });
+
+  /* ================= 板块二：三维曲面 ================= */
+  var G3 = {
+    yaw: -0.6, pitch: 0.5, zoom: 1, px: 0, py: 0, spin: false,
+    solid: false, node: null, zScale: 1,
+    x0: -3, x1: 3, y0: -3, y1: 3, dens: 40,
+    nx: 0, ny: 0, xs: [], ys: [], zs: [], zok: [],
+    zmin: -1, zmax: 1, built: false, src: ""
+  };
+  var VIEWPOS = [0.62, 0.58, 0.5];   // 光从右上前方来，决定明暗
+  function shadeOf(r, g, b, k){
+    function m(c){ return Math.max(0, Math.min(255, Math.round(c * k))); }
+    return "rgb(" + m(r) + "," + m(g) + "," + m(b) + ")";
+  }
+  function freeGrid(){
+    var i, row;
+    if (G3.zs){ for (i = 0; i < G3.zs.length; i++){ row = G3.zs[i]; if (row) row.length = 0; } }
+    G3.zs.length = 0;
+    if (G3.zok){ for (i = 0; i < G3.zok.length; i++){ row = G3.zok[i]; if (row) row.length = 0; } }
+    G3.zok.length = 0;
+    G3.built = false;
+  }
+  function buildGrid(){
+    var i, j;
+    freeGrid();
+    var n = G3.nx, m = G3.ny;
+    G3.xs = new Array(n + 1); G3.ys = new Array(m + 1);
+    for (i = 0; i <= n; i++) G3.xs[i] = G3.x0 + (G3.x1 - G3.x0) * i / n;
+    for (j = 0; j <= m; j++) G3.ys[j] = G3.y0 + (G3.y1 - G3.y0) * j / m;
+    var all = [], zrow, okrow;
+    for (j = 0; j <= m; j++){
+      zrow = new Array(n + 1); okrow = new Array(n + 1);
+      for (i = 0; i <= n; i++){
+        var v = NaN;
+        try { v = safeEval(substVar(G3.node, "y", G3.ys[j]), G3.xs[i], "x"); }
+        catch (e){ v = NaN; }
+        if (typeof v === "number" && isFinite(v)){ zrow[i] = v; okrow[i] = true; all.push(v); }
+        else { zrow[i] = NaN; okrow[i] = false; }
+      }
+      G3.zs.push(zrow); G3.zok.push(okrow);
+    }
+    /* z 显示窗口：用 2% / 98% 分位，免得 1/x 这种无穷大把画面撑坏 */
+    var lo = -1, hi = 1;
+    if (all.length >= 8){
+      all.sort(function(a, b){ return a - b; });
+      lo = all[Math.floor((all.length - 1) * 0.02)];
+      hi = all[Math.floor((all.length - 1) * 0.98)];
+    }
+    if (!isFinite(lo) || !isFinite(hi) || hi - lo < 1e-9){ lo = -1; hi = 1; }
+    var span = hi - lo, mid = (hi + lo) / 2;
+    if (span < 1e-6) span = 2;
+    G3.zmin = mid - span * 0.75;
+    G3.zmax = mid + span * 0.75;
+    /* z 的视觉高度：按 x、y 的尺度自适应，太扁就放大一点 */
+    var spanZ = G3.zmax - G3.zmin;
+    var spanXY = Math.max(G3.x1 - G3.x0, G3.y1 - G3.y0) || 1;
+    var fit = 1.45 * spanXY / (spanZ || 1);
+    G3.zScale = Math.max(0.5, Math.min(4, fit));
+    G3.built = true;
+  }
+  function readInRange(v, lo, hi, pad){
+    if (!isFinite(v)) return false;
+    var d = (hi - lo) || 1;
+    return v >= lo - d * pad && v <= hi + d * pad;
+  }
+  function paint3D(){
+    var cv = el("geo3d");
+    if (!cv) return;
+    var g = fitCanvas(cv, 300);
+    var ctx = g.ctx, w = g.w, h = g.h;
+    var dim = cssVar("--fg-dim", "#8a8a92");
+    var accent = cssVar("--accent-line", "#0a84ff");
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var scale = Math.min(w, h) / 6.8 * G3.zoom;
+    var cx = w / 2 + G3.px, cyc = h / 2 + G3.py;
+    var cy = Math.cos(G3.yaw), sy = Math.sin(G3.yaw);
+    var cp = Math.cos(G3.pitch), sp = Math.sin(G3.pitch);
+    var zmid = (G3.zmin + G3.zmax) / 2;
+    var zs = G3.zScale;
+
+    function P(x, y, z){
+      var st = (z - zmid) * zs;
+      var x1 = x * cy - y * sy;
+      var y1 = x * sy + y * cy;
+      var depth = y1 * cp - st * sp;
+      var up = y1 * sp + st * cp;
+      return { x: cx + x1 * scale, y: cyc - up * scale, d: depth };
+    }
+    function line(a, b, color, width, alpha, dash){
+      var A = P(a[0], a[1], a[2]), B = P(b[0], b[1], b[2]);
+      ctx.save();
+      if (alpha !== undefined) ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color; ctx.lineWidth = width || 1;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      ctx.restore();
+    }
+    function label(text, p, dx, dy, color, align){
+      var q = P(p[0], p[1], p[2]);
+      ctx.save();
+      ctx.fillStyle = color || dim;
+      ctx.font = "10.5px system-ui,-apple-system,sans-serif";
+      ctx.textAlign = align || "left"; ctx.textBaseline = "middle";
+      ctx.fillText(text, q.x + (dx || 0), q.y + (dy || 0));
+      ctx.restore();
+    }
+
+    /* 坐标轴：沿 xy 范围的底边 */
+    var ax0 = G3.x0, ax1 = G3.x1, ay0 = G3.y0, ay1 = G3.y1;
+    line([ax0, ay0, 0], [ax1, ay0, 0], accent, 1.6, 0.55);
+    line([ax0, ay0, 0], [ax0, ay1, 0], accent, 1.6, 0.55);
+    line([ax0, ay0, G3.zmin], [ax0, ay0, G3.zmax], accent, 1.6, 0.55);
+    label("x", [ax1, ay0, 0], 7, 4, accent);
+    label("y", [ax0, ay1, 0], 7, 4, accent);
+    label("z", [ax0, ay0, G3.zmax], 7, -6, accent);
+
+    /* 刻度数字与刻度线 */
+    var stepX = tickStep((ax1 - ax0) / 4), stepY = tickStep((ay1 - ay0) / 4), stepZ = tickStep((G3.zmax - G3.zmin) / 4);
+    var t, mLen = (Math.max(ax1 - ax0, ay1 - ay0) || 1) * 0.018;
+    for (t = Math.ceil(ax0 / stepX) * stepX; t <= ax1 + 1e-9; t += stepX){
+      if (Math.abs(t) < stepX * 1e-6) continue;
+      line([t, ay0, 0], [t, ay0 + mLen, 0], dim, 1.2, 0.7);
+      label(unary(sig6(t)), [t, ay0, 0], 0, 13, dim, "center");
+    }
+    for (t = Math.ceil(ay0 / stepY) * stepY; t <= ay1 + 1e-9; t += stepY){
+      if (Math.abs(t) < stepY * 1e-6) continue;
+      line([ax0, t, 0], [ax0 + mLen, t, 0], dim, 1.2, 0.7);
+      label(unary(sig6(t)), [ax0, t, 0], 8, -9, dim, "center");
+    }
+    for (t = Math.ceil(G3.zmin / stepZ) * stepZ; t <= G3.zmax + 1e-9; t += stepZ){
+      if (Math.abs(t) < stepZ * 1e-6) continue;
+      line([ax0, ay0, t], [ax0 + mLen, ay0, t], dim, 1.2, 0.7);
+      label(unary(sig6(t)), [ax0, ay0, t], -6, 0, dim, "right");
+    }
+
+    if (!G3.built || !G3.xs) return;
+    var n = G3.nx, m = G3.ny, i, j;
+    var sx = new Array(n + 1), sy2 = new Array(m + 1), i2;
+    for (i2 = 0; i2 <= n; i2++) sx[i2] = new Array(m + 1);
+    for (j = 0; j <= m; j++) sy2[j] = new Array(n + 1);
+    var depth = new Array(n + 1);
+    for (i = 0; i <= n; i++){
+      depth[i] = new Array(m + 1);
+      for (j = 0; j <= m; j++){
+        var q = P(G3.xs[i], G3.ys[j], G3.zs[j][i]);
+        sx[i][j] = q; depth[i][j] = q.d;
+      }
+    }
+    var pad = 0.06;
+    function ok(i3, j3){
+      return G3.zok[j3][i3] && readInRange(G3.zs[j3][i3], G3.zmin, G3.zmax, pad);
+    }
+
+    if (G3.solid){
+      var cells = [];
+      for (i = 0; i < n; i++){
+        for (j = 0; j < m; j++){
+          if (!ok(i, j) || !ok(i + 1, j) || !ok(i, j + 1) || !ok(i + 1, j + 1)) continue;
+          cells.push({ i: i, j: j, d: (depth[i][j] + depth[i + 1][j] + depth[i][j + 1] + depth[i + 1][j + 1]) / 4 });
+        }
+      }
+      cells.sort(function(a, b){ return a.d - b.d; });
+      var base = cssVar("--f1", "#0a84ff");
+      var mres = /(\d+)\D+(\d+)\D+(\d+)/.exec(base);
+      var br = mres ? +mres[1] : 10, bg = mres ? +mres[2] : 132, bb = mres ? +mres[3] : 255;
+      for (var k = 0; k < cells.length; k++){
+        var ci = cells[k].i, cj = cells[k].j;
+        var z00 = G3.zs[cj][ci], z10 = G3.zs[cj][ci + 1], z01 = G3.zs[cj + 1][ci], z11 = G3.zs[cj + 1][ci + 1];
+        var dxx = (G3.xs[ci + 1] - G3.xs[ci]) || 1, dyy = (G3.ys[cj + 1] - G3.ys[cj]) || 1;
+        var nx1 = -(z10 - z00) * dyy, ny1 = -(z01 - z00) * dxx, nz1 = dxx * dyy;
+        var nl = Math.sqrt(nx1 * nx1 + ny1 * ny1 + nz1 * nz1) || 1;
+        var lam = Math.abs((nx1 * VIEWPOS[0] + ny1 * VIEWPOS[1] + nz1 * VIEWPOS[2]) / nl);
+        var shade = 0.45 + 0.6 * lam;
+        ctx.save();
+        ctx.fillStyle = shadeOf(br, bg, bb, shade);
+        ctx.strokeStyle = shadeOf(br, bg, bb, shade * 0.72);
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(sx[ci][cj].x, sx[ci][cj].y);
+        ctx.lineTo(sx[ci + 1][cj].x, sx[ci + 1][cj].y);
+        ctx.lineTo(sx[ci + 1][cj + 1].x, sx[ci + 1][cj + 1].y);
+        ctx.lineTo(sx[ci][cj + 1].x, sx[ci][cj + 1].y);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      ctx.save();
+      ctx.strokeStyle = cssVar("--f1", "#0a84ff");
+      ctx.globalAlpha = 0.62; ctx.lineWidth = 1; ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (i = 0; i <= n; i++){
+        var started = false;
+        for (j = 0; j <= m; j++){
+          if (!ok(i, j)){ started = false; continue; }
+          var p1 = sx[i][j];
+          if (!started){ ctx.moveTo(p1.x, p1.y); started = true; }
+          else ctx.lineTo(p1.x, p1.y);
+        }
+      }
+      for (j = 0; j <= m; j++){
+        var started2 = false;
+        for (i = 0; i <= n; i++){
+          if (!ok(i, j)){ started2 = false; continue; }
+          var p2 = sx[i][j];
+          if (!started2){ ctx.moveTo(p2.x, p2.y); started2 = true; }
+          else ctx.lineTo(p2.x, p2.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function read3DInputs(){
+    var src = el("fxy").value;
+    var x0 = numOf(el("x0").value), x1 = numOf(el("x1").value);
+    var y0 = numOf(el("y0").value), y1 = numOf(el("y1").value);
+    var dRaw = numOf(el("dens").value);
+    var errs = [];
+    var b = checkBrackets(src);
+    if (!src.trim()) errs.push("请先输入一个二元函数，例如 sin(x)*cos(y)");
+    else if (b) errs.push(b);
+    else {
+      var r = parseExpr(src);
+      if (r.err) errs.push(r.err);
+      else G3.node = r.node;
+    }
+    if (isNaN(x0) || isNaN(x1) || isNaN(y0) || isNaN(y1)) errs.push("x、y 的范围要填数字");
+    else if (x1 <= x0 || y1 <= y0) errs.push("范围的「到」必须大于「从」");
+    if (isNaN(dRaw)) errs.push("网格密度要填数字");
+    else if (dRaw < 8 || dRaw > 80) errs.push("网格密度请填 8 到 80 之间（默认 40）");
+    return { errs: errs, x0: x0, x1: x1, y0: y0, y1: y1, d: Math.round(dRaw) };
+  }
+
+  var err3d = false;
+  function refresh3D(rebuild){
+    var r = read3DInputs();
+    if (r.errs.length){
+      err3d = true;
+      el("geoinfo3d").innerHTML = errHTML("z = f(x, y)：" + r.errs.join("；"));
+      return;
+    }
+    err3d = false;
+    var need = rebuild ||
+      G3.x0 !== r.x0 || G3.x1 !== r.x1 || G3.y0 !== r.y0 || G3.y1 !== r.y1 || G3.dens !== r.d;
+    G3.x0 = r.x0; G3.x1 = r.x1; G3.y0 = r.y0; G3.y1 = r.y1; G3.dens = r.d;
+    G3.nx = G3.dens; G3.ny = G3.dens;
+    if (need || !G3.built) buildGrid();
+    paint3D();
+    el("geoinfo3d").innerHTML =
+      "z = <b>" + prettyExpr(C.str(G3.node)) + "</b>　视角 水平 " + Math.round(G3.yaw * 180 / Math.PI) +
+      "° / 俯仰 " + Math.round(G3.pitch * 180 / Math.PI) + "°　缩放 " + sig6(G3.zoom) + "×" +
+      "　网格 " + G3.dens + "×" + G3.dens + "　z 显示范围 " + unary(sig6(G3.zmin)) + " ~ " + unary(sig6(G3.zmax)) +
+      "（z 方向放大 " + sig6(G3.zScale) + "× 便于观察）";
+  }
+
+  var EX3D = [
+    { src: "sin(x)*cos(y)",       label: "sin x · cos y" },
+    { src: "x^2+y^2",             label: "x<sup>2</sup>+y<sup>2</sup>" },
+    { src: "x^2-y^2",             label: "x<sup>2</sup>−y<sup>2</sup>" },
+    { src: "sin(sqrt(x^2+y^2))",  label: "sin √(x<sup>2</sup>+y<sup>2</sup>)" },
+    { src: "e^(-(x^2+y^2))",      label: "e<sup>−(x<sup>2</sup>+y<sup>2</sup>)</sup>" },
+    { src: "x*y",                 label: "x·y" }
+  ];
+  EX3D.forEach(function(s){
+    var b = document.createElement("button");
+    b.className = "chip"; b.innerHTML = s.label; b.title = s.src;
+    b.addEventListener("click", function(){
+      el("fxy").value = s.src;
+      refresh3D(true);
+    });
+    el("examples3d").appendChild(b);
+  });
+
+  /* ---------- 三维交互 ---------- */
+  var cv3 = el("geo3d");
+  if (cv3){
+    var drag3 = false, lx3 = 0, ly3 = 0;
+    cv3.addEventListener("pointerdown", function(e){
+      drag3 = true; lx3 = e.clientX; ly3 = e.clientY;
+      cv3.classList.add("dragging");
+      try { cv3.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    cv3.addEventListener("pointermove", function(e){
+      if (!drag3) return;
+      G3.yaw += (e.clientX - lx3) * 0.0085;
+      G3.pitch -= (e.clientY - ly3) * 0.0075;
+      if (G3.pitch > 1.5) G3.pitch = 1.5;
+      if (G3.pitch < -1.5) G3.pitch = -1.5;
+      lx3 = e.clientX; ly3 = e.clientY;
+      paint3D();
+      angleLine();
+    });
+    function stop3(){ drag3 = false; cv3.classList.remove("dragging"); }
+    cv3.addEventListener("pointerup", stop3);
+    cv3.addEventListener("pointercancel", stop3);
+    cv3.addEventListener("wheel", function(e){
+      e.preventDefault();
+      G3.zoom = Math.max(0.35, Math.min(3.2, G3.zoom * (e.deltaY > 0 ? 0.94 : 1.06)));
+      paint3D();
+      angleLine();
+    }, { passive: false });
+    cv3.addEventListener("dblclick", function(){ toggleSolid(); });
+    function angleLine(){
+      var box = el("geoinfo3d");
+      if (err3d) return;
+      if (G3.node) box.innerHTML = "z = <b>" + prettyExpr(C.str(G3.node)) + "</b>　视角 水平 " +
+        Math.round(G3.yaw * 180 / Math.PI) + "° / 俯仰 " + Math.round(G3.pitch * 180 / Math.PI) +
+        "°　缩放 " + sig6(G3.zoom) + "×　网格 " + G3.dens + "×" + G3.dens +
+        "　z 显示范围 " + unary(sig6(G3.zmin)) + " ~ " + unary(sig6(G3.zmax)) +
+        "（z 方向放大 " + sig6(G3.zScale) + "× 便于观察）";
+    }
+    el("geoReset").addEventListener("click", function(){
+      G3.yaw = -0.6; G3.pitch = 0.5; G3.zoom = 1; G3.px = 0; G3.py = 0;
+      paint3D(); angleLine();
+    });
+    el("geoSpin").addEventListener("click", function(){
+      G3.spin = !G3.spin;
+      el("geoSpin").textContent = G3.spin ? "停止旋转" : "自动旋转";
+      if (G3.spin) spinLoop();
+    });
+    el("geoMode").addEventListener("click", function(){ toggleSolid(); });
+    function toggleSolid(){
+      G3.solid = !G3.solid;
+      el("geoMode").textContent = G3.solid ? "线框" : "实体面";
+      paint3D();
+    }
+  }
+  var spinning = false, spinId = 0;
+  function spinLoop(){
+    if (spinning) return;
+    spinning = true;
+    function frame(){
+      if (!G3.spin || document.hidden){ spinning = false; return; }
+      G3.yaw += 0.012;
+      paint3D();
+      angleLine();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden && G3.spin) spinLoop();
+  });
+
+  el("fxy").addEventListener("input", function(){ refresh3D(true); });
+  ["x0", "x1", "y0", "y1", "dens"].forEach(function(id){
+    el(id).addEventListener("change", function(){ refresh3D(true); });
+    el(id).addEventListener("keydown", function(e){
+      if (e.key === "Enter"){ e.preventDefault(); refresh3D(true); }
+    });
+  });
+
+  /* ---------- 皮肤 ---------- */
+  var THEME = {
+    glass: { color: "#080c18", bar: "black-translucent" },
+    light: { color: "#f2f2f7", bar: "default" },
+    brutal: { color: "#fdf1dd", bar: "default" }
+  };
+  function applySkin(s){
+    document.documentElement.setAttribute("data-skin", s);
+    Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
+    });
+    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    var T = THEME[s] || THEME.light;
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute("content", T.color);
+    var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (sb) sb.setAttribute("content", T.bar);
+    plotDraw();
+    paint3D();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+    b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  var rzTimer = 0;
+  window.addEventListener("resize", function(){
+    if (rzTimer) clearTimeout(rzTimer);
+    rzTimer = setTimeout(function(){ plotDraw(); paint3D(); }, 80);
+  });
+
+  /* ---------- 启动 ---------- */
+  var SKINS = ["glass", "light", "brutal"], saved = "light";
+  try {
+    var q = new URLSearchParams(location.search).get("skin");
+    saved = q || localStorage.getItem("la-skin-v2") || "light";
+  } catch (e) {}
+  if (SKINS.indexOf(saved) < 0) saved = "light";
+
+  /* ---------- 某个板块出错时别让整页停摆 ---------- */
+  function showFatal(where, e){
+    var msg = "这个板块出错了：" + ((e && e.message) ? e.message : String(e));
+    var box = el(where);
+    if (box) box.innerHTML = errHTML(msg);
+    try { console.error(msg, e); } catch (e2) {}
+  }
+
+  markActive("fx");
+  try { read2D(); autoY(); } catch (e){ showFatal("plotinfo", e); }
+  applySkin(saved);
+  try { refresh3D(true); } catch (e){ showFatal("geoinfo3d", e); }
+  try { plotDraw(); } catch (e){ showFatal("plotinfo", e); }
+  try { paint3D(); } catch (e){ showFatal("geoinfo3d", e); }
+  window.__graphReady = true;
+})();
+</script>
+</body>
+</html>

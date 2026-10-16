@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="zh-CN" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>__PAGE_TITLE__ · 蒲瓜的计算器</title>
+<style>
+:root{ --radius:18px; --card-bw:1px; --input-bw:1px; --blur:none; --shadow:none; --skin-bw:0; --track:rgba(130,130,140,.16); --danger:#ff6b6b; }
+:root[data-skin="glass"]{
+  --bg:#080c18;
+  --bg-image:radial-gradient(880px 520px at 10% -10%, rgba(94,234,212,.20), transparent 62%), radial-gradient(820px 520px at 102% 2%, rgba(129,140,248,.26), transparent 64%), radial-gradient(700px 460px at 50% 112%, rgba(236,72,153,.14), transparent 62%);
+  --fg:#e9efff; --fg-dim:rgba(233,239,255,.52);
+  --card:rgba(255,255,255,.055); --card-border:rgba(255,255,255,.13);
+  --blur:blur(18px); --shadow:0 12px 34px rgba(0,0,0,.34);
+  --input-bg:rgba(255,255,255,.06); --input-border:rgba(255,255,255,.12);
+  --chip:rgba(255,255,255,.06); --chip-border:rgba(255,255,255,.12);
+  --chip-on-bg:linear-gradient(135deg,#5eead4,#818cf8); --chip-on-fg:#08101f; --chip-on-shadow:0 6px 18px rgba(129,140,248,.35);
+  --accent-line:rgba(129,140,248,.85); --focus-ring:rgba(129,140,248,.22); --accent-2:#f472b6;
+  --btn-bg:linear-gradient(135deg,#5eead4,#818cf8); --btn-fg:#07101d; --btn-shadow:0 10px 26px rgba(129,140,248,.32);
+  --mark:linear-gradient(135deg,#5eead4,#818cf8); --mark-fg:#08101f; --logo-shadow:0 6px 18px rgba(129,140,248,.35);
+  --ok:#5eead4;
+}
+:root[data-skin="light"]{
+  --bg:#f2f2f7; --bg-image:none; --fg:#101014; --fg-dim:#8a8a92;
+  --card:#ffffff; --card-border:rgba(0,0,0,.06); --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+  --track:#e6e6ec; --input-bg:#f5f5f8; --input-border:rgba(0,0,0,.07);
+  --chip:#ececf1; --chip-border:transparent; --chip-on-bg:#0a84ff; --chip-on-fg:#ffffff; --chip-on-shadow:0 6px 16px rgba(10,132,255,.30);
+  --accent-line:#0a84ff; --focus-ring:rgba(10,132,255,.16); --accent-2:#e5484d;
+  --btn-bg:linear-gradient(135deg,#0a84ff,#0060df); --btn-fg:#ffffff; --btn-shadow:0 10px 24px rgba(10,132,255,.28);
+  --mark:linear-gradient(135deg,#0a84ff,#5e5ce6); --mark-fg:#ffffff; --logo-shadow:0 6px 16px rgba(10,132,255,.30); --danger:#e5484d;
+  --ok:#0a84ff;
+}
+:root[data-skin="brutal"]{
+  --bg:#fdf1dd; --bg-image:none; --fg:#141414; --fg-dim:#6f6656;
+  --card:#fffdf8; --card-border:#141414; --card-bw:2px; --input-bw:2px; --radius:14px; --skin-bw:2px;
+  --shadow:6px 6px 0 #141414; --track:#fffdf8; --input-bg:#ffffff; --input-border:#141414;
+  --chip:#ffffff; --chip-border:#141414; --chip-on-bg:#ffd23f; --chip-on-fg:#141414; --chip-on-shadow:3px 3px 0 #141414;
+  --accent-line:#141414; --focus-ring:rgba(255,210,63,.55); --accent-2:#c22f22;
+  --btn-bg:#ff5c4d; --btn-fg:#141414; --btn-shadow:4px 4px 0 #141414;
+  --mark:#ffd23f; --mark-fg:#141414; --logo-shadow:none; --danger:#c22f22; --ok:#141414;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;padding:max(16px,env(safe-area-inset-top)) 15px max(30px,env(safe-area-inset-bottom));-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;transition:background .25s ease,color .25s ease}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--mark);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--mark-fg);flex:0 0 auto;box-shadow:var(--logo-shadow);font-style:italic}
+.brandName{font-size:12.5px;color:var(--fg-dim);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skins{display:flex;gap:3px;padding:3px;background:var(--track);border-radius:999px;border:var(--skin-bw) solid var(--card-border)}
+.skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
+.skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
+.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a:hover{color:var(--fg)}
+.tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
+.tabs .tag{font-size:10.5px;opacity:.75;margin-left:3px}
+.hero{text-align:center;padding:4px 2px 0}
+.heroTitle{margin:0;font-size:23px;font-weight:800;letter-spacing:.005em;line-height:1.32}
+.heroSub{margin:7px 0 0;font-size:12.5px;color:var(--fg-dim);letter-spacing:.08em}
+.card{background:var(--card);border:var(--card-bw) solid var(--card-border);border-radius:var(--radius);padding:13px;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow)}
+.chead{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.mtag{width:28px;height:28px;border-radius:9px;background:var(--mark);color:var(--mark-fg);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 auto;font-style:italic}
+.rtitle{font-size:13px;font-weight:600}
+.note{font-size:11.5px;color:var(--fg-dim)}
+.tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tools button{border:1px solid var(--input-border);background:var(--chip);color:var(--fg);font:inherit;font-size:12px;padding:5px 9px;border-radius:8px;cursor:pointer}
+.tools button:active{transform:translateY(1px)}
+.glabel{font-size:11px;color:var(--fg-dim);letter-spacing:.12em;margin:12px 0 7px}
+.glabel:first-child{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.chip{border:1px solid var(--chip-border);background:var(--chip);color:var(--fg);font:inherit;font-size:13px;padding:8px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--chip-on-bg);color:var(--chip-on-fg);border-color:transparent;font-weight:600;box-shadow:var(--chip-on-shadow)}
+.chip.big{font-size:14.5px;padding:12px 16px;font-weight:650;border-color:var(--accent-line);font-variant-numeric:tabular-nums}
+.chip sup{font-size:.68em;vertical-align:super;line-height:0;letter-spacing:.02em}
+.kbox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-dim)}
+.kbox input{width:82px;padding:8px 9px;font:inherit;font-size:13.5px;text-align:center;color:var(--fg);background:var(--input-bg);border:var(--input-bw) solid var(--input-border);border-radius:9px;outline:none;font-variant-numeric:tabular-nums}
+.kbox input:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--focus-ring)}
+.runbtn{width:100%;margin-top:14px;padding:15px;border:0;border-radius:14px;background:var(--btn-bg);color:var(--btn-fg);font:inherit;font-size:16px;font-weight:700;letter-spacing:.14em;cursor:pointer;box-shadow:var(--btn-shadow)}
+.runbtn:active{transform:translateY(1px)}
+.geo{display:block;width:100%;height:300px;border-radius:12px;background:var(--input-bg);border:var(--input-bw) solid var(--input-border);touch-action:none;cursor:crosshair}
+.geoinfo{font-size:12.5px;color:var(--fg-dim);margin:10px 0 0;line-height:1.85}
+.geoinfo b{color:var(--fg)}
+.msgerr{font-size:13px;color:var(--danger);margin:8px 0;line-height:1.55}
+.res{font-size:14px;line-height:1.75;margin:0 0 10px}
+.res b{color:var(--fg)}
+.bigval{font-size:19px;font-weight:700;letter-spacing:.01em}
+.tagline{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px;margin-right:8px;vertical-align:1px}
+.tagline.ok{background:var(--chip-on-bg);color:var(--chip-on-fg)}
+.tagline.no{background:var(--danger);color:#fff}
+.formula{margin:12px 0 0;font-size:12.5px;color:var(--fg-dim);line-height:1.7}
+.formula b{color:var(--fg);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;border:1px solid var(--input-border);border-radius:12px;background:var(--input-bg);margin-top:10px;-webkit-overflow-scrolling:touch}
+table.dist{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+table.dist th,table.dist td{padding:7px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--input-border)}
+table.dist th{position:sticky;top:0;background:var(--card);color:var(--fg-dim);font-weight:600;font-size:11.5px;letter-spacing:.04em}
+table.dist td:first-child,table.dist th:first-child{text-align:left;color:var(--fg)}
+table.dist td{color:var(--fg-dim)}
+table.dist tr:last-child td{border-bottom:0}
+.limit{font-size:11.5px;color:var(--fg-dim);margin:8px 0 0;line-height:1.7}
+.calcbox{background:var(--input-bg);border:1px solid var(--input-border);border-radius:12px;padding:11px;margin-bottom:10px}
+.calclab{font-size:11px;color:var(--fg-dim);letter-spacing:.1em;margin-bottom:6px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;word-break:break-word}
+.foot{font-size:11.5px;color:var(--fg-dim);text-align:center;margin:4px 0 0;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1 class="heroTitle">蒲瓜的计算器</h1>
+    <p class="heroSub">由 Deepseek 制作</p>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" id="logo">P</span>
+      <span class="brandName" id="tagline">分布列 · 期望 · 方差</span>
+    </div>
+    <div class="skins" id="skins">
+      <button data-skin-set="glass">玻璃</button>
+      <button data-skin-set="light" class="on">极简</button>
+      <button data-skin-set="brutal">粗野</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="nav" aria-label="页面切换"></nav>
+
+  <section class="card">
+    <div class="chead">
+      <span class="mtag">P</span>
+      <span class="note">先选分布，再填参数，最后按「计算」</span>
+    </div>
+    <div class="glabel">分布</div>
+    <div class="chips" id="distChips"></div>
+    <div id="paramArea"></div>
+    <p class="geoinfo" id="phint"></p>
+    <button class="runbtn" id="calcBtn">计 算</button>
+  </section>
+
+  <section class="card">
+    <div class="chead"><span class="rtitle">结果</span><div class="tools"><button id="copy">复制结果</button></div></div>
+    <div id="out"></div>
+  </section>
+
+  <section class="card">
+    <div class="chead"><span class="rtitle" id="plotTitle">分布列柱状图</span></div>
+    <canvas id="plot" class="geo"></canvas>
+    <p class="geoinfo" id="plotinfo"></p>
+  </section>
+
+  <nav class="tabs" id="nav2" aria-label="页面切换"></nav>
+
+  <p class="foot">全部计算在本机浏览器完成，不上传数据</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 导航（八页共用） ---------- */
+  var PAGES = [
+    { id: "home",      label: "首页", href: "index.html" },
+    { id: "algebra",   label: "矩阵", href: "algebra.html" },
+    { id: "transform", label: "变换", href: "transform.html" },
+    { id: "limits",    label: "极限", href: "limits.html" },
+    { id: "deriv",     label: "微分", href: "deriv.html" },
+    { id: "integral",  label: "积分", href: "integral.html" },
+    { id: "graph",     label: "图像", href: "graph.html" },
+    { id: "stats",     label: "概率", href: "stats.html" }
+  ];
+  var PAGE_ID = "__PAGE_ID__";
+
+  function el(id){ return document.getElementById(id); }
+  function navHTML(){
+    var h = "";
+    PAGES.forEach(function(n){
+      h += (n.id === PAGE_ID)
+        ? '<span class="on">' + n.label + '<span class="tag">当前</span></span>'
+        : '<a href="' + n.href + '">' + n.label + '</a>';
+    });
+    return h;
+  }
+  el("nav").innerHTML = navHTML();
+  el("nav2").innerHTML = navHTML();
+
+  /* ---------- 数字小工具 ---------- */
+  function isNum(v){ return typeof v === "number" && isFinite(v); }
+  function num(v){
+    if (v === null || v === undefined) return NaN;
+    var s = String(v).trim();
+    if (!s) return NaN;
+    return parseFloat(s.replace(/，/g, ","));
+  }
+  function round6(x){ return Math.round(x * 1e6) / 1e6; }
+  function fmt(x){
+    if (!isNum(x)) return "—";
+    if (x === 0) return "0";
+    var a = Math.abs(x);
+    if (a >= 1e-4 && a < 1e7) return String(round6(x));
+    var s = x.toExponential(6);
+    return s.replace(/(\.\d*?)0+e/, "$1e").replace(/\.e/, "e").replace(/(\.\d*?)0+$/, "$1");
+  }
+  function sup(d){
+    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+    return String(d).split("").map(function(ch){ return map[ch] || ch; }).join("");
+  }
+  function esc(s){
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* ---------- 分布定义（中文公式用真上下标，代码用 ASCII） ---------- */
+  var DIST = {
+    bin: {
+      name: "二项 B(n, p)", title: "二项分布", data: "P(X=k) = C(n,k)·p" + sup("k") + "·(1−p)" + sup("n−k"),
+      params: [
+        { id: "n", label: "试验次数 n", def: "10" },
+        { id: "p", label: "成功概率 p", def: "0.5" }
+      ],
+      hint: "n 次独立重复试验里成功的次数。"
+    },
+    poi: {
+      name: "泊松 P(λ)", title: "泊松分布", data: "P(X=k) = λ" + sup("k") + "·e" + sup("−λ") + " / k!",
+      params: [ { id: "lam", label: "参数 λ", def: "3" } ],
+      hint: "单位时间（或单位面积）内稀有事件发生的次数。"
+    },
+    hyp: {
+      name: "超几何 H(N, K, n)", title: "超几何分布", data: "P(X=k) = C(K,k)·C(N−K, n−k) / C(N, n)",
+      params: [
+        { id: "N", label: "总体 N", def: "20" },
+        { id: "K", label: "成功数 K", def: "5" },
+        { id: "n", label: "抽样 n", def: "4" }
+      ],
+      hint: "不放回地从 N 个里抽 n 个，抽到的成功个数。"
+    },
+    geo: {
+      name: "几何 Geom(p)", title: "几何分布", data: "P(X=k) = (1−p)" + sup("k−1") + "·p",
+      params: [ { id: "p", label: "成功概率 p", def: "0.3" } ],
+      hint: "第一次成功出现在第 k 次试验。"
+    },
+    nor: {
+      name: "正态 N(μ, σ²)", title: "正态分布", data: "f(x) = 1/(σ√(2π))·e" + sup("−(x−μ)²/(2σ²)"),
+      params: [
+        { id: "mu", label: "均值 μ", def: "0" },
+        { id: "sig", label: "标准差 σ", def: "1" }
+      ],
+      hint: "连续型：给出区间概率与密度曲线。",
+      cont: true
+    }
+  };
+  var ORDER = ["bin", "poi", "hyp", "geo", "nor"];
+
+  /* ---------- 渲染分布 chip ---------- */
+  (function(){
+    var h = "";
+    ORDER.forEach(function(id){
+      h += '<button class="chip big' + (id === "bin" ? " on" : "") + '" data-dist="' + id + '">' + DIST[id].name + "</button>";
+    });
+    el("distChips").innerHTML = h;
+  })();
+
+  var S = { dist: "bin", interval: "ab" };
+  var lastReport = "";
+
+  /* ---------- 参数区 ---------- */
+  function loadParams(){
+    var d = DIST[S.dist], h = "";
+    d.params.forEach(function(p){
+      h += '<label class="kbox">' + p.label + ' <input id="p-' + p.id + '" data-p="' + p.id + '" value="' + p.def + '" autocomplete="off" spellcheck="false" inputmode="decimal"></label>';
+    });
+    if (S.dist === "nor"){
+      h += '<div class="chips" style="margin-top:10px">' +
+           '<label class="kbox">区间 a <input id="p-a" data-p="a" value="-1" autocomplete="off" inputmode="decimal"></label>' +
+           '<label class="kbox">区间 b <input id="p-b" data-p="b" value="1" autocomplete="off" inputmode="decimal"></label></div>';
+      h += '<div class="glabel">曲线选中区间</div><div class="chips">' +
+           '<button class="chip on" data-interval="ab">画 P(a &lt; X &lt; b)</button>' +
+           '<button class="chip" data-interval="1">±1σ</button>' +
+           '<button class="chip" data-interval="2">±2σ</button>' +
+           '<button class="chip" data-interval="3">±3σ</button></div>';
+    }
+    el("paramArea").innerHTML = '<div class="glabel">参数</div><div class="chips">' + h + "</div>";
+    el("phint").textContent = d.hint;
+    el("out").innerHTML = "";
+    el("plotTitle").textContent = d.cont ? "密度曲线图" : "分布列柱状图";
+    NORM.sel = null;
+    NORM.xmin = null; NORM.xmax = null;
+    NORM.regions = [];
+    plotDraw();
+    el("plotinfo").textContent = "填好参数，按「计算」，这里会画出" + (d.cont ? "密度曲线。" : "分布列的柱子；点某根柱子可以看那一点的 P(X=k)。");
+  }
+  el("distChips").addEventListener("click", function(e){
+    var node = e.target;
+    while (node && node !== this && !(node.getAttribute && node.getAttribute("data-dist"))) node = node.parentNode;
+    if (!node || node === this || !node.getAttribute) return;
+    S.dist = node.getAttribute("data-dist");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dist]"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-dist") === S.dist);
+    });
+    loadParams();
+  });
+  el("paramArea").addEventListener("click", function(e){
+    var node = e.target;
+    while (node && node !== this && !(node.getAttribute && node.getAttribute("data-interval"))) node = node.parentNode;
+    if (!node || node === this || !node.getAttribute) return;
+    S.interval = node.getAttribute("data-interval");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-interval]"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-interval") === S.interval);
+    });
+    if (S.interval === "1"){ setPV("a", "-1"); setPV("b", "1"); }
+    else if (S.interval === "2"){ setPV("a", "-2"); setPV("b", "2"); }
+    else if (S.interval === "3"){ setPV("a", "-3"); setPV("b", "3"); }
+  });
+  function setPV(id, v){ var e = el("p-" + id); if (e) e.value = v; }
+  function readP(id){ var e = el("p-" + id); return e ? num(e.value) : NaN; }
+
+  /* ---------- 阶乘（对数值，避免大 N 溢出） ---------- */
+  var LNFCACHE = [0, 0];
+  function lnFact(n){
+    n = Math.floor(n);
+    if (n < 2) return 0;
+    if (LNFCACHE[n] !== undefined) return LNFCACHE[n];
+    var v = LNFCACHE[LNFCACHE.length - 1], i;
+    for (i = LNFCACHE.length; i <= n; i++){ v += Math.log(i); LNFCACHE[i] = v; }
+    return LNFCACHE[n];
+  }
+  function lnComb(n, r){ if (r < 0 || n < 0 || r > n) return -Infinity; return lnFact(n) - lnFact(r) - lnFact(n - r); }
+  function comb(n, r){ if (r < 0 || n < 0 || r > n) return 0; return Math.round(Math.exp(lnComb(n, r))); }
+
+  /* ---------- 四种离散分布：pmf / cdf 递推 ---------- */
+  function pmfSeqBin(n, p){
+    var out = [], x, lc;
+    for (x = 0; x <= n; x++){
+      if (p <= 0){ out.push(x === 0 ? 1 : 0); continue; }
+      if (p >= 1){ out.push(x === n ? 1 : 0); continue; }
+      lc = lnFact(n) - lnFact(x) - lnFact(n - x) + x * Math.log(p) + (n - x) * Math.log(1 - p);
+      out.push(Math.exp(lc));
+    }
+    return out;
+  }
+  function pmfSeqPoi(lam){
+    var out = [], x = 0, cur = Math.exp(-lam), top = Math.floor(lam + 40);
+    while (x <= top){
+      out.push(cur);
+      x++;
+      cur = cur * lam / x;
+    }
+    return out;
+  }
+  function pmfSeqHyp(N, K, n){
+    var lo = Math.max(0, n - (N - K)), hi = Math.min(n, K), out = [], x, ld = lnComb(N, n);
+    for (x = lo; x <= hi; x++) out.push(Math.exp(lnComb(K, x) + lnComb(N - K, n - x) - ld));
+    return out;
+  }
+  function pmfSeqGeo(p){
+    var out = [], x;
+    if (p >= 1) return [1];
+    for (x = 1; x <= 600; x++) out.push(Math.pow(1 - p, x - 1) * p);
+    return out;
+  }
+  function cdfOf(seq, offset){
+    var out = [], acc = 0;
+    seq.forEach(function(v, i){ acc += v; out.push({ k: i + (offset || 0), p: v, c: acc }); });
+    return out;
+  }
+
+  /* ---------- 表格截断 ----------
+     取值有限的分布（二项、超几何）一定要列全，所以传 mean = NaN 跳过累计概率截断；
+     取值无限的（泊松、几何）按累计概率到 0.9999 截断，超长的再按 mean ± 6σ 收窄。 */
+  function rowWindow(rows, mean, sd, cap){
+    var keep = rows.length, i;
+    if (isNum(mean)){
+      for (i = 0; i < rows.length; i++){
+        if (rows[i].c >= 0.9999){ keep = i + 1; break; }
+      }
+      // 窗口只是保险：只有累计概率还没到 0.9999 时，才把它放宽到 mean ± 6σ；
+      // 已经够了就按累计概率截断，别多列一堆概率小到看不见的 k。
+      if (keep === rows.length){
+        var lo = Math.floor(mean - 6 * sd), hi = Math.ceil(mean + 6 * sd), idx;
+        for (idx = 0; idx < rows.length; idx++){ if (rows[idx].k >= lo){ break; } }
+        var last = keep - 1;
+        for (idx = rows.length - 1; idx >= 0; idx--){ if (rows[idx].k <= hi){ last = idx; break; } }
+        if (last >= keep - 1) keep = last + 1;
+      }
+    }
+    if (isNum(cap)) keep = Math.min(keep, cap);
+    return Math.max(Math.min(keep, rows.length), 1);
+  }
+  function cutText(rows, keptAll, cdf){
+    var first = rows[0].k, last = rows[rows.length - 1].k;
+    var tail = keptAll ? "" : "，后面的概率已经小于 0.0001，可忽略";
+    return "k 取 " + first + " 到 " + last + "（累计概率 " + fmt(Math.min(1, cdf)) + tail + "）";
+  }
+
+  /* ---------- 参数校验 ---------- */
+  function isInt(v){ return isNum(v) && Math.abs(v - Math.round(v)) < 1e-9; }
+  function bad(msg, hint){
+    el("out").innerHTML = '<p class="msgerr">' + msg + (hint ? "（" + hint + "）" : "") + "</p>";
+    el("plotinfo").textContent = "参数不对，先按提示改一下再算。";
+    PLOT.rows = [];
+    PLOT.kind = "bar";
+    PLOT.empty = msg;
+    NORM.sel = null; NORM.regions = [];
+    plotDraw();
+    return null;
+  }
+
+  /* ---------- 表格渲染 ---------- */
+  function tableHTML(rows){
+    var h = '<div class="tablewrap"><table class="dist"><thead><tr><th>k</th><th>P(X = k)</th><th>P(X ≤ k)</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      h += "<tr><td>" + r.k + "</td><td>" + fmt(r.p) + "</td><td>" + fmt(Math.min(1, r.c)) + "</td></tr>";
+    });
+    return h + "</tbody></table></div>";
+  }
+  function momHTML(row){
+    var h = '<div class="tablewrap"><table class="dist"><thead><tr><th></th><th>精确表达式</th><th>数值</th></tr></thead><tbody>';
+    h += "<tr><td>期望 E(X)</td><td>" + row.expr + "</td><td>" + fmt(row.mean) + "</td></tr>";
+    h += "<tr><td>方差 D(X)</td><td>" + row.varExpr + "</td><td>" + fmt(row.varr) + "</td></tr>";
+    h += "<tr><td>标准差 σ</td><td>√D(X)</td><td>" + fmt(row.sd) + "</td></tr>";
+    return h + "</tbody></table></div>";
+  }
+
+  /* ---------- 计算：离散型 ---------- */
+  function runDiscrete(){
+    var d = S.dist, seq, off = 0, rows, expected = 0, spread = 0, title = DIST[d].title;
+    var mean, varr, expr, varExpr, formula, extra = "", cut = "", full = false, cap = null;
+
+    if (d === "bin"){
+      var n = readP("n"), p = readP("p");
+      if (!isInt(n) || n < 0) return bad("试验次数 n 必须是非负整数", "例如 10");
+      if (!isNum(p) || p < 0 || p > 1) return bad("成功概率 p 必须在 0 到 1 之间", "例如 0.5");
+      n = Math.round(n);
+      if (n > 4000) return bad("n 最大支持 4000", "再大就没法逐项列表了");
+      seq = pmfSeqBin(n, p); off = 0;
+      mean = n * p; varr = n * p * (1 - p);
+      expr = "np = " + fmt(n) + " × " + fmt(p) + " = <b>" + fmt(mean) + "</b>";
+      varExpr = "np(1−p) = <b>" + fmt(varr) + "</b>";
+      formula = "E(X) = np，D(X) = np(1−p)";
+      extra = "试验次数 n = " + n + "，成功概率 p = " + fmt(p) + "。";
+      // 二项的全部取值就是 0…n，必须列全（不能用累计概率 0.9999 截断）
+      cap = n + 1; full = true; expected = NaN; spread = 0;
+      cut = "k 取 0 到 " + n + "（正好是全部取值）。";
+    } else if (d === "poi"){
+      var lam = readP("lam");
+      if (!isNum(lam) || lam < 0) return bad("参数 λ 必须是不小于 0 的数", "例如 3");
+      if (lam > 500) return bad("λ 最大支持 500", "再大就没法逐项列表了");
+      seq = pmfSeqPoi(lam); off = 0;
+      mean = lam; varr = lam;
+      expected = mean; spread = Math.sqrt(Math.max(varr, 0));
+      expr = "λ = <b>" + fmt(lam) + "</b>";
+      varExpr = "λ = <b>" + fmt(lam) + "</b>";
+      formula = "E(X) = λ，D(X) = λ";
+      extra = "参数 λ = " + fmt(lam) + "（期望与方差都等于 λ）。";
+      cut = "k 取 0 到 ?（累计概率到 0.9999，或至少列到 k = 30）。";
+    } else if (d === "hyp"){
+      var N = readP("N"), K = readP("K"), nn = readP("n");
+      if (!isInt(N) || N < 1) return bad("总体 N 必须是正整数", "例如 20");
+      if (!isInt(K) || K < 0 || K > N) return bad("成功数 K 必须是 0 到 N 之间的整数", "例如 5");
+      if (!isInt(nn) || nn < 0 || nn > N) return bad("抽样 n 必须是 0 到 N 之间的整数", "例如 4");
+      N = Math.round(N); K = Math.round(K); nn = Math.round(nn);
+      if (N > 4000) return bad("总体 N 最大支持 4000");
+      seq = pmfSeqHyp(N, K, nn); off = Math.max(0, nn - (N - K));
+      mean = nn * K / N;
+      // 样本量等于总体时不需修正式（N−n）/(N−1)，直接退化为 0
+      varr = (N <= 1) ? 0 : nn * (K / N) * (1 - K / N) * ((N - nn) / (N - 1));
+      expected = mean; spread = Math.sqrt(Math.max(varr, 0));
+      expr = "n·K/N = " + nn + " × " + K + " / " + N + " = <b>" + fmt(mean) + "</b>";
+      varExpr = "n·(K/N)·(1−K/N)·(N−n)/(N−1) = <b>" + fmt(varr) + "</b>";
+      formula = "E(X) = nK/N，D(X) = n·(K/N)·(1−K/N)·(N−n)/(N−1)";
+      extra = "从 N = " + N + " 个（其中 K = " + K + " 个成功）里不放回地抽 n = " + nn + " 个。";
+      cap = off + seq.length; full = true; expected = NaN; spread = 0;
+    } else {
+      var pp = readP("p");
+      if (!isNum(pp) || pp <= 0 || pp > 1) return bad("成功概率 p 必须大于 0 且不超过 1", "例如 0.3");
+      seq = pmfSeqGeo(pp); off = 1;
+      mean = 1 / pp; varr = (1 - pp) / (pp * pp);
+      expected = mean; spread = Math.sqrt(Math.max(varr, 0));
+      expr = "1/p = 1 / " + fmt(pp) + " = <b>" + fmt(mean) + "</b>";
+      varExpr = "(1−p)/p² = <b>" + fmt(varr) + "</b>";
+      formula = "E(X) = 1/p，D(X) = (1−p)/p²";
+      extra = "成功概率 p = " + fmt(pp) + "，X 是第一次成功所在的试验次数。";
+      cap = 30;
+      cut = "k 取 1 到 ?（累计概率到 0.9999，或至少列到 k = 30）。";
+    }
+
+    rows = cdfOf(seq, off);
+    var kept = rowWindow(rows, expected, spread, cap);
+    rows = rows.slice(0, kept);
+    // 图先画好，下面那句截断说明可以顺便写清图只画到哪儿
+    setupBars(seq, off, mean, varr);
+    var barNote = "";
+    var plotLast = PLOT.rows.length ? PLOT.rows[PLOT.rows.length - 1].k : rows[rows.length - 1].k;
+    if (plotLast < rows[rows.length - 1].k) barNote = "，图里画到 k = " + plotLast + "（再往后的概率太小，画出来看不见）";
+    cut = (d === "hyp")
+      ? "k 取 " + rows[0].k + " 到 " + rows[rows.length - 1].k + "（不放回抽样，有效取值就这些）。"
+      : cutText(rows, full || rows.length === seq.length, rows[rows.length - 1].c) + barNote + "。";
+
+    var h = '<p class="res"><span class="tagline ok">' + title + "</span>" + DIST[d].data + "</p>";
+    h += '<p class="res">' + extra + "</p>";
+    h += '<div class="calclab" style="margin-top:12px">期望 · 方差 · 标准差</div>' + momHTML({ expr: expr, mean: mean, varExpr: varExpr, varr: varr, sd: Math.sqrt(Math.max(0, varr)) });
+    h += '<div class="calclab" style="margin-top:14px">分布列（保留 6 位有效数字）</div>' + tableHTML(rows);
+    h += '<p class="limit">' + cut + "</p>";
+    h += '<p class="formula">期望方差公式：<b>' + formula + "</b></p>";
+    el("out").innerHTML = h;
+
+    lastReport = title + "：" + formula + "；E(X) = " + fmt(mean) + "，D(X) = " + fmt(varr);
+  }
+
+  /* ---------- 计算：正态（连续型） ---------- */
+  function erf(x){
+    var s = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+  function normCdf(x, mu, sg){ return 0.5 * (1 + erf((x - mu) / (sg * Math.SQRT2))); }
+  function normPdf(x, mu, sg){ return Math.exp(-((x - mu) * (x - mu)) / (2 * sg * sg)) / (sg * Math.sqrt(2 * Math.PI)); }
+
+  function runNormal(){
+    var mu = readP("mu"), sg = readP("sig"), a = readP("a"), b = readP("b");
+    if (!isNum(mu)) return bad("均值 μ 要填数字", "例如 0");
+    if (!isNum(sg) || sg <= 0) return bad("标准差 σ 必须大于 0", "例如 1");
+    var h = '<p class="res"><span class="tagline ok">正态分布</span>' + DIST.nor.data + "</p>";
+    h += '<p class="res">参数：μ = ' + fmt(mu) + "，σ = " + fmt(sg) + "</p>";
+
+    var hasAB = isNum(a) && isNum(b);
+    var pa = null, pb = null;
+    if (hasAB){
+      if (b < a){ var t = a; a = b; b = t; }
+      pa = normCdf(a, mu, sg); pb = normCdf(b, mu, sg);
+      if (Math.abs(a - b) < 1e-12){
+        h += '<p class="res">a 与 b 相同，区间概率为 <b class="bigval">0</b></p>';
+      } else {
+        h += '<p class="res">P(' + fmt(a) + " &lt; X &lt; " + fmt(b) + ") = Φ((b−μ)/σ) − Φ((a−μ)/σ) = <b class=\"bigval\">" + fmt(pb - pa) + "</b></p>";
+      }
+      h += '<p class="res">标准化区间：(' + fmt((a - mu) / sg) + ", " + fmt((b - mu) / sg) + ")　　P(X &lt; a) = " + fmt(pa) + "　　P(X &gt; b) = " + fmt(1 - pb) + "</p>";
+      h += '<p class="formula">这里用的 Φ 是标准正态的分布函数，erf 用 Abramowitz-Stegun 7.1.26 近似，误差约 1.5×10' + sup("−7") + "。</p>";
+    } else {
+      h += '<p class="res">区间 a、b 要填数字，才能算 P(a &lt; X &lt; b)。</p>';
+      a = mu - sg; b = mu + sg;
+    }
+    var band = [];
+    for (var i = 1; i <= 3; i++){
+      band.push({ i: i, v: normCdf(mu + i * sg, mu, sg) - normCdf(mu - i * sg, mu, sg) });
+    }
+    h += '<div class="calclab" style="margin-top:12px">σ 区间概率</div><div class="tablewrap"><table class="dist"><thead><tr><th>区间</th><th>概率</th><th>百分比</th></tr></thead><tbody>';
+    band.forEach(function(r){
+      h += "<tr><td>μ ± " + r.i + "σ</td><td>" + fmt(r.v) + "</td><td>" + (r.v * 100).toFixed(2) + "%</td></tr>";
+    });
+    h += "<tr><td>μ ± 4σ</td><td>" + fmt(normCdf(mu + 4 * sg, mu, sg) - normCdf(mu - 4 * sg, mu, sg)) + "</td><td>" + ((normCdf(mu + 4 * sg, mu, sg) - normCdf(mu - 4 * sg, mu, sg)) * 100).toFixed(2) + "%</td></tr>";
+    h += "</tbody></table></div>";
+    h += '<div class="calclab" style="margin-top:14px">期望 · 方差 · 标准差</div>' + momHTML({ expr: "μ = <b>" + fmt(mu) + "</b>", mean: mu, varExpr: "σ² = <b>" + fmt(sg * sg) + "</b>", varr: sg * sg, sd: sg });
+    h += '<p class="formula">期望方差公式：<b>E(X) = μ，D(X) = σ²</b></p>';
+    el("out").innerHTML = h;
+
+    lastReport = "正态分布：E(X) = μ = " + fmt(mu) + "，D(X) = σ² = " + fmt(sg * sg) + (hasAB ? "；P(" + fmt(a) + " < X < " + fmt(b) + ") = " + fmt(pb - pa) : "");
+    setupNormal(mu, sg, a, b, band);
+  }
+
+  /* ---------- 画图：分布列柱状图 ---------- */
+  var PLOT = { kind: "bar", rows: [], off: 0, sel: null, hint: "", empty: "" };
+  var NORM = { sel: null, xmin: null, xmax: null, regions: [], mu: 0, sg: 1, band: [] };
+
+  function setupBars(seq, off, mean, varr){
+    PLOT.kind = "bar";
+    PLOT.empty = "";
+    PLOT.rows = cdfOf(seq, off);
+    PLOT.off = off;
+    PLOT.sel = null;
+    var kmax = mean + 4 * Math.sqrt(Math.max(varr, 0)) + 0.5;
+    while (PLOT.rows.length > 2 && PLOT.rows[PLOT.rows.length - 1].k > kmax) PLOT.rows.pop();
+    while (PLOT.rows.length > 1 && PLOT.rows[PLOT.rows.length - 1].p < 1e-12) PLOT.rows.pop();
+    PLOT.hint = "第 1 根到第 " + PLOT.rows.length + " 根柱子，横轴 k 从 " + PLOT.rows[0].k + " 到 " + PLOT.rows[PLOT.rows.length - 1].k + "。";
+    plotDraw();
+  }
+  function setupNormal(mu, sg, a, b, band){
+    PLOT.kind = "normal";
+    NORM.mu = mu; NORM.sg = sg; NORM.sel = null; NORM.band = band;
+    var lo = mu - 3.6 * sg, hi = mu + 3.6 * sg;
+    if (isNum(a) && isNum(b)){ lo = Math.min(lo, a - 0.6 * sg); hi = Math.max(hi, b + 0.6 * sg); }
+    NORM.xmin = lo; NORM.xmax = hi;
+    NORM.regions = [{ a: Math.max(a, lo), b: Math.min(b, hi), main: true }];
+    NORM.regions.push({ a: mu - sg, b: mu + sg, main: false });
+    NORM.regions.push({ a: mu - 2 * sg, b: mu + 2 * sg, main: false });
+    NORM.regions.push({ a: mu - 3 * sg, b: mu + 3 * sg, main: false });
+    plotDraw();
+  }
+
+  function plotDraw(){
+    var cv = el("plot"); if (!cv) return;
+    var w = cv.clientWidth || 600, hgt = cv.clientHeight || 300, dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(hgt * dpr)){
+      cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr);
+    }
+    var g = cv.getContext("2d");
+    if (!g) return;
+    var cs = getComputedStyle(document.documentElement);
+    var fg = (cs.getPropertyValue("--fg") || "").trim() || "#101014";
+    var dim = (cs.getPropertyValue("--fg-dim") || "").trim() || "#888";
+    var accent = (cs.getPropertyValue("--accent-line") || "").trim() || "#0a84ff";
+    var accent2 = (cs.getPropertyValue("--accent-2") || "").trim() || "#e5484d";
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, hgt);
+
+    if (PLOT.kind === "normal") return drawNormal(g, w, hgt, fg, dim, accent, accent2);
+    drawBars(g, w, hgt, fg, dim, accent, accent2);
+  }
+
+  function barGeom(w, hgt, n){
+    var padL = 48, padR = 10, padT = 16, padB = 30;
+    var avail = Math.max(w - padL - padR, 40);
+    var slot = avail / Math.max(n, 1);
+    var bw = Math.max(Math.min(slot * 0.68, 46), 3);
+    if (slot > 24) bw = Math.min(slot * 0.7, 30);
+    return { padL: padL, padR: padR, padT: padT, padB: padB, avail: avail, slot: slot, bw: bw,
+             X: function(i){ return padL + slot * (i + 0.5); },
+             Y: function(t){ return hgt - padB - t * (hgt - padT - padB); } };
+  }
+  function drawBars(g, w, hgt, fg, dim, accent, accent2){
+    var rows = PLOT.rows;
+    if (!rows || !rows.length){
+      g.fillStyle = PLOT.empty ? accent2 : dim;
+      g.font = "13px system-ui,sans-serif";
+      g.fillText(PLOT.empty || "先选分布、填参数，再按「计算」", 14, hgt / 2);
+      return;
+    }
+    var pmax = 0;
+    rows.forEach(function(r){ if (r.p > pmax) pmax = r.p; });
+    if (pmax <= 0) pmax = 1;
+    var G = barGeom(w, hgt, rows.length);
+
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.22; g.lineWidth = 1;
+    var i;
+    for (i = 0; i <= 4; i++){
+      var yy = G.Y(i / 4);
+      g.beginPath(); g.moveTo(G.padL, yy); g.lineTo(w - G.padR, yy); g.stroke();
+    }
+    g.restore();
+
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.7; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(G.padL, G.Y(0)); g.lineTo(w - G.padR, G.Y(0)); g.stroke();
+    g.beginPath(); g.moveTo(G.padL, G.padT); g.lineTo(G.padL, G.Y(0)); g.stroke();
+    g.globalAlpha = 1;
+    g.fillStyle = dim; g.font = "10.5px system-ui,sans-serif"; g.textAlign = "right";
+    for (i = 0; i <= 4; i++){
+      g.fillText((pmax * i / 4).toPrecision(2), G.padL - 6, G.Y(i / 4) + 3.5);
+    }
+    g.textAlign = "left";
+    g.fillText("P", G.padL - 32, G.padT + 4);
+    g.restore();
+
+    g.save();
+    rows.forEach(function(r, idx){
+      var on = PLOT.sel === idx;
+      var top = G.Y(r.p / pmax), base = G.Y(0);
+      var hh = Math.max(base - top, r.p > 0 ? 1.2 : 0);
+      g.globalAlpha = 1;
+      g.fillStyle = on ? accent2 : accent;
+      if (on){
+        g.shadowColor = accent2;
+        g.shadowBlur = 9;
+        g.shadowOffsetY = -1;
+      } else {
+        g.shadowBlur = 0;
+        g.shadowOffsetY = 0;
+      }
+      g.fillRect(G.X(idx) - G.bw / 2, base - hh, G.bw, hh);
+    });
+    g.restore();
+
+    var step = Math.max(1, Math.ceil(rows.length / 22));
+    g.save();
+    g.fillStyle = dim; g.font = "11px system-ui,sans-serif"; g.textAlign = "center";
+    rows.forEach(function(r, idx){
+      if (idx % step) return;
+      g.fillStyle = PLOT.sel === idx ? fg : dim;
+      g.fillText(String(r.k), G.X(idx), hgt - G.padB + 15);
+    });
+    g.textAlign = "left";
+    g.fillText("k", w - G.padR - 10, hgt - G.padB + 15);
+    g.restore();
+
+    var info = PLOT.hint;
+    if (PLOT.sel !== null && rows[PLOT.sel]){
+      var r = rows[PLOT.sel];
+      g.save();
+      g.fillStyle = fg; g.font = "600 13px system-ui,sans-serif";
+      g.fillText("k = " + r.k + "　P(X = k) = " + fmt(r.p) + "　P(X ≤ k) = " + fmt(Math.min(1, r.c)), G.padL, 13);
+      g.restore();
+      info = "选中的点：k = " + r.k + "，P(X = k) = " + fmt(r.p) + "，P(X ≤ k) = " + fmt(Math.min(1, r.c)) + "。";
+    }
+    el("plotinfo").innerHTML = info + "　（" + (PLOT.sel === null ? "点一下柱子看那一点的概率" : "再点其它柱子换一个点") + "）";
+  }
+
+  function drawNormal(g, w, hgt, fg, dim, accent, accent2){
+    var mu = NORM.mu, sg = NORM.sg;
+    var padL = 40, padR = 12, padT = 16, padB = 30;
+    if (NORM.xmin === null || NORM.xmax === null){ g.fillStyle = dim; g.font = "13px system-ui,sans-serif"; g.fillText("先填参数再按「计算」", 14, hgt / 2); return; }
+    var x0 = NORM.xmin, x1 = NORM.xmax;
+    // 纵轴按「看得见的这一段」取景，μ 离可视区很远时避免整条曲线贴地
+    var peak = 0, q;
+    for (q = 0; q <= 120; q++){
+      var xq = x0 + (x1 - x0) * q / 120, dq = normPdf(xq, mu, sg);
+      if (dq > peak) peak = dq;
+    }
+    peak = Math.max(peak, normPdf(mu, mu, sg) * 0.02);
+    var ymax = peak * 1.32;
+    var X = function(x){ return padL + (x - x0) / (x1 - x0) * (w - padL - padR); };
+    var Y = function(y){ return hgt - padB - (y / ymax) * (hgt - padT - padB); };
+
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.2; g.lineWidth = 1;
+    for (var i = 0; i <= 4; i++){
+      var yy = hgt - padB - (i / 4) * (hgt - padT - padB);
+      g.beginPath(); g.moveTo(padL, yy); g.lineTo(w - padR, yy); g.stroke();
+    }
+    g.restore();
+
+    g.save();
+    g.strokeStyle = dim; g.globalAlpha = 0.7; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(padL, hgt - padB); g.lineTo(w - padR, hgt - padB); g.stroke();
+    g.beginPath(); g.moveTo(padL, padT); g.lineTo(padL, hgt - padB); g.stroke();
+    g.globalAlpha = 1; g.fillStyle = dim; g.font = "10.5px system-ui,sans-serif"; g.textAlign = "right";
+    for (var j = 0; j <= 4; j++){
+      g.fillText((ymax * j / 4).toPrecision(2), padL - 6, hgt - padB - (j / 4) * (hgt - padT - padB) + 3.5);
+    }
+    g.textAlign = "left";
+    g.fillText("f(x)", padL - 32, padT + 4);
+    g.restore();
+
+    g.save();
+    for (var ri = NORM.regions.length - 1; ri >= 0; ri--){
+      var rg = NORM.regions[ri];
+      if (!(rg.b > rg.a)) continue;
+      g.beginPath();
+      var started = false, s, stepS = (rg.b - rg.a) / 240;
+      for (s = rg.a; s <= rg.b + 1e-12; s += stepS){
+        var px = X(s), py = Y(normPdf(s, mu, sg));
+        if (!started){ g.moveTo(px, py); started = true; } else g.lineTo(px, py);
+      }
+      g.lineTo(X(rg.b), hgt - padB); g.lineTo(X(rg.a), hgt - padB); g.closePath();
+      g.globalAlpha = rg.main ? 0.12 : 0.10;
+      g.fillStyle = rg.main ? accent2 : accent;
+      g.fill();
+      if (rg.main){
+        g.globalAlpha = 0.65; g.strokeStyle = accent2; g.lineWidth = 1.4; g.stroke(); g.globalAlpha = 1;
+      }
+    }
+    g.globalAlpha = 1;
+    g.strokeStyle = accent; g.lineWidth = 2.2; g.lineJoin = "round";
+    g.beginPath();
+    for (var s2 = 0; s2 <= 480; s2++){
+      var xx = x0 + (x1 - x0) * s2 / 480, yy2 = Y(normPdf(xx, mu, sg));
+      if (s2 === 0) g.moveTo(X(xx), yy2); else g.lineTo(X(xx), yy2);
+    }
+    g.stroke();
+    g.restore();
+
+    g.save();
+    g.setLineDash([5, 4]); g.strokeStyle = dim; g.globalAlpha = 0.8; g.lineWidth = 1.2;
+    [mu - sg, mu + sg, mu].forEach(function(v){
+      g.beginPath(); g.moveTo(X(v), hgt - padB); g.lineTo(X(v), Y(normPdf(v, mu, sg))); g.stroke();
+    });
+    g.setLineDash([]); g.globalAlpha = 1;
+    g.fillStyle = dim; g.font = "10.5px system-ui,sans-serif"; g.textAlign = "center";
+    g.fillText("μ−σ", X(mu - sg), hgt - padB + 14);
+    g.fillText("μ", X(mu), hgt - padB + 14);
+    g.fillText("μ+σ", X(mu + sg), hgt - padB + 14);
+    g.textAlign = "left";
+    g.restore();
+
+    var info = "密度曲线 N(" + fmt(mu) + ", " + fmt(sg * sg) + ")，阴影是选中的区间。";
+    if (NORM.sel !== null && isNum(NORM.sel)){
+      var v = normPdf(NORM.sel, mu, sg);
+      g.save();
+      g.strokeStyle = accent2; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(X(NORM.sel), hgt - padB); g.lineTo(X(NORM.sel), Y(v)); g.stroke();
+      g.fillStyle = accent2;
+      g.beginPath(); g.arc(X(NORM.sel), Y(v), 4, 0, 6.284); g.fill();
+      g.restore();
+      g.save();
+      g.fillStyle = fg; g.font = "600 13px system-ui,sans-serif";
+      g.fillText("x = " + fmt(NORM.sel) + "　f(x) = " + fmt(v), padL, 13);
+      g.restore();
+      info = "选中 x = " + fmt(NORM.sel) + "，密度 f(x) = " + fmt(v) + "（连续型单点概率恒为 0，只有区间才有概率）。";
+    }
+    if (NORM.band && NORM.band.length){
+      info += "　±1σ：" + (NORM.band[0].v * 100).toFixed(2) + "%　±2σ：" + (NORM.band[1].v * 100).toFixed(2) + "%　±3σ：" + (NORM.band[2].v * 100).toFixed(2) + "%";
+    }
+    el("plotinfo").innerHTML = info;
+  }
+
+  /* ---------- 鼠标 / 手指点柱子 ---------- */
+  function pointAt(ev){
+    var cv = el("plot"), r = cv.getBoundingClientRect();
+    var mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    if (PLOT.kind === "normal"){
+      if (NORM.xmin === null) return;
+      var padL = 40, padR = 12;
+      var t = (mx - padL) / Math.max(r.width - padL - padR, 1);
+      if (t < 0 || t > 1) return;
+      NORM.sel = NORM.xmin + t * (NORM.xmax - NORM.xmin);
+      plotDraw();
+      return;
+    }
+    var rows = PLOT.rows;
+    if (!rows || !rows.length) return;
+    var G = barGeom(r.width, r.height, rows.length);
+    var idx = Math.floor((mx - G.padL) / G.slot);
+    if (idx < 0 || idx >= rows.length) return;
+    PLOT.sel = idx;
+    plotDraw();
+  }
+  (function bindPlot(){
+    var cv = el("plot");
+    cv.addEventListener("mousemove", pointAt);
+    cv.addEventListener("mouseleave", function(){
+      if (PLOT.sel === null) return;
+      PLOT.sel = null; plotDraw();
+    });
+    cv.addEventListener("touchstart", function(e){
+      if (e.cancelable) e.preventDefault();
+      if (e.touches && e.touches[0]) pointAt(e.touches[0]);
+    }, { passive: false });
+    cv.addEventListener("touchmove", function(e){
+      if (e.cancelable) e.preventDefault();
+      if (e.touches && e.touches[0]) pointAt(e.touches[0]);
+    }, { passive: false });
+  })();
+
+  /* ---------- 计算入口：先选，再按「计算」 ---------- */
+  function runCalc(){
+    PLOT.sel = null;
+    try {
+      if (S.dist === "nor") runNormal(); else runDiscrete();
+    } catch (err){
+      el("out").innerHTML = '<p class="msgerr">计算出错：' + esc(err && err.message ? err.message : err) + "。请检查参数是否合理。</p>";
+    }
+  }
+  el("calcBtn").addEventListener("click", runCalc);
+  document.addEventListener("keydown", function(e){
+    if (e.key !== "Enter") return;
+    if (e.target && e.target.getAttribute && e.target.getAttribute("data-p")){ e.preventDefault(); runCalc(); }
+  });
+  el("copy").addEventListener("click", function(){
+    var txt = lastReport || (el("out").textContent || "").trim();
+    if (!txt){ flash("还没有结果"); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ flash("已复制"); }, function(){ flash("复制失败"); });
+    } else flash("不支持复制");
+  });
+  function flash(t){ var b = el("copy"); b.textContent = t; setTimeout(function(){ b.textContent = "复制结果"; }, 1200); }
+
+  /* ---------- 皮肤 ---------- */
+  var THEME = {
+    glass: { color: "#080c18", bar: "black-translucent" },
+    light: { color: "#f2f2f7", bar: "default" },
+    brutal: { color: "#fdf1dd", bar: "default" }
+  };
+  function applySkin(s){
+    document.documentElement.setAttribute("data-skin", s);
+    Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+      b.classList.toggle("on", b.getAttribute("data-skin-set") === s);
+    });
+    try { localStorage.setItem("la-skin-v2", s); } catch (e) {}
+    var T = THEME[s] || THEME.light;
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.setAttribute("content", T.color);
+    var sb = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (sb) sb.setAttribute("content", T.bar);
+    plotDraw();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#skins button"), function(b){
+    b.addEventListener("click", function(){ applySkin(b.getAttribute("data-skin-set")); });
+  });
+  window.addEventListener("resize", plotDraw);
+
+  /* ---------- 启动 ---------- */
+  var SKINS = ["glass", "light", "brutal"], saved = "light";
+  try {
+    var qs = new URLSearchParams(location.search).get("skin");
+    saved = qs || localStorage.getItem("la-skin-v2") || "light";
+  } catch (e) {}
+  if (SKINS.indexOf(saved) < 0) saved = "light";
+  loadParams();
+  applySkin(saved);
+})();
+</script>
+</body>
+</html>

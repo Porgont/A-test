@@ -310,7 +310,7 @@ approx("33. definiteIntegral(sin(x),0,pi) ≈ 2", definiteIntegral(P("sin(x)"), 
 {
   const r = definiteIntegral(P("1/(1+x^2)"), 0, 1);
   approx("补充：definiteIntegral(1/(1+x^2),0,1) ≈ pi/4", r.numeric, Math.PI / 4, 1e-12);
-  eq("补充：π/4 不是有理数，exact 为 null 是正确的", r.exact, null);
+  eq("补充：∫₀¹ 1/(1+x²) dx 现在给精确表达式 pi/4（不再是 null）", r.exact, "pi/4");
 }
 {
   const r = definiteIntegral(P("cos(x)"), 0, Math.PI / 2);

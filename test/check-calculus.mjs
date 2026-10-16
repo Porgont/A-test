@@ -40,11 +40,21 @@ for (const p of PAGES) {
     page.indexOf('data-skin="light"') >= 0 && page.indexOf(':root[data-skin="glass"]') >= 0 &&
     page.indexOf(':root[data-skin="brutal"]') >= 0 && ui.indexOf('|| "light"') >= 0);
 
-  check("导航表有六个入口（含本页）",
-    ["首页", "矩阵", "变换", "极限", "微分", "积分"].every((t) => ui.indexOf('label: "' + t + '"') >= 0) &&
+  check("导航表有八项（含本页与图像/概率）",
+    ["首页", "矩阵", "变换", "极限", "微分", "积分", "图像", "概率"].every((t) => ui.indexOf('label: "' + t + '"') >= 0) &&
     ui.indexOf('href: "limits.html"') >= 0 && ui.indexOf('href: "deriv.html"') >= 0 &&
     ui.indexOf('href: "integral.html"') >= 0 && ui.indexOf('href: "index.html"') >= 0 &&
-    ui.indexOf('href: "algebra.html"') >= 0 && ui.indexOf('href: "transform.html"') >= 0);
+    ui.indexOf('href: "algebra.html"') >= 0 && ui.indexOf('href: "transform.html"') >= 0 &&
+    ui.indexOf('href: "graph.html"') >= 0 && ui.indexOf('href: "stats.html"') >= 0);
+  check("符号面板含 csc/sec/cot 与反三角",
+    ui.indexOf('t: "csc"') >= 0 && ui.indexOf('t: "sec"') >= 0 && ui.indexOf('t: "cot"') >= 0 &&
+    ui.indexOf('t: "arcsin"') >= 0 && ui.indexOf('t: "arccos"') >= 0 && ui.indexOf('t: "arctan"') >= 0);
+  check("说明文字列出 csc/sec/cot", page.indexOf("csc sec cot") >= 0);
+  check("a 与积分上下限支持 π/e 表达式",
+    ui.indexOf("function readPoint(") >= 0 && ui.indexOf("pi / e 的表达式") >= 0 &&
+    ui.indexOf('readPoint(el("intA")') >= 0 && ui.indexOf('readPoint(el("limA")') >= 0);
+  check("有导数曲线开关", page.indexOf('id="plotDeriv"') >= 0 && ui.indexOf("PLOT.showDeriv") >= 0);
+  check("例子含 cot 一条", ui.indexOf('src: "x*cot(x)"') >= 0);
   check("顶部与底部各一条导航", (page.match(/id="nav"/g) || []).length === 1 && (page.match(/id="nav2"/g) || []).length === 1);
   check("本页的运算都在配置里", p.ops.every((op) => ui.indexOf(op + ":") >= 0));
   check("本页需要的输入框对", p.needs.every((id) => ui.indexOf('"' + id + '"') >= 0 || ui.indexOf(id) >= 0));
