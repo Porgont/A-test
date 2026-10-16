@@ -236,6 +236,53 @@ console.log("== 增广矩阵求解 [A|b] ==");
   }
 }
 
+console.log("== 矩阵求幂 A^n ==");
+{
+  const A = M([[1, 2], [3, 4]]);
+  ok("A^0 = 单位阵", ms(L.matPow(A, 0)), "1,0;0,1");
+  ok("A^1 = A", ms(L.matPow(A, 1)), "1,2;3,4");
+  ok("A^2", ms(L.matPow(A, 2)), "7,10;15,22");
+  ok("A^3", ms(L.matPow(A, 3)), "37,54;81,118");
+  ok("幂零矩阵 A^2 = 0", ms(L.matPow(M([[0, 1], [0, 0]]), 2)), "0,0;0,0");
+  ok("Jordan 块 A^5", ms(L.matPow(M([[1, 1], [0, 1]]), 5)), "1,5;0,1");
+  {
+    let msg = "no error";
+    try { L.matPow(M([[1, 2, 3], [4, 5, 6]]), 2); } catch (e) { msg = /方阵/.test(e.message) ? "中文报错" : "别的错"; }
+    ok("非方阵求幂报中文错", msg, "中文报错");
+  }
+  {
+    let msg = "no error";
+    try { L.matPow(M([[1, 2], [3, 4]]), 1.5); } catch (e) { msg = /非负整数/.test(e.message) ? "中文报错" : "别的错"; }
+    ok("小数幂报中文错", msg, "中文报错");
+  }
+}
+
+console.log("== 施密特正交化（按列） ==");
+{
+  const S = (t) => L.val(t);
+  const SM = (rows) => rows.map((r) => r.map(S));
+  /* 内积用矩阵乘法算（1×n 乘 n×1），这样数值（Frac）与无理数（符号值）都能算 */
+  const dot = (u, v) => L.matMul([u], v.map((x) => [x]))[0][0];
+  const g = L.gramSchmidt(SM([[1, 1, 1], [1, 0, 1], [1, 1, 0]]));
+  ok("三个 β 都算出来了", g.betas.length, 3);
+  ok("β 两两正交（(β₁,β₂)=0）", dot(g.betas[0], g.betas[1]).toString(), "0");
+  ok("β 两两正交（(β₁,β₃)=0）", dot(g.betas[0], g.betas[2]).toString(), "0");
+  ok("β 两两正交（(β₂,β₃)=0）", dot(g.betas[1], g.betas[2]).toString(), "0");
+  ok("β₁ = α₁", g.betas[0].map((x) => x.toString()).join(","), "1,1,1");
+  ok("这组向量线性无关", g.dependent ? "yes" : "no", "no");
+  const e = g.es;
+  /* 单位向量的分量可能是无理数（符号值），用引擎求值成数字再比 */
+  const numOf = (v) => L.calc.evalAt(L.isSym(v) ? v.expr : { t: "num", v: { n: v.n, d: v.d, isInt: v.d === 1n, isZero: v.n === 0n, isOne: v.n === 1n && v.d === 1n, sign: v.n < 0n ? -1 : v.n > 0n ? 1 : 0, toNumber: () => Number(v.n) / Number(v.d), toString: () => String(v) } }, 0);
+  approx("e₁ 长度 = 1", Math.sqrt(numOf(dot(e[0], e[0]))), 1, 1e-12);
+  approx("e₃ 长度 = 1", Math.sqrt(numOf(dot(e[2], e[2]))), 1, 1e-12);
+  approx("e₁·e₂ = 0", numOf(dot(e[0], e[1])), 0, 1e-12);
+  const g2 = L.gramSchmidt(SM([[1, 0, 1], [0, 1, 1]]));
+  ok("ℝ² 里 3 个向量必然线性相关", g2.dependent ? "yes" : "no", "yes");
+  ok("   第三个 β 是零向量", g2.firstZero, 2);
+  const g3 = L.gramSchmidt(SM([[2, 0], [0, 2]]));
+  ok("正交组再正交化，e 就是标准基", g3.es.map((v) => v.map((x) => x.toString()).join(",")).join(" | "), "1,0 | 0,1");
+}
+
 console.log("");
 console.log(pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

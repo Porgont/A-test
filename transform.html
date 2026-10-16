@@ -1561,10 +1561,11 @@ var Calc = {
   function vSqrt(x){
     if (isSym(x)) return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: x.expr }));
     var n = x.n, d = x.d;
-    if (n < 0n) return buildSym("sqrt(" + x.toString() + ")");
+    if (n < 0n) return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: Calc.num(n, d) }));
     var sn = isqrt(n), sd = isqrt(d);
     if (sn * sn === n && sd * sd === d) return new Frac(sn, sd);
-    return buildSym("sqrt(" + x.toString() + ")");
+    /* 无理数（例如 1/√3）：升成符号值，直接用符号引擎的 sqrt 节点 */
+    return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: Calc.num(n, d) }));
   }
 
   /* ---------- 矩阵的 n 次幂（n 为非负整数，方阵） ---------- */
@@ -1823,6 +1824,7 @@ var Calc = {
     inverse: inverse, solve: solve, eigen: eigen,
     nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
     generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac,
+    matPow: matPow, gramSchmidt: gramSchmidt,
     /* 符号矩阵（字母当数用）与增广矩阵求解的新接口 */
     V: val, val: val, valMat: valMat, isSym: isSym, Sym: Sym, calc: Calc, augSolve: augSolve
   };

@@ -45,18 +45,19 @@ if (left) {
 writeFileSync(join(root, "graph.html"), html);
 console.log("wrote graph.html   " + Math.round(Buffer.byteLength(html) / 1024) + " KB（UTF-8 实际字节）");
 
-/* ---------- 3. 预览页：自动填好函数并画一次图 ---------- */
+/* ---------- 3. 预览页：自动填好函数 / 方程并画一次图 ---------- */
 if (process.argv.includes("--preview")) {
+  // f 用隐式方程（画圆），g 用普通函数，一眼能看出方程也支持了
   const demo = `<script>
 (function(){
   function ready(){
     var f = document.getElementById("fx");
     var g = document.getElementById("gx");
     var z = document.getElementById("fxy");
-    if (f) f.value = "sin(x)/x";
-    if (g) g.value = "cos(x)";
+    if (f) f.value = "x^2+y^2=4";
+    if (g) g.value = "sin(x)";
     if (z) z.value = "sin(x)*cos(y)";
-    // 触发一遍输入事件，让页面把两条曲线和三维曲面都画出来
+    // 触发一遍输入事件，让页面把方程、曲线和三维曲面都画出来
     ["fx", "gx", "fxy"].forEach(function(id){
       var n = document.getElementById(id);
       if (n) n.dispatchEvent(new Event("input", { bubbles: true }));
@@ -67,10 +68,21 @@ if (process.argv.includes("--preview")) {
   if (window.__graphReady) ready();
   else setTimeout(ready, 60);
   // 给截图留出绘制时间：画完之后再打一个标记
-  setTimeout(function(){ document.documentElement.setAttribute("data-graph-preview", "done"); }, 400);
+  setTimeout(function(){
+    document.documentElement.setAttribute("data-graph-preview", "done");
+    // 诊断标记：无头 Edge dump-dom 时用来核对视窗与画布状态
+    var cv = document.getElementById("plot");
+    var info = document.getElementById("plotinfo");
+    var lg = document.getElementById("legend2d");
+    if (cv) document.documentElement.setAttribute("data-dbg-canvas",
+      cv.clientWidth + "x" + cv.clientHeight + " attr=" + cv.width + "x" + cv.height + " dpr=" + window.devicePixelRatio);
+    document.documentElement.setAttribute("data-dbg-window", window.__graphDbg ? window.__graphDbg() : "(no hook)");
+    document.documentElement.setAttribute("data-dbg-legend", lg ? lg.textContent : "");
+    document.documentElement.setAttribute("data-dbg-err", info ? info.textContent : "");
+  }, 400);
 })();
 </script>
 `;
   writeFileSync(join(here, "_preview-graph.html"), html.replace("</body>", demo + "</body>"));
-  console.log("  + test/_preview-graph.html  (f=sin(x)/x, g=cos(x), z=sin(x)*cos(y))");
+  console.log("  + test/_preview-graph.html  (f=x^2+y^2=4 方程圆, g=sin(x), z=sin(x)*cos(y))");
 }

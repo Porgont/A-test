@@ -360,6 +360,8 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
     <div class="chips" id="g3">
       <button class="chip" data-op="solve">解 Ax = b<i>方程组</i></button>
       <button class="chip" data-op="aug">增广矩阵求解<i>[A|b] 直接解</i></button>
+      <button class="chip" data-op="pow">A 的 n 次幂<i>矩阵求幂</i></button>
+      <button class="chip" data-op="gs">施密特正交化<i>列向量正交化</i></button>
       <button class="chip" data-op="eig">特征值 A<i>特征值</i></button>
       <button class="chip" data-op="ker">ker A<i>零空间</i></button>
       <button class="chip" data-op="col">col A<i>列空间</i></button>
@@ -1716,10 +1718,11 @@ var Calc = {
   function vSqrt(x){
     if (isSym(x)) return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: x.expr }));
     var n = x.n, d = x.d;
-    if (n < 0n) return buildSym("sqrt(" + x.toString() + ")");
+    if (n < 0n) return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: Calc.num(n, d) }));
     var sn = isqrt(n), sd = isqrt(d);
     if (sn * sn === n && sd * sd === d) return new Frac(sn, sd);
-    return buildSym("sqrt(" + x.toString() + ")");
+    /* 无理数（例如 1/√3）：升成符号值，直接用符号引擎的 sqrt 节点 */
+    return symOf(Calc.simplify({ t: "fn", name: "sqrt", arg: Calc.num(n, d) }));
   }
 
   /* ---------- 矩阵的 n 次幂（n 为非负整数，方阵） ---------- */
@@ -1978,6 +1981,7 @@ var Calc = {
     inverse: inverse, solve: solve, eigen: eigen,
     nullspaceBasis: nullspaceBasis, colspaceBasis: colspaceBasis,
     generalSolution: generalSolution, rowSteps: rowSteps, eyeFrac: eyeFrac,
+    matPow: matPow, gramSchmidt: gramSchmidt,
     /* 符号矩阵（字母当数用）与增广矩阵求解的新接口 */
     V: val, val: val, valMat: valMat, isSym: isSym, Sym: Sym, calc: Calc, augSolve: augSolve
   };
@@ -2005,6 +2009,8 @@ var Calc = {
     steps: { label: "RREF 化简步骤", needB: false, hint: "一步一步做初等行变换，一路化到行最简形（RREF）；每步附上该步的初等矩阵 E" },
     solve: { label: "Ax = b 的解", needB: true, hint: "把 B 做成只有 1 列，当作 b 向量" },
     aug:   { label: "增广矩阵求解", needB: false, hint: "把 A 填成增广矩阵 [A|b]：最后一列当作 b，前面是系数矩阵（列数至少 2）" },
+    pow:   { label: "A 的 n 次幂", needB: false, hint: "n 填在右侧小输入框里，要是非负整数（例如 3）；要求方阵" },
+    gs:    { label: "施密特正交化", needB: false, hint: "把 A 的每一列当成一个向量 α₁…αₙ，做 Gram–Schmidt 正交化再单位化" },
     eig:   { label: "A 的特征值", needB: false, hint: "要求方阵；2 阶给精确解，3–4 阶为数值解" },
     ker:   { label: "ker A 的基", needB: false, hint: "零空间：被 A 压成零向量的那些方向" },
     col:   { label: "col A 的基", needB: false, hint: "列空间：A 的列向量张成的空间" }
@@ -2379,6 +2385,29 @@ var Calc = {
         }
         res = { label: "增广矩阵求解 [A|b]", blocks: ab };
       }
+      else if (op === "pow"){
+        var kk = parseFloat(el("kval").value);
+        var AP = L.matPow(A, kk);
+        res = { label: "A 的 " + (isFinite(kk) ? kk : "?") + " 次幂", blocks: [
+          { type: "text", text: "方阵连乘（内部用快速幂），结果是精确分数：" },
+          { type: "matrix", data: AP, big: true }
+        ] };
+      }
+      else if (op === "gs"){
+        var gs = L.gramSchmidt(A);
+        var gb = [{ type: "text", text: "把 A 的每一列当成一个向量 α₁…αₙ，做施密特（Gram–Schmidt）正交化：<b>βₖ = αₖ − Σ (αₖ, βⱼ)/(βⱼ, βⱼ) · βⱼ</b>。" }];
+        if (gs.dependent) gb.push({ type: "text", text: "注意：第 " + (gs.firstZero + 1) + " 个 β 算出来是<b>零向量</b>，说明原来这组向量<b>线性相关</b>（正交化过程中被减掉了）。", danger: true });
+        gs.steps.forEach(function(st, i){
+          var txt = "β" + (SUBS[i + 1] || i + 1) + " = α" + (SUBS[i + 1] || i + 1);
+          if (st.projs.length) txt += st.projs.map(function(p){ return " − (" + p.coef.toString() + ")·β" + (SUBS[p.from] || p.from); }).join("");
+          gb.push({ type: "text", text: txt });
+        });
+        gb.push({ type: "text", text: "<b>正交向量组 β</b>（两两内积为 0）：" });
+        gs.betas.forEach(function(b, i){ gb.push({ type: "text", text: "β" + (SUBS[i + 1] || i + 1) + " = " + tupleHTML(b) }); });
+        gb.push({ type: "text", text: "<b>单位化后的标准正交组 e</b>（每个向量长度为 1）：" });
+        gs.es.forEach(function(e2, i){ gb.push({ type: "text", text: "e" + (SUBS[i + 1] || i + 1) + " = " + tupleHTML(e2) }); });
+        res = { label: "施密特正交化（按列）", blocks: gb };
+      }
       else if (op === "eig") res = { label: "A 的特征值", blocks: [{ type: "roots", data: L.eigen(A) }] };
       else if (op === "ker"){
         var kb = L.nullspaceBasis(A);
@@ -2682,7 +2711,7 @@ var Calc = {
     Array.prototype.forEach.call(document.querySelectorAll(".chip[data-op]"), function(b){
       b.classList.toggle("on", b.getAttribute("data-op") === op);
     });
-    el("kbox").hidden = op !== "kA";
+    el("kbox").hidden = !(op === "kA" || op === "pow");
     el("ophint").textContent = OPS[op].hint || "";
     el("cardB").classList.toggle("idle", !OPS[op].needB);
     el("noteB").textContent = op === "solve" ? "当作 b，需要 1 列" : "";

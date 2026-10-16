@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const FILES = ["src/home.html", "algebra.html", "src/transform.template.html", "src/calc.template.html", "src/stats.template.html"];
+const FILES = ["src/home.html", "algebra.html", "src/transform.template.html", "src/calc.template.html", "src/stats.template.html", "src/graph.template.html"];
 
 const NEW_CSS = `
 /* ==================== 新增皮肤：方舟 / 霓虹 / 终端 ==================== */

@@ -52,7 +52,7 @@ try { new Function(ui); check("页面脚本 new Function 可编译", true); }
 catch (e) { check("页面脚本 new Function 可编译", false, e.message); }
 check("页面脚本非空", ui.length > 3000, ui.length + " 字符");
 const kb = Math.round(Buffer.byteLength(page) / 1024);
-check("体积在合理范围（模板 ~48 KB + 引擎 ~72 KB）", kb >= 100 && kb <= 140, kb + " KB");
+check("体积在合理范围（模板 ~52 KB + 引擎 ~100 KB）", kb >= 100 && kb <= 170, kb + " KB");
 
 /* ---------- 外观：标题、署名、皮肤 ---------- */
 check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
@@ -62,7 +62,10 @@ check("三套皮肤变量齐全",
   page.indexOf(':root[data-skin="glass"]') >= 0 &&
   page.indexOf(':root[data-skin="light"]') >= 0 &&
   page.indexOf(':root[data-skin="brutal"]') >= 0);
-check("皮肤切换按钮三枚", count(page, "data-skin-set=") === 3);
+check("皮肤切换按钮六枚（含方舟/霓虹/终端）", count(page, "data-skin-set=") === 6);
+check("方舟皮肤是终末地风格（白底 + 亮黄标记）",
+  /:root\[data-skin="ark"\]\{[^}]*--bg:#ffffff/.test(page) &&
+  /:root\[data-skin="ark"\]\{[^}]*--chip-on-bg:#ffe600/.test(page));
 check("皮肤写进 localStorage 的 la-skin-v2",
   ui.indexOf('localStorage.setItem("la-skin-v2", s)') >= 0 && ui.indexOf('localStorage.getItem("la-skin-v2")') >= 0);
 check("同步 theme-color 与 iOS 状态栏",
@@ -103,9 +106,13 @@ check("顶部与底部各一条导航", page.indexOf('id="nav"') >= 0 && page.in
   (page.match(/id="nav2"/g) || []).length === 1);
 check("导航渲染进两个容器", ui.indexOf('el("nav").innerHTML = navHTML()') >= 0 &&
   ui.indexOf('el("nav2").innerHTML = navHTML()') >= 0);
-check("导航排三行（flex-wrap + 33.333%）",
+check("导航排两排（flex-wrap + 25%）",
   page.indexOf(".tabs{display:flex;flex-wrap:wrap;") >= 0 &&
-  page.indexOf("flex:1 1 calc(33.333% - 4px)") >= 0);
+  page.indexOf("flex:1 1 calc(25% - 4px)") >= 0);
+check("导航两排、每排四个（25% 而不是 33.333%）",
+  page.indexOf("flex:1 1 calc(25% - 4px)") >= 0 &&
+  page.indexOf("calc(33.333% - 4px)") < 0 &&
+  (page.match(/calc\(25% - 4px\)/g) || []).length === 1);
 check("导航字号约 13px", page.indexOf("border-radius:11px;font-size:13px") >= 0);
 check("页脚说明写全",
   page.indexOf("全部计算在本机浏览器完成，不上传数据。") >= 0);
@@ -121,6 +128,20 @@ check("g(x) 可留空", page.indexOf('placeholder="留空不画"') >= 0 && ui.in
 check("两条曲线不同颜色并画进图例",
   page.indexOf("--f1:") >= 0 && page.indexOf("--f2:") >= 0 &&
   page.indexOf('id="legend2d"') >= 0 && ui.indexOf("renderLegend") >= 0);
+check("两个输入框都支持方程", ui.indexOf("function read2D()") >= 0 &&
+  ui.indexOf("else rf = parseEq(f);") >= 0 && ui.indexOf("else rg = parseEq(g);") >= 0);
+check("清空按钮在输入卡片标题行",
+  page.indexOf('<div class="tools"><button id="graphClear">清空</button></div>') >= 0);
+check("清空按钮清输入与图例、保留缩放",
+  ui.indexOf('el("graphClear").addEventListener("click"') >= 0 &&
+  ui.indexOf('el("fx").value = "";') >= 0 && ui.indexOf('el("gx").value = "";') >= 0 &&
+  ui.indexOf("P2.readout = null;") >= 0);
+check("清空后不重置坐标范围",
+  (function () {
+    const i = ui.indexOf('el("graphClear").addEventListener("click"');
+    const body = ui.slice(i, i + 420);
+    return body.indexOf("P2.xmin = -6") < 0 && body.indexOf("P2.ymin") < 0;
+  })());
 check("拖动平移（pointer 事件）",
   ui.indexOf('cv2.addEventListener("pointerdown"') >= 0 &&
   ui.indexOf('cv2.addEventListener("pointermove"') >= 0 &&
@@ -136,7 +157,74 @@ check("刻度数字（好看的步长 + 画数字）",
   ui.indexOf('ctx.font = "10.5px system-ui,-apple-system,sans-serif"') >= 0);
 check("曲线断开处不连线", ui.indexOf("if (!isFinite(v)){ started = false;") >= 0);
 check("光标坐标读数",
-  ui.indexOf("P2.readout = { x:") >= 0 && ui.indexOf('"f(x) = " + (isFinite(v1) ? unary(sig6(v1)) : "不存在")') >= 0);
+  ui.indexOf("P2.readout = { x: rx, y: ry }") >= 0 &&
+  ui.indexOf('parts.push("y = " + unary(sig6(ry)))') >= 0 &&
+  ui.indexOf('parts.push((rec.idx === 1 ? "g" : "f") + "(x) = "') >= 0);
+
+/* ---------- 方程（隐式）支持 ---------- */
+check("方程解析入口 parseEquation/parseEq",
+  ui.indexOf("function parseEq(src)") >= 0 && ui.indexOf("function yOnlyConst(F)") >= 0);
+check("按「=」判断是不是方程",
+  ui.indexOf("function countEq(s)") >= 0 && ui.indexOf("if (countEq(s) === 0) return parseExpr(s);") >= 0);
+check("两边相减得到 F(x,y)",
+  ui.indexOf("function sub(a, b)") >= 0 && ui.indexOf("var F = sub(rl.node, rr.node);") >= 0);
+check("implicit 标记存在",
+  ui.indexOf("implicit: true, raw:") >= 0 && ui.indexOf("P2.eqs.push(rec)") >= 0);
+check("marching squares 实现存在",
+  ui.indexOf("function marchingSquares(ctx, node, color)") >= 0 &&
+  ui.indexOf("function msCell(path, vals, bads, i, j, mx, gx, gy, node, tol)") >= 0 &&
+  ui.indexOf("function msCount(w, h)") >= 0 && ui.indexOf("var MS_STEP = ") >= 0);
+check("只画零水平集（F = 0）",
+  ui.indexOf('ch + "：F(x,y) = "') >= 0 &&
+  ui.indexOf("if (!node || !(w > 0) || !(h > 0)) return 0;") >= 0);
+check("NaN / 无穷大不当普通值连（bads 标记）",
+  ui.indexOf("function msSample(row, x, avals, bads)") >= 0 &&
+  ui.indexOf("bads.push(true)") >= 0 && ui.indexOf("!bads[ia]") >= 0);
+check("插值点用中点实测，过不了就不画（极点过滤）",
+  ui.indexOf("lim = (hi - lo) * 0.02 + tol;") >= 0 &&
+  ui.indexOf("var vm = evalX(substY(node, myp), mxp);") >= 0 &&
+  ui.indexOf("if (!isFinite(vm) || Math.abs(vm) > lim) return 0;") >= 0);
+check("一行只代一次 y（性能）",
+  ui.indexOf("function substY(node, y)") >= 0 &&
+  ui.indexOf("row = substY(node, P2.ymax - spanY * j / dims[1]);") >= 0 &&
+  ui.indexOf("function evalX(node, x)") >= 0);
+check("方程按 1:1 比例显示（圆不被压扁）",
+  ui.indexOf("function aspectFit()") >= 0 && ui.indexOf("if (!P2.eqs.length || !P2.w || !P2.h) return;") >= 0);
+check("只有 y 的方程走显函数",
+  ui.indexOf("if (!hx){") >= 0 && ui.indexOf("var e = yOnlyConst(F);") >= 0);
+check("图例区分函数 / 方程",
+  ui.indexOf("function legendLabel(ch, parsed)") >= 0 &&
+  ui.indexOf("（方程）") >= 0 && ui.indexOf("（函数）") >= 0);
+check("方程模式下读数显示 F(x,y)",
+  ui.indexOf('parts.push(ch + "：" + prettyExpr(rec.raw) + " 的 F(x,y) = "') >= 0 &&
+  ui.indexOf("方程模式下画的是 F(x,y) = 0 这条线") >= 0);
+check("方程例子 >= 3 个",
+  (function () {
+    const m = /var EX2EQ = \[([\s\S]*?)\];/.exec(ui);
+    return !!m && count(m[1], "{ src:") >= 3;
+  })(),
+  (function () { const m = /var EX2EQ = \[([\s\S]*?)\];/.exec(ui); return m ? count(m[1], "{ src:") + " 个" : "解析失败"; })());
+check("f 与 g 两组都有方程例子",
+  ui.indexOf('src: "x^2+y^2=4"') >= 0 && ui.indexOf('src: "x*y=1"') >= 0 &&
+  ui.indexOf('src: "y=x^2"') >= 0 && ui.indexOf('src: "sin(x)=cos(y)"') >= 0 &&
+  ui.indexOf('src: "x^2+y^2=9"') >= 0 && ui.indexOf('src: "y^2=x"') >= 0);
+check("例子按钮 f / g 两组都能用",
+  ui.indexOf('EX2D.forEach(function(s){ addChip(el("examples2d"), s, "fx"); });') >= 0 &&
+  ui.indexOf('EX2GEQ.forEach(function(s){ addChip(el("examples2d"), s, "gx"); });') >= 0);
+check("方程错误提示分支齐全（多个等号 / 空边 / 未知变量 / 括号）",
+  ui.indexOf("等号只能有一个") >= 0 && ui.indexOf("等号左边是空的") >= 0 &&
+  ui.indexOf("等号右边是空的") >= 0 && ui.indexOf("方程里只能出现 x 和 y") >= 0 &&
+  ui.indexOf("方程里没有 x 也没有 y") >= 0);
+check("错误提示红字挂在输入框下方",
+  page.indexOf('id="fxErr"') >= 0 && page.indexOf('id="gxErr"') >= 0 &&
+  page.indexOf(".exerr{font-size:12px;color:var(--danger)") >= 0 &&
+  ui.indexOf('fe.innerHTML = (rf && rf.err) ? errHTML(rf.err) : "";') >= 0);
+check("符号面板的 y 按钮还在且插到聚焦的输入框",
+  ui.indexOf('{ t: "y", v: "y" }') >= 0 && ui.indexOf("function insertSym(v)") >= 0 &&
+  ui.indexOf("var activeInput = \"fx\"") >= 0);
+check("方程出错不抛未捕获异常",
+  ui.indexOf("function evalXY(node, x, y){ return evalX(substY(node, y), x); }") >= 0 &&
+  ui.indexOf("} catch (e){ return NaN; }") >= 0);
 
 /* ---------- 符号面板 ---------- */
 check("符号面板存在", page.indexOf('id="syms"') >= 0 && ui.indexOf("var SYMS = [") >= 0);
@@ -217,10 +305,10 @@ check("起手就画一次（启动即渲染）",
 if (existsSync(join(here, "_preview-graph.html"))) {
   const prev = readFileSync(join(here, "_preview-graph.html"), "utf8");
   console.log("\n== test/_preview-graph.html（截图用） ==");
-  check("预览页含演示脚本", prev.indexOf("sin(x)/x") >= 0 && prev.indexOf("__graphReady") >= 0);
+  check("预览页含演示脚本", prev.indexOf("__graphReady") >= 0 && prev.indexOf("dispatchEvent") >= 0);
   check("预览页仍然是完整页面", prev.indexOf("蒲瓜的计算器") >= 0 && prev.indexOf('id="geo3d"') >= 0);
-  check("预览页会填好 g(x) 并重画",
-    prev.indexOf('g.value = "cos(x)"') >= 0 && prev.indexOf('dispatchEvent(new Event("input"') >= 0 &&
+  check("预览页默认演示一个方程（圆）",
+    prev.indexOf('f.value = "x^2+y^2=4"') >= 0 && prev.indexOf('g.value = "sin(x)"') >= 0 &&
     prev.indexOf('getElementById("plotFit")') >= 0);
   check("本页脚本确实挂在预览页末尾",
     prev.lastIndexOf("__graphReady") > prev.lastIndexOf("二维曲线 · 三维曲面"));

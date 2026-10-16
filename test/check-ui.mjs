@@ -26,9 +26,12 @@ try { new Function(ui); check("UI 脚本语法", true); }
 catch (e) { check("UI 脚本语法", false, e.message); }
 
 const chipOps = [...html.matchAll(/data-op="([A-Za-z]+)"/g)].map((m) => m[1]);
-check("运算按钮数量", chipOps.length === 17, chipOps.join(","));
-check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 17,
+check("运算按钮数量", chipOps.length === 19, chipOps.join(","));
+check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 19,
   "带中文名的有 " + (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length + " 个");
+check("有矩阵求幂与施密特正交化按钮",
+  html.indexOf('data-op="pow"') >= 0 && html.indexOf('data-op="gs"') >= 0 &&
+  ui.indexOf("L.matPow(") >= 0 && ui.indexOf("L.gramSchmidt(") >= 0);
 check("有增广矩阵求解按钮", html.indexOf('data-op="aug"') >= 0 && ui.indexOf("augSolve") >= 0);
 check("有页内数字条（手机上不用系统键盘）",
   html.indexOf('id="padA"') >= 0 && html.indexOf('id="padB"') >= 0 &&
