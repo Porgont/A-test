@@ -2416,8 +2416,15 @@ function antiderivLimit(F, x0, inward, singular, varName) {
     if (!Number.isFinite(v)) return null;
     vals.push(v);
   }
-  const last = vals[vals.length - 1], prev = vals[vals.length - 2];
-  if (Math.abs(last - prev) < 1e-5 * Math.max(1, Math.abs(last))) return { value: last, limit: true };
+  const n = vals.length;
+  const last = vals[n - 1], prev = vals[n - 2];
+  const dLast = Math.abs(last - prev), dPrev = Math.abs(prev - vals[n - 3]);
+  /* 判据：向内缩进后取值的变化在变小（√x 型收敛得很慢，不能只看绝对差）。
+     再按 δ 缩小 100 倍、误差 ~√δ 做一次 Richardson 外推，把极限值提准。 */
+  if (dLast < dPrev || Math.abs(last) < 1e-9) {
+    const ext = last + (last - prev) / 9;
+    return { value: Number.isFinite(ext) ? ext : last, limit: true };
+  }
   return null;
 }
 function improperSimpson(f, A, B, singA, singB) {
@@ -2445,44 +2452,128 @@ function improperSimpson(f, A, B, singA, singB) {
   return null; /* 随缩进不收敛 → 判定发散 */
 }
 
+/* 积分上下限：允许 inf / -inf，用来算无穷区间的反常积分（∫₀^∞ 这类）。 */
+function boundPoint(t, what) {
+  if (typeof t === "string") {
+    const s = t.trim().toLowerCase();
+    if (/^(\+?inf(inity)?|\+?∞)$/.test(s)) return { inf: 1, num: Infinity, text: "+∞" };
+    if (/^(-inf(inity)?|-∞)$/.test(s)) return { inf: -1, num: -Infinity, text: "−∞" };
+  }
+  const p = constPoint(t, what);
+  return { inf: 0, node: p.node, num: p.num, text: p.text };
+}
+
+/* 无穷区间上的数值积分：从有限端出发，区间长度按 1,2,4,8… 倍增累加，
+   看新增的那一段是否小到可以忽略 —— 忽略得了就是收敛，40 次倍增还不行就判发散。 */
+function integralToInfinity(f, from, dir, varName) {
+  const coreLo = dir > 0 ? from : Math.min(from, 0);
+  const coreHi = dir > 0 ? Math.max(from, 0) : from;
+  let total = 0;
+  if (coreHi > coreLo) {
+    const v0 = adaptiveSimpson(f, coreLo, coreHi, 1e-10, 18);
+    if (!Number.isFinite(v0)) return null;
+    total = v0;
+  }
+  let edge = dir > 0 ? coreHi : coreLo;
+  let step = 1;
+  for (let k = 0; k < 50; k++) {
+    const lo = dir > 0 ? edge : edge - step;
+    const hi = dir > 0 ? edge + step : edge;
+    const v = adaptiveSimpson(f, lo, hi, 1e-9, 18);
+    if (!Number.isFinite(v)) return null;
+    total += v;
+    edge = dir > 0 ? edge + step : edge - step;
+    /* 新增那一段小到可以忽略就算收敛。阈值不能太严：
+       ln(x)/x² 这类衰减很慢，区间要倍增到很大才会低于 1e-12。
+       发散的情形每段都是常数级（例如 1/x 每段 ≈ ln2），远大于此阈值，不会被误收。 */
+    if (k >= 2 && Math.abs(v) < 1e-10 * Math.max(1, Math.abs(total))) return { value: total };
+    step *= 2;
+  }
+  return null;
+}
+
 function definiteIntegral(node, a, b, varName = "x") {
-  const pa = constPoint(a, "定积分的下限");
-  const pb = constPoint(b, "定积分的上限");
+  const pa = boundPoint(a, "定积分的下限");
+  const pb = boundPoint(b, "定积分的上限");
   const A = pa.num, B = pb.num;
   const expr = simplify(clone(node));
   const f = (x) => ev(expr, { x, varName });
   const parts = integrate(expr, varName);
-  const singA = !Number.isFinite(f(A));
-  const singB = !Number.isFinite(f(B));
-  const improper = singA || singB;
+  const infinite = pa.inf !== 0 || pb.inf !== 0;
+  const singA = !infinite && !Number.isFinite(f(A));
+  const singB = !infinite && !Number.isFinite(f(B));
+  const improper = singA || singB || infinite;
+
+  /* 无穷区间先独立算一遍数值（倍增区间），当作后面符号结果的交叉验证 */
+  let infNumeric = null;
+  if (infinite) {
+    if (pa.inf < 0 && pb.inf > 0) {
+      const h1 = integralToInfinity(f, 0, -1, varName), h2 = integralToInfinity(f, 0, +1, varName);
+      if (h1 && h2) infNumeric = h1.value + h2.value;
+    } else if (pb.inf > 0) {
+      const h = integralToInfinity(f, A, +1, varName);
+      if (h) infNumeric = h.value;
+    } else {
+      const h = integralToInfinity(f, B, -1, varName);
+      if (h) infNumeric = h.value;
+    }
+  }
 
   let exact = null, numeric = null, note = null, divergent = false;
   if (parts.ok && parts.F) {
-    // 符号代入：把变量换成端点表达式（可能是 pi/2 这种），再化简、再归约
-    const diff = simplify({
-      t: "add",
-      a: substConst(parts.F, varName, pb.node),
-      b: { t: "neg", a: substConst(parts.F, varName, pa.node) },
-    });
-    const closed = reduceConst(diff); // 归约不出闭式就返回 null，交给数值路径
-    if (closed !== null && isClosedConst(closed)) {
-      const v = ev(closed, { x: NaN, varName: "__none__" });
-      if (Number.isFinite(v)) { exact = toString(tidyConst(closed)); numeric = v; }
-    }
-    /* 端点奇异时符号代入会得到 NaN（例如 x·ln x 在 0 处）——改为向内缩进取极限值 */
-    if (numeric === null || !Number.isFinite(numeric)) {
-      const fa = antiderivLimit(parts.F, A, +1, singA, varName);
-      const fb = antiderivLimit(parts.F, B, -1, singB, varName);
-      if (fa && fb) {
-        numeric = fb.value - fa.value;
-        if (improper) note = "端点处被积函数趋于无穷，这是瑕积分；用原函数在该端点的极限值算得收敛结果。";
-        if (fa.limit || fb.limit) exact = null;
+    /* 端点值：有限端点直接代入（奇异端点取极限）；无穷端点用原函数在无穷处的（符号）极限 */
+    const endVal = (p, dir, singular) => {
+      if (p.inf !== 0) {
+        try {
+          const r = limit(parts.F, p.inf > 0 ? "inf" : "-inf", { side: "both" });
+          if (r && r.exists && r.kind === "finite" && Number.isFinite(r.value)) {
+            let nd = null;
+            if (r.exact) { try { nd = parse(r.exact); } catch (e) { nd = null; } }
+            return { num: r.value, node: nd };
+          }
+          if (r && r.exists === false) return null;
+        } catch (e) {}
+        const seq = [1e2, 1e4, 1e6, 1e8].map((m) => ev(parts.F, { x: p.inf * m, varName }));
+        if (seq.every((v) => Number.isFinite(v))) {
+          const last = seq[3], prev = seq[2];
+          if (Math.abs(last - prev) < 1e-6 * Math.max(1, Math.abs(last))) return { num: last, node: null };
+        }
+        return null;
+      }
+      if (singular) {
+        const r = antiderivLimit(parts.F, p.num, dir, true, varName);
+        return r ? { num: r.value, node: null, limit: true } : null;
+      }
+      return { num: ev(parts.F, { x: p.num, varName }), node: substConst(parts.F, varName, p.node) };
+    };
+    const fa = endVal(pa, +1, singA);
+    const fb = endVal(pb, -1, singB);
+    if (fa && fb && Number.isFinite(fa.num) && Number.isFinite(fb.num)) {
+      numeric = fb.num - fa.num;
+      if (improper && !divergent) {
+        note = infinite
+          ? "这是无穷区间的反常积分（广义积分）；用原函数在无穷处的极限值算得收敛结果。"
+          : "端点处被积函数趋于无穷，这是瑕积分；用原函数在该端点的极限值算得收敛结果。";
+      }
+      if (fa.limit || fb.limit) exact = null;
+      /* 两边端点值都是闭式（无穷端点的极限有精确表达式）时，才给精确表达式 */
+      if (fa.node && fb.node) {
+        const diff = simplify({ t: "add", a: fb.node, b: { t: "neg", a: fa.node } });
+        const closed = reduceConst(diff);
+        if (closed !== null && isClosedConst(closed)) {
+          const v = ev(closed, { x: NaN, varName: "__none__" });
+          const ref = infNumeric === null ? numeric : infNumeric;
+          if (Number.isFinite(v) && Math.abs(v - ref) <= 1e-6 * Math.max(1, Math.abs(ref))) {
+            exact = toString(tidyConst(closed));
+            numeric = v;
+          }
+        }
       }
     }
   }
 
   // 候选精确值要用自适应 Simpson 交叉验证：对不上就撤掉 exact，只留数值
-  if (exact !== null) {
+  if (exact !== null && !infinite) {
     const check = adaptiveSimpson(f, A, B, 1e-9, 18);
     if (!Number.isFinite(check)) {
       exact = null;
@@ -2496,7 +2587,17 @@ function definiteIntegral(node, a, b, varName = "x") {
     }
   }
   if (numeric === null || !Number.isFinite(numeric)) {
-    if (improper) {
+    if (infinite) {
+      /* 无穷区间：用前面倍增算出来的数值；算不出来就是发散 */
+      if (infNumeric !== null && Number.isFinite(infNumeric)) {
+        numeric = infNumeric;
+        if (note === null) note = "这是无穷区间的反常积分（广义积分）；它收敛，数值由倍增区间逼近得到。";
+      } else {
+        divergent = true;
+        exact = null;
+        note = "这是无穷区间的反常积分，倍增区间后数值不收敛 —— 该广义积分发散。";
+      }
+    } else if (improper) {
       /* 瑕积分：缩进 + 外推；不收敛就是真发散 */
       const imp = improperSimpson(f, A, B, singA, singB);
       if (imp) {
@@ -2603,7 +2704,7 @@ var Calc = {
     d2:        { label: "二阶导 f″", hint: "求二阶导数 f″(x)。" },
     taylor:    { label: "泰勒展开", hint: "在 x = a 处按指定阶数做泰勒展开（阶数默认 5）。" },
     integ:     { label: "不定积分 ∫f dx", hint: "求原函数（+ C）；找不到初等原函数会如实说明。" },
-    defint:    { label: "定积分", hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。" }
+    defint:    { label: "定积分", hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。上下限可以写 inf / -inf，算无穷区间的反常积分（如 0 到 inf）。" }
   };
 
   function el(id){ return document.getElementById(id); }
@@ -2872,7 +2973,10 @@ var Calc = {
     lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || (r.divergent ? "发散" : r.numeric));
     PLOT.overlay = { type: "area", a: an, b: bn, node: node };
     PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric)));
-    var lo = Math.min(an, bn), hi = Math.max(an, bn), pad = Math.max((hi - lo) * 0.8, 1);
+    /* 无穷区间画不出阴影，取有限的一段当示意窗口 */
+    var anP = isFinite(an) ? an : (isFinite(bn) ? bn - 8 : -8);
+    var bnP = isFinite(bn) ? bn : (isFinite(an) ? an + 8 : 8);
+    var lo = Math.min(anP, bnP), hi = Math.max(anP, bnP), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();
     plotDraw();

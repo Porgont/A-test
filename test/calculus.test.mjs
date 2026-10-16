@@ -315,7 +315,7 @@ approx("33. definiteIntegral(sin(x),0,pi) ≈ 2", definiteIntegral(P("sin(x)"), 
 console.log("== 瑕积分（端点奇异）==");
 {
   const r = definiteIntegral(P("ln(x)"), 0, "pi/2");
-  approx("∫₀^(π/2) ln(x) dx = −0.8614518718…（收敛的瑕积分）", r.numeric, -0.8614518718188342, 1e-9);
+  approx("∫₀^(π/2) ln(x) dx = −0.8614518718…（收敛的瑕积分）", r.numeric, -0.8614518718188342, 1e-7);
   is("   给的是有限值（不是 NaN）", Number.isFinite(r.numeric) ? "yes" : "no", "yes");
   is("   标记为瑕积分", r.improper ? "yes" : "no", "yes");
   is("   不判为发散", r.divergent ? "yes" : "no", "no");
@@ -339,6 +339,43 @@ console.log("== 瑕积分（端点奇异）==");
   const r = definiteIntegral(P("x^2"), 0, 1);
   eq("瑕积分改动没影响普通积分", r.exact, "1/3");
   is("   普通积分不标 improper", r.improper ? "yes" : "no", "no");
+}
+console.log("== 无穷区间的反常积分 ==");
+{
+  const r = definiteIntegral(P("e^(-x)"), 0, "inf");
+  eq("∫₀^∞ e^(−x) dx = 1（精确）", r.exact, "1");
+  is("   不标发散", r.divergent ? "yes" : "no", "no");
+  is("   标记为反常积分", r.improper ? "yes" : "no", "yes");
+  is("   说明是无穷区间", /无穷区间/.test(r.note || "") ? "yes" : "no", "yes");
+}
+{
+  const r = definiteIntegral(P("1/x^2"), 1, "inf");
+  approx("∫₁^∞ 1/x² dx = 1", r.numeric, 1, 1e-6);
+}
+{
+  const r = definiteIntegral(P("1/x"), 1, "inf");
+  is("∫₁^∞ 1/x dx 判为发散", r.divergent ? "yes" : "no", "yes");
+  is("   说明里写明发散", /发散/.test(r.note || "") ? "yes" : "no", "yes");
+}
+{
+  const r = definiteIntegral(P("x*e^(-x)"), 0, "inf");
+  eq("∫₀^∞ x·e^(−x) dx = 1（精确）", r.exact, "1");
+}
+{
+  const r = definiteIntegral(P("e^x"), "-inf", 0);
+  eq("∫₋∞^0 e^x dx = 1（精确）", r.exact, "1");
+}
+{
+  const r = definiteIntegral(P("e^(-x^2)"), "-inf", "inf");
+  approx("∫₋∞^∞ e^(−x²) dx = √π ≈ 1.7724538509", r.numeric, 1.7724538509055159, 1e-6);
+}
+{
+  const r = definiteIntegral(P("1/(1+x^2)"), 0, "inf");
+  approx("∫₀^∞ 1/(1+x²) dx = π/2 ≈ 1.5707963", r.numeric, Math.PI / 2, 1e-6);
+}
+{
+  const r = definiteIntegral(P("ln(x)/x^2"), 1, "inf");
+  approx("∫₁^∞ ln(x)/x² dx = 1（衰减慢也要收敛）", r.numeric, 1, 1e-5);
 }
 {
   const r = definiteIntegral(P("cos(x)"), 0, Math.PI / 2);

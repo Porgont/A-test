@@ -274,7 +274,7 @@ __CALC_ENGINE__
     d2:        { label: "二阶导 f″", hint: "求二阶导数 f″(x)。" },
     taylor:    { label: "泰勒展开", hint: "在 x = a 处按指定阶数做泰勒展开（阶数默认 5）。" },
     integ:     { label: "不定积分 ∫f dx", hint: "求原函数（+ C）；找不到初等原函数会如实说明。" },
-    defint:    { label: "定积分", hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。" }
+    defint:    { label: "定积分", hint: "在「从 … 到 …」区间上求定积分；优先精确值，否则数值积分。上下限可以写 inf / -inf，算无穷区间的反常积分（如 0 到 inf）。" }
   };
 
   function el(id){ return document.getElementById(id); }
@@ -543,7 +543,10 @@ __CALC_ENGINE__
     lastReport = "∫ from " + pa.a + " to " + pb.a + " = " + (r.exact || (r.divergent ? "发散" : r.numeric));
     PLOT.overlay = { type: "area", a: an, b: bn, node: node };
     PLOT.label = "阴影面积 = " + (r.exact ? pretty(r.exact) : (r.divergent ? "发散" : fmt(r.numeric)));
-    var lo = Math.min(an, bn), hi = Math.max(an, bn), pad = Math.max((hi - lo) * 0.8, 1);
+    /* 无穷区间画不出阴影，取有限的一段当示意窗口 */
+    var anP = isFinite(an) ? an : (isFinite(bn) ? bn - 8 : -8);
+    var bnP = isFinite(bn) ? bn : (isFinite(an) ? an + 8 : 8);
+    var lo = Math.min(anP, bnP), hi = Math.max(anP, bnP), pad = Math.max((hi - lo) * 0.8, 1);
     PLOT.xmin = lo - pad; PLOT.xmax = hi + pad;
     autoY();
     plotDraw();

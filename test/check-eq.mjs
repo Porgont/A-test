@@ -25,8 +25,9 @@ function pick(name) {
   throw new Error("函数 " + name + " 没闭合");
 }
 const needed = ["hasVar", "sub", "countEq", "evalXY", "stripOuterParen", "parseExprNode",
-  "parseExpr", "cleanErr", "parseEq", "msCount", "msMedian", "msSample", "msCell", "legendLabel",
-  "prettyExpr", "supHTML", "unary", "sig6", "checkBrackets", "substVar", "safeEval", "errHTML"];
+  "parseExpr", "cleanErr", "parseEq", "yOnlyConst", "msCount", "msMedian", "msScale", "msSample",
+  "msCell", "marchingSquares", "legendLabel", "prettyExpr", "supHTML", "unary", "sig6",
+  "checkBrackets", "substVar", "safeEval", "errHTML"];
 const src = needed.map(pick).join("\n");
 /** 抠出页面脚本里的常量声明（var NAME = …;） */
 function pickConst(name) {
@@ -35,8 +36,10 @@ function pickConst(name) {
   return m[0];
 }
 const consts = ["MS_STEP", "MS_BIG"].map(pickConst).join("\n");
-const box = new Function("C", "el", consts + "\n" + src + "\nreturn {" + needed.join(",") +
-  ",MS_STEP:MS_STEP,MS_BIG:MS_BIG};")(C, () => ({ innerHTML: "" }));
+const P2 = { xmin: -6, xmax: 6, ymin: -3.9, ymax: 3.9, w: 460, h: 300, box: null };
+const box = new Function("C", "el", "P2", consts + "\n" + src + "\nreturn {" + needed.join(",") +
+  ",setBox:function(b){P2.box=b;},MS_STEP:MS_STEP,MS_BIG:MS_BIG};")(C, () => ({ innerHTML: "" }), P2);
+void box.MS_STEP;
 
 let pass = 0, fail = 0;
 function check(name, cond, detail) {
@@ -85,13 +88,19 @@ check("y = 3（常函数）走显函数", !ry1.err && ry1.implicit !== true && !
 const ry2 = P("1 = y");
 check("1 = y 也能当显函数", !ry2.err && ry2.implicit !== true, JSON.stringify(ry2.err || "implicit"));
 const ry3 = P("2*y = 6");
-const F3 = box.sub(box.parseExprNode("2*y").node, box.parseExprNode("6").node);
-console.log("  dbg F(0,0)=" + box.evalXY(F3, 0, 0) + " F(0,1)=" + box.evalXY(F3, 0, 1));
-console.log("  dbg k=" + (box.evalXY(F3, 0, 1) - box.evalXY(F3, 0, 0)));
-console.log("  dbg hasVar x=" + box.hasVar(box.parseExprNode("2*y").node, "x") + " y=" + box.hasVar(box.parseExprNode("2*y").node, "y"));
-console.log("  dbg parseEq src >>>\n" + pick("parseEq") + "\n<<<");
-console.log("  dbg 2*y=6 -> " + JSON.stringify(ry3, (k, v) => (typeof v === "object" && v && v.t ? "<" + v.t + ">" : v)));
 check("2*y = 6 走显函数", !ry3.err && ry3.implicit !== true, JSON.stringify(ry3.err || "implicit"));
+check("2*y = 6 解得 y=3", !ry3.err && Math.abs(C.evalAt(ry3.node, 0, "y") - 3) < 1e-9,
+  ry3.node ? String(C.evalAt(ry3.node, 0, "y")) : "-");
+const ry4 = P("6 = 2*y");
+check("6 = 2*y 也能解出 y=3", !ry4.err && Math.abs(C.evalAt(ry4.node, 0, "y") - 3) < 1e-9,
+  ry4.err || String(ry4.node && C.evalAt(ry4.node, 0, "y")));
+const ry5 = P("y/3 = 1");
+check("y/3 = 1 解出 y=3", !ry5.err && Math.abs(C.evalAt(ry5.node, 0, "y") - 3) < 1e-9,
+  ry5.err || String(ry5.node && C.evalAt(ry5.node, 0, "y")));
+const ry6 = P("y^2 = 9");
+check("y^2=9 解不出常数，给中文提示", !!ry6.err, JSON.stringify(ry6.err || ""));
+const ry7 = P("2*y^2 = 8");
+check("2y^2=8 也解不出，给中文提示", !!ry7.err, JSON.stringify(ry7.err || ""));
 
 const r8 = P("x=2");
 check("x=2 走隐式（两条竖线也给画）", !r8.err && r8.implicit === true, JSON.stringify(r8.err || ""));
@@ -134,24 +143,26 @@ check("msCount 有下限", box.msCount(50, 40)[0] >= 24);
 const d0 = box.msCount(460, 300);
 check("步长约 2 像素", Math.abs(460 / d0[0] - 2) < 0.5, "x 步长 " + (460 / d0[0]).toFixed(2));
 
-// 造一条假 canvas 上下文，数一数等值线画了多少段，并把端点收集起来验几何
+// 直接跑页面里真正的 marchingSquares（不复制 msCell，免得和源文件跑偏）
 function runMS(node, win) {
   const pts = [];
   let segs = 0;
-  const path = { moveTo(x, y) { pts.push([x, y]); }, lineTo(x, y) { pts.push([x, y]); } };
-  const w = 460, h = 300;
-  const dims = box.msCount(w, h), mx = dims[0] + 1, my = dims[1] + 1;
-  const xmin = win[0], xmax = win[1], ymin = win[2], ymax = win[3];
-  const spanX = xmax - xmin, spanY = ymax - ymin;
-  const vals = new Array(mx * my), iv = [], av = [];
-  for (let j = 0; j < my; j++) {
-    const y = ymax - spanY * j / dims[1];
-    for (let i = 0; i < mx; i++) vals[j * mx + i] = box.msSample(node, xmin + spanX * i / dims[0], y, iv, av);
-  }
-  const skip = Math.min(1e7, Math.max(1e3, box.msMedian(av) * 64));
-  for (let j = 0; j < dims[1]; j++)
-    for (let i = 0; i < dims[0]; i++) segs += box.msCell(path, vals, i, j, mx, 0, 0, skip);
-  return { segs, pts, w, h, dims, xmin, xmax, ymin, ymax };
+  const ctx = {
+    save() {}, restore() {}, beginPath() {}, stroke() {},
+    moveTo(x, y) { pts.push([x, y]); },
+    lineTo(x, y) { pts.push([x, y]); }
+  };
+  P2.xmin = win[0]; P2.xmax = win[1]; P2.ymin = win[2]; P2.ymax = win[3];
+  P2.w = 460; P2.h = 300;
+  const spanX = P2.xmax - P2.xmin, spanY = P2.ymax - P2.ymin;
+  P2.box = {
+    X: (x) => (x - P2.xmin) / spanX * P2.w,
+    Y: (y) => P2.h - (y - P2.ymin) / spanY * P2.h,
+    Xinv: (px) => P2.xmin + (px / P2.w) * spanX,
+    Yinv: (py) => P2.ymax - (py / P2.h) * spanY
+  };
+  segs = box.marchingSquares(ctx, node, "#000");
+  return { segs, pts, w: P2.w, h: P2.h, xmin: P2.xmin, xmax: P2.xmax, ymin: P2.ymin, ymax: P2.ymax };
 }
 const WIN = [-6, 6, -3.9, 3.9];
 function toData(p, r) {
@@ -188,13 +199,23 @@ const segZero = runMS(C.parse("x^2+y^2+100"), WIN).segs;
 check("没有零点的 F 不画线", segZero === 0, segZero + " 段");
 
 // 极点过滤：1/(x*y)=1 不该在坐标轴上横贯一条假线
-const rp = runMS(C.simplify(C.parse("1/(x*y)-1")), WIN);
-let poleBad = 0;
+const rpNode = C.simplify(C.parse("1/(x*y)-1"));
+console.log("  dbg rpNode str=" + C.str(rpNode));
+for (const pt of [[-6, -0.052], [-6, -0.0526], [-5.948, -0.052], [-6, 0.052], [-6, 0.16]]) {
+  console.log("  dbg F(" + pt[0] + "," + pt[1] + ")=" + box.evalXY(rpNode, pt[0], pt[1]) +
+    "  raw=" + C.evalAt(box.substVar(rpNode, "y", pt[1]), pt[0], "x"));
+}
+const rp = runMS(rpNode, WIN);
+let poleBad = 0, badSamples = [];
 for (const p of rp.pts) {
   const d = toData(p, rp);
-  if (Math.abs(Math.abs(d[0] * d[1]) - 1) > 0.5) poleBad++;
+  if (Math.abs(Math.abs(d[0] * d[1]) - 1) > 0.5) {
+    poleBad++;
+    if (badSamples.length < 8) badSamples.push(d[0].toFixed(3) + "," + d[1].toFixed(3));
+  }
 }
-check("1/(xy)=1 没有横贯屏幕的假线", poleBad === 0, poleBad + " 个越界端点 / 共 " + rp.pts.length);
+console.log("  dbg pole: segs=" + rp.segs + " pts=" + rp.pts.length + " bad=" + poleBad +
+  " 例: " + badSamples.join(" | "));check("1/(xy)=1 没有横贯屏幕的假线", poleBad === 0, poleBad + " 个越界端点 / 共 " + rp.pts.length);
 
 const rpar = runMS(r5.node, WIN);
 let parOk = 0;
