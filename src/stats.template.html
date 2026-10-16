@@ -55,7 +55,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
 .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a,.tabs span{flex:1 1 calc(25% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:10.5px;opacity:.75;margin-left:3px}
@@ -93,6 +93,7 @@ body::before{content:"";position:fixed;inset:0;background-image:var(--bg-image);
 .tagline.ok{background:var(--chip-on-bg);color:var(--chip-on-fg)}
 .tagline.no{background:var(--danger);color:#fff}
 .formula{margin:12px 0 0;font-size:12.5px;color:var(--fg-dim);line-height:1.7}
+sup{font-size:.72em;vertical-align:super;line-height:0}
 .formula b{color:var(--fg);font-variant-numeric:tabular-nums}
 .tablewrap{overflow-x:auto;border:1px solid var(--input-border);border-radius:12px;background:var(--input-bg);margin-top:10px;-webkit-overflow-scrolling:touch}
 table.dist{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
@@ -205,9 +206,10 @@ table.dist tr:last-child td{border-bottom:0}
     var s = x.toExponential(6);
     return s.replace(/(\.\d*?)0+e/, "$1e").replace(/\.e/, "e").replace(/(\.\d*?)0+$/, "$1");
   }
+  /* 上标：用真正的 HTML <sup>，这样字母（n、k、λ 等）也能正确上标；
+     老版本用 Unicode 上标字符，字母没有对应字符，会掉成平排。 */
   function sup(d){
-    var map = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
-    return String(d).split("").map(function(ch){ return map[ch] || ch; }).join("");
+    return "<sup>" + esc(String(d)) + "</sup>";
   }
   function esc(s){
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -500,6 +502,9 @@ table.dist tr:last-child td{border-bottom:0}
       : cutText(rows, full || rows.length === seq.length, rows[rows.length - 1].c) + barNote + "。";
 
     var h = '<p class="res"><span class="tagline ok">' + title + "</span>" + DIST[d].data + "</p>";
+    h += '<p class="limit">公式里的字母 ↔ 下面要填的参数：' + DIST[d].params.map(function(pr){
+      return "<b>" + esc(pr.label) + "</b>";
+    }).join("　") + "</p>";
     h += '<p class="res">' + extra + "</p>";
     h += '<div class="calclab" style="margin-top:12px">期望 · 方差 · 标准差</div>' + momHTML({ expr: expr, mean: mean, varExpr: varExpr, varr: varr, sd: Math.sqrt(Math.max(0, varr)) });
     h += '<div class="calclab" style="margin-top:14px">分布列（保留 6 位有效数字）</div>' + tableHTML(rows);

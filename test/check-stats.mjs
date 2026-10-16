@@ -69,9 +69,9 @@ check("顶部与底部各一条导航", (page.match(/id="nav"/g) || []).length =
 check("当前页「概率」标记 on + 当前", ui.indexOf('<span class="on">\' + n.label + \'<span class="tag">当前</span></span>') >= 0 &&
   ui.indexOf('n.id === PAGE_ID') >= 0);
 check("非当前页是链接", ui.indexOf("'<a href=\"' + n.href + '\">' + n.label + '</a>'") >= 0);
-check("导航排三行（每项 flex 33.333% + flex-wrap）",
+check("导航一排四个、两排（flex 25% + flex-wrap）",
   page.indexOf(".tabs{display:flex;flex-wrap:wrap;") >= 0 &&
-  page.indexOf("flex:1 1 calc(33.333% - 4px)") >= 0);
+  page.indexOf("flex:1 1 calc(25% - 4px)") >= 0);
 check("导航字号 13px", /\.tabs a,\.tabs span\{[^}]*font-size:13px/.test(page));
 
 /* ---------- 四种分布 + 正态 ---------- */

@@ -87,7 +87,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 .skins button{border:0;background:transparent;color:var(--fg-dim);font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;transition:.18s}
 .skins button.on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600}
 .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--track);border:1px solid var(--card-border);border-radius:15px}
-.tabs a,.tabs span{flex:1 1 calc(33.333% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
+.tabs a,.tabs span{flex:1 1 calc(25% - 4px);text-align:center;padding:10px 6px;border-radius:11px;font-size:13px;text-decoration:none;color:var(--fg-dim);transition:.18s;white-space:nowrap}
 .tabs a:hover{color:var(--fg)}
 .tabs .on{background:var(--chip-on-bg);color:var(--chip-on-fg);font-weight:600;box-shadow:var(--chip-on-shadow)}
 .tabs .tag{font-size:11px;opacity:.75;margin-left:4px}
@@ -128,7 +128,13 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
 #out{min-height:52px}
 .empty{color:var(--fg-dim);font-size:13px;margin:14px 0;text-align:center}
 .rgrid{display:grid;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));gap:6px}
-.rgrid.vec{max-width:160px}
+.rgrid.big{margin-top:8px;gap:8px}
+.rgrid.big .rcell{font-size:20px;padding:15px 5px;border-width:2px;font-weight:600}
+/* 手机上的页内数字条：聚焦某个格子时出现，点它不会把焦点/系统键盘抢走 */
+.keypad{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.keypad[hidden]{display:none}
+.keypad .kk{flex:1 1 calc(14.28% - 4px);min-width:34px;padding:9px 0;border-radius:9px;border:1px solid var(--input-border);background:var(--input-bg);color:var(--fg);font:inherit;font-size:14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.keypad .kk:active{background:var(--chip-on-bg);color:var(--chip-on-fg)}
 .rcell{background:var(--input-bg);border:1px solid var(--input-border);border-radius:9px;padding:9px 3px;text-align:center;font-size:15px;font-variant-numeric:tabular-nums;word-break:break-all}
 .scalar{font-size:27px;font-weight:700;text-align:center;padding:12px 0;font-variant-numeric:tabular-nums}
 .roots{display:flex;flex-direction:column;gap:8px}
@@ -211,6 +217,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
       </div>
     </div>
     <div class="grid" id="gridA" style="--cols:3"></div>
+    <div class="keypad" id="padA" hidden></div>
   </section>
 
   <section class="card idle" id="cardB">
@@ -230,6 +237,7 @@ h1{font-size:17px;margin:0;letter-spacing:.01em}
       </div>
     </div>
     <div class="grid" id="gridB" style="--cols:3"></div>
+    <div class="keypad" id="padB" hidden></div>
   </section>
 
   <section class="card">
@@ -1848,6 +1856,65 @@ var Calc = {
   function grid(k){ return el("grid" + k); }
   function ins(k){ return Array.prototype.slice.call(grid(k).querySelectorAll("input")); }
 
+  /* ---------- 页内数字条（手机上不用系统键盘也能填矩阵） ----------
+     系统键盘的问题：格子是文字输入，按回车跳到下一格时 iOS 会把键盘切回字母键盘。
+     这里的数字条只在聚焦某个格子时出现，点它用 preventDefault 保住格子焦点，
+     系统键盘不会收起来也不会闪，数字、负号、分数线、小数点都能直接点。 */
+  var PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "/", ".", "⌫"];
+  var padCell = {}, padLast = {};
+  function padBuild(){
+    ["A", "B"].forEach(function(k){
+      var box = el("pad" + k);
+      if (!box) return;
+      box.innerHTML = PAD_KEYS.map(function(c){
+        return '<button type="button" class="kk" data-padk="' + k + '" data-c="' + c + '">' + c + "</button>";
+      }).join("");
+      if (!padLast[k]) padLast[k] = null;
+    });
+  }
+  function padShow(k, cell){
+    padCell[k] = cell; padLast[k] = cell;
+    var box = el("pad" + k);
+    if (box) box.hidden = false;
+  }
+  function padHide(k){
+    var box = el("pad" + k);
+    if (box && !box.contains(document.activeElement)) box.hidden = true;
+  }
+  function padInsert(k, c){
+    var list = ins(k);
+    var cell = padCell[k] || padLast[k] || list[0];
+    if (!cell || list.indexOf(cell) < 0) cell = list[0];
+    if (!cell) return;
+    var v = cell.value, s = cell.selectionStart, e = cell.selectionEnd;
+    if (s === null || s === undefined){ s = v.length; e = v.length; }
+    if (c === "⌫"){
+      if (s === e && s > 0){ cell.value = v.slice(0, s - 1) + v.slice(s); s = s - 1; }
+      else cell.value = v.slice(0, s) + v.slice(e);
+    } else {
+      cell.value = v.slice(0, s) + c + v.slice(e);
+      s = s + 1;
+    }
+    padCell[k] = cell; padLast[k] = cell;
+    var box = el("pad" + k);
+    if (box) box.hidden = false;
+    cell.focus();
+    try { cell.setSelectionRange(s, s); } catch (err) {}
+  }
+  document.addEventListener("mousedown", function(e){
+    var t = e.target && e.target.closest ? e.target.closest(".kk") : null;
+    if (t) e.preventDefault();
+  });
+  document.addEventListener("touchstart", function(e){
+    var t = e.target && e.target.closest ? e.target.closest(".kk") : null;
+    if (t) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("click", function(e){
+    var t = e.target && e.target.closest ? e.target.closest(".kk") : null;
+    if (!t) return;
+    padInsert(t.getAttribute("data-padk"), t.getAttribute("data-c"));
+  });
+
   function capture(k){
     var s = S[k], list = ins(k), out = [], i = 0;
     for (var y = 0; y < s.r; y++){
@@ -1879,6 +1946,12 @@ var Calc = {
           var list = ins(k), idx = list.indexOf(this);
           var next = list[(idx + 1) % list.length];
           if (next){ next.focus(); if (next.select) next.select(); }
+        });
+        /* 手机上：聚焦哪一格，就显示哪个矩阵的页内数字条 */
+        inp.addEventListener("focus", function(){ padShow(k, this); });
+        inp.addEventListener("blur", function(){
+          var self = this;
+          setTimeout(function(){ if (document.activeElement !== self) padHide(k); }, 150);
         });
         box.appendChild(inp);
       }
@@ -2016,7 +2089,7 @@ var Calc = {
   function blockHTML(b){
     if (b.type === "matrix"){
       var c = b.data[0] ? b.data[0].length : 1;
-      var h = '<div class="rgrid" style="--cols:' + c + '">';
+      var h = '<div class="rgrid' + (b.big ? " big" : "") + '" style="--cols:' + c + '">';
       b.data.forEach(function(row){ row.forEach(function(v){ h += '<div class="rcell">' + cellHTML(v) + "</div>"; }); });
       return h + "</div>";
     }
@@ -2101,7 +2174,9 @@ var Calc = {
         rs.steps.forEach(function(st, idx){ blocks.push({ type: "step", data: st, index: idx }); });
         blocks.push({ type: "text", text: "把每一步的初等矩阵按顺序乘起来，得到总的 <b>E = Eₖ⋯E₂E₁</b>：" });
         blocks.push({ type: "matrix", data: rs.E });
-        blocks.push({ type: "text", text: "可以验证 <b>E · A = 上面那个行最简形</b>；如果 A 是方阵且可逆，这个 E 正好就是 <b>A⁻¹</b>。" });
+        blocks.push({ type: "text", text: "可以验证 <b>E · A = 下面的行最简形</b>；如果 A 是方阵且可逆，这个 E 正好就是 <b>A⁻¹</b>。" });
+        blocks.push({ type: "text", text: "<b>最终结果：行最简形（RREF）</b>　——下面这个大图就是一路化简的终点。" });
+        blocks.push({ type: "matrix", data: rs.R, big: true });
         res = { label: "RREF 化简步骤（化到行最简形）", blocks: blocks };
       }
       else if (op === "rref") res = { label: "RREF A（行最简形）", blocks: [{ type: "matrix", data: L.rref(A).R }] };
@@ -2495,6 +2570,7 @@ var Calc = {
 
   build("A");
   build("B");
+  padBuild();
   setOp("add");
   var SKINS = ["glass", "light", "brutal"];
   var THEME = {

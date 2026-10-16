@@ -30,6 +30,15 @@ check("运算按钮数量", chipOps.length === 17, chipOps.join(","));
 check("每个按钮都带中文名", (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length === 17,
   "带中文名的有 " + (html.match(/<button class="chip[^"]*" data-op="[A-Za-z]+">[^<]+<i>[^<]+<\/i><\/button>/g) || []).length + " 个");
 check("有增广矩阵求解按钮", html.indexOf('data-op="aug"') >= 0 && ui.indexOf("augSolve") >= 0);
+check("有页内数字条（手机上不用系统键盘）",
+  html.indexOf('id="padA"') >= 0 && html.indexOf('id="padB"') >= 0 &&
+  ui.indexOf("function padInsert(") >= 0 && ui.indexOf("padBuild();") >= 0 &&
+  ui.indexOf('closest(".kk")') >= 0 && ui.indexOf("preventDefault();") >= 0);
+check("数字条含数字与分数线/负号/小数点/退格",
+  ui.indexOf('var PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "/", ".", "⌫"]') >= 0);
+check("RREF 步骤里有放大的最终矩阵",
+  ui.indexOf('data: rs.R, big: true') >= 0 && ui.indexOf('(b.big ? " big" : "")') >= 0 &&
+  html.indexOf(".rgrid.big .rcell{font-size:20px") >= 0);
 check("格子解析支持符号（用 L.val）", ui.indexOf("L.val(") >= 0 && ui.indexOf("isSym(f)") >= 0);
 check("符号渲染有上标样式", html.indexOf("renderSym") >= 0);
 check("REF/RREF 在运算卡片里、基本运算之上",
