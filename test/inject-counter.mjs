@@ -8,9 +8,10 @@ const FILES = ["src/home.html", "algebra.html", "src/transform.template.html", "
 
 const CSS_MARK = "/* ===== 访问计数器 ===== */";
 const CSS = `${CSS_MARK}
-.hitcounter{display:flex;justify-content:center;align-items:center;padding:16px 0 8px;min-height:34px}
-.hitcounter img{height:26px;width:auto;max-width:100%;opacity:.92;border-radius:3px}
-.hitcounter .hcfail{font-size:11.5px;color:var(--fg-dim);opacity:.7}
+.hitcounter{display:flex;justify-content:center;align-items:center;padding:18px 0 10px;min-height:52px}
+.hitcounter img{height:40px;width:auto;max-width:100%;opacity:.95;border-radius:4px}
+.hitcounter .hcfail{font-size:13px;color:var(--fg-dim);opacity:.75}
+@media (min-width:1000px){.hitcounter img{height:52px}}
 `;
 
 const COUNTER = `
