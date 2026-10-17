@@ -143,6 +143,32 @@ h1{font-size:17px;margin:0}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--fg-dim);margin-top:10px}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 @media (max-width:420px){h1{font-size:16px}.sub{display:none}.card{padding:11px}.geo{height:290px}}
+/* ===== 动效层 ===== */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes dshRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes dshFade{from{opacity:0}to{opacity:1}}
+  @keyframes dshPop{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+  .hero,.toprow,.tabs,.skins,.heroTitle{animation:dshFade .3s ease both}
+  .card,.pick{animation:dshRise .44s cubic-bezier(.22,.9,.3,1) both}
+  .card:nth-of-type(2){animation-delay:.06s}
+  .card:nth-of-type(3){animation-delay:.12s}
+  .card:nth-of-type(4){animation-delay:.18s}
+  .card:nth-of-type(5){animation-delay:.22s}
+  .picks .pick:nth-child(1){animation-delay:.02s}
+  .picks .pick:nth-child(2){animation-delay:.05s}
+  .picks .pick:nth-child(3){animation-delay:.08s}
+  .picks .pick:nth-child(4){animation-delay:.11s}
+  .picks .pick:nth-child(5){animation-delay:.14s}
+  .picks .pick:nth-child(6){animation-delay:.17s}
+  .picks .pick:nth-child(7){animation-delay:.2s}
+  .res,.stepbox,.rgrid,.calclab,.formula,.legend,.msgbox{animation:dshPop .26s ease both}
+  body,.card,.chip,.tabs,.tabs span,.skins button,.pick{transition:background-color .32s ease,color .32s ease,border-color .32s ease}
+  .chip:active,.run:active,.kk:active,.st:active,.skins button:active,.pick:active{transform:scale(.955);transition:transform .09s ease}
+  .chip:hover,.run:hover,.tabs a:hover{transform:translateY(-1px)}
+  html.dsh-leaving body{opacity:0;transform:translateY(-8px);transition:opacity .17s ease,transform .17s ease}
+  .keypad:not([hidden]){animation:dshPop .2s ease both}
+}
+html{scroll-behavior:smooth}
 </style>
 </head>
 <body>
@@ -2301,6 +2327,26 @@ var Calc = {
   } catch (e) {}
   if (SKINS.indexOf(saved) < 0) saved = "ark";
   applySkin(saved);
+})();
+
+/* ===== 动效层 JS ===== */
+(function(){
+  var root = document.documentElement;
+  root.classList.remove("dsh-leaving");
+  window.addEventListener("pageshow", function(){ root.classList.remove("dsh-leaving"); });
+  document.addEventListener("click", function(e){
+    var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+    if (!a) return;
+    if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var href = a.getAttribute("href") || "";
+    if (href.indexOf(".html") < 0) return;
+    if (/^[a-z]+:/i.test(href) || a.target === "_blank") return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+    e.preventDefault();
+    root.classList.add("dsh-leaving");
+    setTimeout(function(){ location.href = href; }, 165);
+  }, true);
 })();
 </script>
 </body>
