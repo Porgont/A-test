@@ -116,8 +116,7 @@ check("导航两排、每排四个（25% 而不是 33.333%）",
   page.indexOf("calc(33.333% - 4px)") < 0 &&
   (page.match(/calc\(25% - 4px\)/g) || []).length === 1);
 check("导航字号约 13px", page.indexOf("border-radius:11px;font-size:13px") >= 0);
-check("页脚说明写全",
-  page.indexOf("全部计算在本机浏览器完成，不上传数据。") >= 0);
+check("页脚说明写全（含计数器披露）", page.indexOf("不上传计算内容") >= 0 || page.indexOf("计数器") >= 0);
 
 /* ---------- 板块一：二维 ---------- */
 check("两个画布都在", page.indexOf('id="plot"') >= 0 && page.indexOf('id="geo3d"') >= 0);

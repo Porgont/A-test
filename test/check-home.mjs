@@ -57,7 +57,7 @@ check("显示版本号与更新时间",
   page.indexOf("V" + ver.version) >= 0 && page.indexOf(ver.updated) >= 0 && page.indexOf("__VERSION__") < 0);
 check("版本号格式正确", /^\d+\.\d+$/.test(ver.version) && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(ver.updated),
   ver.version + " / " + ver.updated);
-check("说明了数据不上传", page.indexOf("不上传任何数据") >= 0);
+check("页脚说明了数据不上传，并注明计数器只统计访问量", page.indexOf("不上传计算内容") >= 0 && page.indexOf("计数器") >= 0);
 
 console.log("");
 console.log(pass + " passed, " + fail + " failed");

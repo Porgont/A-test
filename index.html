@@ -200,6 +200,10 @@ body{font-family:"HarmonyOS Sans SC","HarmonyOS Sans","Noto Sans SC","Source Han
   font-weight:400;font-style:normal;font-display:swap;
 }
 body{font-family:"Pugua Sans","HarmonyOS Sans SC","Noto Sans SC","Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei",sans-serif}
+/* ===== 访问计数器 ===== */
+.hitcounter{display:flex;justify-content:center;align-items:center;padding:16px 0 8px;min-height:34px}
+.hitcounter img{height:26px;width:auto;max-width:100%;opacity:.92;border-radius:3px}
+.hitcounter .hcfail{font-size:11.5px;color:var(--fg-dim);opacity:.7}
 </style>
 </head>
 <body>
@@ -208,7 +212,7 @@ body{font-family:"Pugua Sans","HarmonyOS Sans SC","Noto Sans SC","Segoe UI",syst
   <div class="hero">
     <h1 class="heroTitle">蒲瓜的计算器</h1>
     <p class="heroSub">由 Deepseek 制作</p>
-    <p class="ver">版本 <b>V2.14</b>　·　更新于 2026-10-17 18:17</p>
+    <p class="ver">版本 <b>V2.15</b>　·　更新于 2026-10-17 23:25</p>
   </div>
 
   <div class="toprow">
@@ -308,7 +312,7 @@ body{font-family:"Pugua Sans","HarmonyOS Sans SC","Noto Sans SC","Segoe UI",syst
   </a>
   </div>
 
-  <p class="foot">全部计算都在你的浏览器里完成，不上传任何数据。<br>手机可以把本页「添加到主屏幕」，用起来跟 App 一样。</p>
+  <p class="foot">计算全部在本机完成，不上传计算内容；页脚计数器只统计页面访问量。<br>手机可以把本页「添加到主屏幕」，用起来跟 App 一样。</p>
 </div>
 
 <script>
@@ -366,5 +370,11 @@ body{font-family:"Pugua Sans","HarmonyOS Sans SC","Noto Sans SC","Segoe UI",syst
   }, true);
 })();
 </script>
+
+<div class="wrap hitcounter" aria-label="页面访问量">
+  <img src="https://count.getloli.com/get/@pugua-calc?theme=moebooru" alt="页面访问量"
+       loading="lazy" decoding="async" referrerpolicy="no-referrer"
+       onerror="this.outerHTML='&lt;span class=&quot;hcfail&quot;&gt;访问量计数器暂不可用&lt;/span&gt;'">
+</div>
 </body>
 </html>

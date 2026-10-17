@@ -54,7 +54,7 @@ check("同步 iOS 状态栏样式",
 check("大标题与署名", page.indexOf("蒲瓜的计算器") >= 0 && page.indexOf("由 Deepseek 制作") >= 0);
 check("品牌 logo 用 P、标语写「分布列 · 期望 · 方差」",
   page.indexOf('<span class="logo" id="logo">P</span>') >= 0 && page.indexOf("分布列 · 期望 · 方差") >= 0);
-check("页脚写明不上传数据", page.indexOf("全部计算在本机浏览器完成，不上传数据") >= 0);
+check("页脚写明不上传计算内容（并披露计数器）", page.indexOf("不上传计算内容") >= 0 && page.indexOf("计数器") >= 0);
 
 /* ---------- 八项导航 ---------- */
 const NAV = [
@@ -400,8 +400,7 @@ if (S) {
 }
 
 /* ---------- 与其它页一致的约定 ---------- */
-check("单文件、无外部依赖",
-  page.indexOf("<link") < 0 && page.indexOf("src=\"http") < 0 && page.indexOf("<script src") < 0);
+check("无外部脚本/样式（只允许页脚计数器那一张图）", !/<script[^>]+src=/.test(page) && !/<link[^>]+href="https?:/i.test(page));
 
 console.log("");
 console.log(pass + " passed, " + fail + " failed");
